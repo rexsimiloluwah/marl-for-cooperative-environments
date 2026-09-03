@@ -136,23 +136,21 @@ env.render()
 
 The practical labs are designed to run without a GPU.
 
-## Educational Integrity
+## AI Usage and Educational Integrity
 
-The resource distinguishes three kinds of claim throughout, and never blurs
-them:
+- **AI-assisted development:** Generative AI tools were used to support parts of
+  the writing, coding, visual design, and iteration of this resource. All
+  educational content and technical claims were reviewed before inclusion.
 
-1. published results, cited;
-2. our own measured experimental results;
-3. illustrative educational examples.
+- **Designed for learning:** Examples, environments, and simplified scenarios
+  are created for learning and educational purposes. They are intended to build
+  intuition and support experimentation, not to represent production systems or
+  research benchmarks.
 
-No synthetic number is presented as a benchmark result, no hand-coded policy is
-described as learned, and no rule-based message protocol is described as
-emergent. Where a quantity has not been measured, no number is given.
-
-Every measured figure in the Challenge Lab comes from one script,
-`scripts/marl/measure_wireless.py`, averaged over three training seeds. The
-environments are teaching models rather than benchmarks, and the resource says
-so wherever a number appears.
+- **Reproducible teaching experiments:** Measured results in the Challenge Lab
+  come from the provided experiment scripts and are averaged across multiple
+  training seeds. The environments are designed for teaching, not as research
+  benchmarks, and are described accordingly.
 
 ## Contributing
 

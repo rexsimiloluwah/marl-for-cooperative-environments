@@ -36,6 +36,11 @@ class Listener(nn.Module):
 
 
 def onehot(index: int, n: int) -> torch.Tensor:
+    """A one-hot vector of length ``n`` with position ``index`` set.
+
+    Targets and symbols are categorical, and a one-hot input keeps the network
+    from reading an ordering into them that the task does not have.
+    """
     v = torch.zeros(n)
     v[index] = 1.0
     return v

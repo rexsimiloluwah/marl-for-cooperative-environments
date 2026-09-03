@@ -304,9 +304,12 @@ class WirelessResourceAllocationEnv(ParallelEnv):
         self._action_spaces = dict.fromkeys(self.possible_agents, discrete)
 
     def observation_space(self, agent: str) -> spaces.Space:
+        """A Box of own demand, per-channel quality, per-channel interference,
+        previous channel, and the message bits when communication is on."""
         return self._observation_spaces[agent]
 
     def action_space(self, agent: str) -> spaces.Space:
+        """One channel choice, ``Discrete(n_channels)``."""
         return self._action_spaces[agent]
 
     def observation_layout(self) -> dict[str, slice]:
@@ -450,6 +453,8 @@ class WirelessResourceAllocationEnv(ParallelEnv):
     # -------------------------------------------------------- ParallelEnv API
 
     def reset(self, seed: int | None = None, options: dict | None = None):
+        """Draw new traffic demands and clear the allocation. Demand is held
+        fixed for the episode. Returns ``(observations, infos)``."""
         if seed is not None:
             self._rng = np.random.default_rng(seed)
         self.agents = list(self.possible_agents)
@@ -459,6 +464,9 @@ class WirelessResourceAllocationEnv(ParallelEnv):
         return self._observations(), {a: {} for a in self.agents}
 
     def step(self, actions: dict[str, int]):
+        """Apply one joint channel allocation. Every access point receives the
+        same team reward, and ``infos`` carries the full metric dictionary
+        from :meth:`outcome`. Returns the five dictionaries."""
         if not self.agents:
             raise RuntimeError("call reset() before step()")
 

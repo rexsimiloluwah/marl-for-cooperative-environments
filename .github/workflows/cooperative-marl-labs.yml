@@ -36,6 +36,22 @@ jobs:
       - name: Test
         run: pytest
 
+      # The reference pages are generated from these docstrings. If a
+      # signature or a docstring changed without regenerating, the published
+      # documentation is now lying about the package, so fail here.
+      - name: Reference pages are up to date
+        if: matrix.python-version == '3.13'
+        working-directory: .
+        run: |
+          python3 scripts/docs/build_api_reference.py
+          if ! git diff --quiet -- src/content/docs/package; then
+            echo "::error::The API reference is stale. Run:"
+            echo "::error::  python3 scripts/docs/build_api_reference.py"
+            git diff --stat -- src/content/docs/package
+            exit 1
+          fi
+          echo "reference pages match the package"
+
   build:
     runs-on: ubuntu-latest
     needs: test

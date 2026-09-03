@@ -34,6 +34,16 @@ export default defineConfig({
   trailingSlash: 'ignore',
   build: { format: 'directory' },
 
+  // The package documentation moved out of Resources into its own section.
+  // Anyone who bookmarked or linked the old path still lands in the right
+  // place, which costs one line and avoids a dead link on somebody else's site.
+  // The destination is written out with the base: Astro prefixes the source
+  // path but leaves the target alone, so a bare '/package/overview' would send
+  // a project-site visitor to the domain root.
+  redirects: {
+    '/resources/python-package': `${BASE.replace(/\/+$/, '')}/package/overview`,
+  },
+
   // Astro 7 defaults to the Sätteri processor, whose plugin API is
   // visitor-based and does not accept unified plugins. We opt into the
   // unified processor so `remark-math` and `rehype-katex` work exactly as

@@ -225,3 +225,15 @@ NeurIPS 2026 Education Track submission. Spec lives in MASTER_PROMPT.md.
 - [x] `public/.nojekyll`, insurance if Pages is ever switched to branch-based
 - [ ] Enable it: Settings, Pages, Source: GitHub Actions
 
+## API reference for cooperative-marl-labs
+
+- [x] `scripts/docs/build_api_reference.py` generates six reference pages from the package
+- [x] Signatures introspected, long ones wrapped, string annotations unquoted
+- [x] Docstrings never inherited from outside the package: PettingZoo was describing our `render()` wrongly
+- [x] Generator refuses to emit anything MDX would misparse
+- [x] 47/47 public symbols documented, up from 45
+- [x] 14 docstrings added to the environment methods a learner actually calls
+- [x] Its own nav section, with the overview page moved out of Resources
+- [x] Redirect from the old `/resources/python-package` path, base-aware
+- [x] Package CI regenerates and fails if the committed pages are stale
+

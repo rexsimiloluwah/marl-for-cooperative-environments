@@ -20,7 +20,7 @@ A browser lab and three lightweight notebooks provide the computational
 activities for coordination, communication, adaptation, and the wireless
 Challenge Lab. None requires a MARL framework, a GPU, or a large training job.
 The environments, baselines and plots come from the
-[`cooperative-marl-labs` package](/resources/python-package/), so a learner can
+[`cooperative-marl-labs` package](/package/overview/), so a learner can
 change conditions, compare policies and interpret results on a free Colab CPU
 rather than spend the lab implementing an environment.
 
@@ -136,7 +136,7 @@ Each notebook opens with one install cell:
 !pip install -q cooperative-marl-labs
 ```
 
-Everything the labs need is in that [package](/resources/python-package/), so a
+Everything the labs need is in that [package](/package/overview/), so a
 notebook holds the experiment rather than the environment. The Communicate lab
 adds the PyTorch extra, `cooperative-marl-labs[learning]`, because its protocol
 experiments train a small network.

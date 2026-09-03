@@ -94,6 +94,27 @@ API and [PUBLISHING.md](cooperative-marl-labs/PUBLISHING.md) for release steps.
 PyTorch is an optional extra and is not imported at package import time; keep
 it that way, because it is what makes the base install fast on Colab.
 
+## The API reference
+
+The pages under `src/content/docs/package/` are **generated** from the
+package's own docstrings. Do not edit them by hand: edit the docstring and
+regenerate.
+
+```bash
+python3 scripts/docs/build_api_reference.py
+```
+
+The docstrings are the documentation; the script only arranges them. It refuses
+to emit anything MDX would misparse, and it never inherits a docstring from
+outside the package. That second rule exists because `inspect.getdoc` walks up
+into PettingZoo, which is how `render()` came to be documented as "displays a
+rendered frame" when ours prints one line of text. A wrong description is worse
+than none.
+
+The package's CI regenerates and fails if the result differs from what is
+committed, so a docstring change cannot silently leave the published reference
+behind.
+
 ## The notebooks
 
 Notebooks are **generated**, not edited by hand. Edit the builder and rebuild:
@@ -170,6 +191,7 @@ python3 scripts/qa/links.py                     # every internal link resolves
 npx tsc --noEmit -p .                           # types
 cd cooperative-marl-labs && pytest && ruff check .
 python3 scripts/notebooks/verify.py notebooks/*.ipynb
+python3 scripts/docs/build_api_reference.py && git diff --exit-code -- src/content/docs/package
 ```
 
 ### Re-measuring the wireless numbers

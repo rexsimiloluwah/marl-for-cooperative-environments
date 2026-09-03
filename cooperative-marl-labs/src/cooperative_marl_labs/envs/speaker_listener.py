@@ -86,9 +86,11 @@ class SpeakerListenerEnv(ParallelEnv):
         }
 
     def observation_space(self, agent: str) -> spaces.Space:
+        """The speaker sees a one-hot target; the listener sees a one-hot symbol."""
         return self._observation_spaces[agent]
 
     def action_space(self, agent: str) -> spaces.Space:
+        """The speaker chooses a symbol; the listener chooses a target."""
         return self._action_spaces[agent]
 
     # ---- helpers ----
@@ -113,6 +115,7 @@ class SpeakerListenerEnv(ParallelEnv):
     # ---- ParallelEnv API ----
 
     def reset(self, seed: int | None = None, options: dict | None = None):
+        """Draw a new hidden target. Returns ``(observations, infos)``."""
         if seed is not None:
             self._rng = np.random.default_rng(seed)
         self.agents = list(self.possible_agents)
@@ -124,6 +127,8 @@ class SpeakerListenerEnv(ParallelEnv):
         return self._observations(), infos
 
     def step(self, actions: dict[str, int]):
+        """Advance one of the episode's two steps: the speaker sends, then the
+        listener guesses. Returns the five ParallelEnv dictionaries."""
         if not self.agents:
             raise RuntimeError("call reset() before step()")
 
@@ -156,6 +161,8 @@ class SpeakerListenerEnv(ParallelEnv):
         return obs, rewards, terminations, truncations, infos
 
     def render(self) -> str:
+        """Print and return one line: the target, the symbol sent, and the one
+        that arrived. They differ when ``message_error`` corrupts it."""
         line = (
             f"target={self.target}  "
             f"sent={self.message}  "

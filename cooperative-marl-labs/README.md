@@ -11,6 +11,9 @@ environment is a simplified interference model with no fading, mobility or
 protocol overhead. No number it produces is a benchmark result or a wireless
 engineering result.
 
+**Full API reference:**
+<https://rexsimiloluwah.github.io/marl-for-cooperative-environments/package/overview/>
+
 ## Installation
 
 ```bash

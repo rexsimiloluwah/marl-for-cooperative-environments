@@ -92,9 +92,11 @@ class PartnerCoordinationEnv(ParallelEnv):
     # ---- spaces ----
 
     def observation_space(self, agent: str) -> spaces.Space:
+        """A one-hot of the partner's last role, plus a slot for "nothing yet"."""
         return self._observation_spaces[agent]
 
     def action_space(self, agent: str) -> spaces.Space:
+        """Two actions: FETCH and COOK."""
         return self._action_spaces[agent]
 
     # ---- helpers ----
@@ -115,6 +117,8 @@ class PartnerCoordinationEnv(ParallelEnv):
     # ---- ParallelEnv API ----
 
     def reset(self, seed: int | None = None, options: dict | None = None):
+        """Start a new episode and reset the partner. Returns ``(observations,
+        infos)``. Call ``set_partner`` first."""
         if seed is not None:
             self._rng = np.random.default_rng(seed)
         self.agents = list(self.possible_agents)
@@ -129,6 +133,8 @@ class PartnerCoordinationEnv(ParallelEnv):
         return self._obs(), {EGO: {}}
 
     def step(self, actions: dict[str, int]):
+        """Take the ego's action, ask the partner for its own, and reward the
+        pair 1 when the two roles differ. Returns the five dictionaries."""
         if not self.agents:
             raise RuntimeError("call reset() before step()")
 
@@ -161,6 +167,7 @@ class PartnerCoordinationEnv(ParallelEnv):
         return obs, rewards, terminations, truncations, infos
 
     def render(self) -> str:
+        """Print and return one line naming the role the partner last took."""
         last = "none" if self.partner_last is None else ROLE_NAMES[self.partner_last]
         line = f"t={self._t}  partner last took {last}"
         print(line)

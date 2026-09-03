@@ -19,4 +19,9 @@ CHANNEL_COLOURS = (POLICY, OBSERVE, REWARD, ACTION, CONFLICT)
 
 
 def channel_colour(channel: int) -> str:
+    """The colour for one channel, wrapping if there are more than five.
+
+    The same three colours the lab illustration uses, so a plot and the picture
+    on the website agree about which channel is which.
+    """
     return CHANNEL_COLOURS[int(channel) % len(CHANNEL_COLOURS)]
