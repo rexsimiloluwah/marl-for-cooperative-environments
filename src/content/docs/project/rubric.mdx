@@ -1,0 +1,132 @@
+---
+title: "Rubric"
+description: "Four criteria at 25% each: problem formulation, coordination and communication design, adaptation strategy, and evaluation."
+related:
+  - slug: project/deliverables
+    icon: package
+  - slug: project/brief
+    icon: file-text
+  - slug: adapt/worksheet
+    icon: cycle
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+The project rubric assigns equal weight to problem formulation, coordination
+and communication design, adaptation strategy, and evaluation quality. This
+page defines strong, adequate, and weak evidence for each criterion before
+showing how the four parts combine into one coherent system argument. Use it
+while designing, not only after writing: each mechanism should answer a stated
+problem, and each claimed benefit should appear in the evaluation plan.
+
+<div class="table-scroll">
+
+| Criterion | Weight |
+| --- | --- |
+| Problem formulation | 25% |
+| Coordination and communication design | 25% |
+| Adaptation strategy | 25% |
+| Evaluation and justification | 25% |
+</div>
+
+## Problem formulation · 25%
+
+> Are agents, observations, actions, reward and objective clearly defined?
+
+<div class="table-scroll">
+
+| | |
+| --- | --- |
+| **Strong** | Three to five roles with distinct observations. The state is visibly larger than any observation. At least one role holds information another needs. One shared reward, three or four terms, each justified. The objective sentence and the reward agree. |
+| **Adequate** | The pieces are all present and some are vague. Observations are plausible but not clearly local. The reward is reasonable and unjustified. |
+| **Weak** | An observation that is really the state. Per-agent rewards without acknowledging that this leaves the cooperative setting. Roles that differ in name only. |
+</div>
+
+## Coordination and communication design · 25%
+
+> Do the chosen mechanisms actually address the stated problems?
+
+The word doing the work is **actually**. This criterion is not testing whether
+you can name mechanisms.
+
+<div class="table-scroll">
+
+| | |
+| --- | --- |
+| **Strong** | One specific coordination problem, and a training approach chosen because it addresses that problem. Communication content justified against what the receiver needs. One constraint chosen and its consequences followed through. Rejected alternatives named. |
+| **Adequate** | Sensible mechanisms, loosely connected to the difficulties. Communication specified without a clear account of what decision it changes. |
+| **Weak** | A list of techniques with no stated problem. Communication that transmits everything. A constraint mentioned and never used. |
+</div>
+
+<Callout variant="takeaway">
+The clearest way to earn this criterion is to name a mechanism you **did not**
+use, and why.
+
+The Challenge Lab is the evidence that this matters: value decomposition
+improved reward by 0.06 there while communication improved it by 1.43, because
+the bottleneck was information rather than credit. A brief that shows you
+diagnosed before prescribing is doing the thing this criterion measures.
+</Callout>
+
+## Adaptation strategy · 25%
+
+> Does the system account for unfamiliar or changing agents, rather than
+> assuming a fixed team?
+
+<div class="table-scroll">
+
+| | |
+| --- | --- |
+| **Strong** | A specific unfamiliar condition. A training strategy with its cost acknowledged. An adaptation mechanism whose inputs are all local. A concrete **behavioural consequence**: what an agent does differently, and after what evidence. |
+| **Adequate** | Diversity or modelling proposed in general terms, with no stated consequence. Partner variation asserted rather than verified. |
+| **Weak** | "The system will adapt." A partner model taking inputs no deployed agent has. No acknowledgement that the team might change. |
+</div>
+
+The behavioural consequence is where this criterion is usually won or lost.
+"Maintains a partner representation" is a component; "reallocates from sector
+B to sector D after three steps of observing the new drone enter B" is a
+design.
+
+## Evaluation and justification · 25%
+
+> Could the proposed experiments distinguish a robust cooperative system from
+> one that merely performs well under familiar conditions?
+
+<div class="table-scroll">
+
+| | |
+| --- | --- |
+| **Strong** | Four to six metrics across the categories. An evaluation matrix stating what each condition establishes. Held-out agents described behaviourally. One variable at a time. A falsification test, and a statement of what result would be worrying. |
+| **Adequate** | Reasonable metrics, mostly measured under favourable conditions. Held-out agents mentioned without characterisation. |
+| **Weak** | Task performance only. A gap reported without both halves. Every test one the system is expected to pass. |
+</div>
+
+<Callout variant="pitfall">
+Two specific things that cost marks here, both of which this resource measured
+rather than asserted:
+
+**Reporting a gap alone.** In the Adapt Lab the worst agent had the smallest
+gap. In the Challenge Lab the smallest drop under a traffic shift belonged to
+the weaker system, which had less to lose, and the ordering **reversed** on the
+next test. A difference of two numbers can be improved by making the larger one
+smaller, and one shift is not evidence about robustness in general.
+
+**Held-out meaning nothing.** The Adapt Lab's adaptive agent scored 25 on
+one held-out partner and 2 on another. Both were held out. What differed was
+how far each sat from the training distribution.
+</Callout>
+
+## Coherence Across Criteria
+
+Not whether your system would work. Nobody can tell that from two pages, and
+the project does not ask.
+
+What is being assessed is whether you can take an open problem, formulate it
+as a cooperative multi-agent system, choose mechanisms that address the
+difficulties you identified rather than the ones you can name, plan for agents
+you did not build, and design experiments that could prove you wrong.
+
+That is the Create level, and it is the last thing this resource asks of you.

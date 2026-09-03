@@ -1,0 +1,85 @@
+---
+/**
+ * ONE ANSWER IN THE KEY
+ *
+ * A numbered row: the question number in a fixed gutter, the answer beside
+ * it. Structured rather than hand-formatted, so the number is a real element
+ * that lines up with every other one instead of a bold run inside a list item.
+ *
+ * Content is a slot, so an answer can carry maths, a short table, or a list.
+ */
+interface Props {
+  /** The question number, e.g. "2.1". */
+  n: string;
+}
+const { n } = Astro.props;
+---
+
+<div class="an">
+  <span class="an__n" aria-hidden="true">{n}</span>
+  <div class="an__body">
+    <span class="an__sr">Answer to {n}.</span>
+    <slot />
+  </div>
+</div>
+
+<style>
+  .an {
+    display: grid;
+    grid-template-columns: 3rem 1fr;
+    gap: var(--s-3);
+    padding-block: var(--s-3);
+    border-top: var(--hairline) solid var(--rule);
+  }
+  .an:first-of-type { border-top: none; padding-top: 0; }
+
+  .an__n {
+    font-family: var(--font-mono);
+    font-size: var(--t-small);
+    font-weight: var(--w-semibold);
+    color: var(--ui);
+    text-align: right;
+    padding-top: 1px;
+  }
+
+  .an__body {
+    font-size: var(--t-small);
+    line-height: 1.6;
+    color: var(--ink-2);
+    min-width: 0;
+  }
+  .an__body :global(> :first-child) { margin-top: 0; }
+  .an__body :global(> :last-child) { margin-bottom: 0; }
+  .an__body :global(p) { margin-block: var(--s-2); }
+  .an__body :global(ul),
+  .an__body :global(ol) {
+    margin: var(--s-2) 0;
+    padding-left: var(--s-4);
+  }
+  .an__body :global(li) { margin-block: 2px; }
+  .an__body :global(strong) { color: var(--ink); }
+  .an__body :global(table) {
+    margin-block: var(--s-2);
+    border-collapse: collapse;
+    font-size: var(--t-meta);
+  }
+  .an__body :global(th),
+  .an__body :global(td) {
+    padding: 2px 12px 2px 0;
+    text-align: left;
+    border-bottom: var(--hairline) solid var(--rule);
+  }
+
+  .an__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  @media (max-width: 26rem) {
+    .an { grid-template-columns: 1fr; gap: var(--s-1); }
+    .an__n { text-align: left; }
+  }
+</style>

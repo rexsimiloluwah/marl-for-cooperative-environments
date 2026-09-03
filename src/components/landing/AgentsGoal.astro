@@ -1,0 +1,166 @@
+---
+/**
+ * HERO SCENE: three agents, one shared goal.
+ *
+ * Isometric, procedural, no external assets. The composition carries the
+ * argument of the whole course:
+ *
+ *   - three agents, each a different colour and carrying a different piece,
+ *     so they are visibly separate decision makers rather than one system
+ *   - one target, on a raised dais, so the goal is unmistakably shared
+ *   - three dashed paths that converge only AT the target and never touch
+ *     each other, because at this point in the course the agents are not
+ *     coordinating yet. That is the problem Chapter 2 opens with.
+ *
+ * Depth comes from an isometric dais with a lit top face and a shaded rim,
+ * cast shadows sized by height, and consistent upper-left light.
+ */
+import IsoRobot from './IsoRobot.astro';
+
+/* Dais geometry. The 0.395 ratio is a ~66-degree viewing angle, kept
+   consistent for every ellipse in the scene so they read as one plane. */
+const CX = 330;
+const CY = 236;
+const RX = 86;
+const RY = Math.round(RX * 0.395);
+const RIM = 20;
+
+/** Concentric target rings on the dais top face. */
+const rings = [
+  { rx: 74, cls: 'sg__ring1' },
+  { rx: 54, cls: 'sg__ring2' },
+  { rx: 33, cls: 'sg__ring3' },
+];
+---
+
+<svg class="sg" viewBox="0 0 660 480" role="img" aria-labelledby="sg-t">
+  <title id="sg-t">
+    Three robot agents, coloured blue, orange and green, stand around a raised
+    circular platform carrying a bullseye target and a flag. Each agent holds
+    a different coloured piece and follows its own separate dashed path to the
+    target. The paths meet only at the target, never each other.
+  </title>
+
+  <!-- ground plane -->
+  <ellipse class="sg__plane" cx={CX} cy={CY + 74} rx="292" ry="116" />
+
+  <!-- ---------- approach paths, behind everything ---------- -->
+  <path class="sg__path sg__path--observe" d="M 176 308 C 212 300, 236 282, 252 262" />
+  <path class="sg__path sg__path--action" d="M 484 308 C 448 300, 424 282, 408 262" />
+  <path class="sg__path sg__path--reward" d="M 286 416 C 284 386, 296 356, 312 292" />
+
+  <!-- ---------- dais ---------- -->
+  <!-- lower tier -->
+  <ellipse class="sg__tierShade" cx={CX} cy={CY + RIM + 12} rx={RX + 12} ry={RY + 5} />
+  <path
+    class="sg__rim"
+    d={`M ${CX - RX - 12} ${CY + 12} L ${CX - RX - 12} ${CY + RIM + 12} A ${RX + 12} ${RY + 5} 0 0 0 ${CX + RX + 12} ${CY + RIM + 12} L ${CX + RX + 12} ${CY + 12} A ${RX + 12} ${RY + 5} 0 0 1 ${CX - RX - 12} ${CY + 12} Z`}
+  />
+  <ellipse class="sg__tierTop" cx={CX} cy={CY + 12} rx={RX + 12} ry={RY + 5} />
+
+  <!-- upper tier -->
+  <path
+    class="sg__rim"
+    d={`M ${CX - RX} ${CY} L ${CX - RX} ${CY + RIM} A ${RX} ${RY} 0 0 0 ${CX + RX} ${CY + RIM} L ${CX + RX} ${CY} A ${RX} ${RY} 0 0 1 ${CX - RX} ${CY} Z`}
+  />
+  <ellipse class="sg__tierTop" cx={CX} cy={CY} rx={RX} ry={RY} />
+
+  <!-- target rings on the top face -->
+  {
+    rings.map((r) => (
+      <ellipse class={r.cls} cx={CX} cy={CY} rx={r.rx} ry={Math.round(r.rx * 0.395)} />
+    ))
+  }
+  <ellipse class="sg__bull" cx={CX} cy={CY} rx="13" ry="5" />
+
+  <!-- flag -->
+  <ellipse class="sg__poleFoot" cx={CX} cy={CY} rx="7" ry="3" />
+  <line class="sg__pole" x1={CX} y1={CY - 2} x2={CX} y2={CY - 92} />
+  <path class="sg__flag" d={`M ${CX + 2} ${CY - 90} L ${CX + 52} ${CY - 74} L ${CX + 2} ${CY - 58} Z`} />
+  <path class="sg__flagShade" d={`M ${CX + 2} ${CY - 74} L ${CX + 52} ${CY - 74} L ${CX + 2} ${CY - 58} Z`} />
+
+  <!-- ---------- agents ---------- -->
+  <!-- Back agents first, front agent last, so overlap reads correctly. -->
+  <IsoRobot x={134} y={318} scale={1.2} tone="observe" piece="cube" />
+  <IsoRobot x={528} y={318} scale={1.2} tone="action" piece="cone" flip />
+  <IsoRobot x={336} y={432} scale={1.26} tone="reward" piece="sphere" flip />
+
+  <text class="sg__label" x={CX} y={CY - 118} text-anchor="middle">SHARED GOAL</text>
+</svg>
+
+<style>
+  .sg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .sg__plane {
+    fill: color-mix(in srgb, var(--ui) 8%, transparent);
+  }
+
+  /* ---- dais ----
+     Top faces lit, rims shaded, and a soft ellipse under the lower tier so
+     the whole structure sits on the plane rather than floating. */
+  .sg__tierTop {
+    fill: var(--iso-body);
+    stroke: color-mix(in srgb, var(--ink) 12%, transparent);
+    stroke-width: 1.2;
+  }
+
+  .sg__rim {
+    fill: var(--iso-shade-2);
+  }
+
+  .sg__tierShade {
+    fill: var(--iso-cast);
+  }
+
+  /* ---- target ---- */
+  .sg__ring1 { fill: color-mix(in srgb, var(--c-action) 22%, transparent); }
+  .sg__ring2 { fill: color-mix(in srgb, var(--c-action) 45%, transparent); }
+  .sg__ring3 { fill: color-mix(in srgb, var(--c-action) 72%, transparent); }
+  .sg__bull { fill: var(--c-action); }
+
+  /* ---- flag ---- */
+  .sg__pole {
+    stroke: var(--iso-visor);
+    stroke-width: 3.4;
+    stroke-linecap: round;
+  }
+  .sg__poleFoot {
+    fill: var(--iso-shade-3);
+  }
+  .sg__flag {
+    fill: var(--c-action);
+  }
+  .sg__flagShade {
+    fill: rgba(0, 0, 0, 0.12);
+  }
+
+  /* ---- paths ----
+     Dashed, because these are intended routes rather than links that exist.
+     They stop short of one another on purpose. */
+  .sg__path {
+    fill: none;
+    stroke-width: 3.4;
+    stroke-linecap: round;
+    stroke-dasharray: 5 9;
+  }
+  .sg__path--observe { stroke: var(--c-observe); }
+  .sg__path--action { stroke: var(--c-action); }
+  .sg__path--reward { stroke: var(--c-reward); }
+
+  .sg__label {
+    fill: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+  @media (max-width: 48rem) {
+    .sg__label { font-size: 20px; }
+  }
+</style>

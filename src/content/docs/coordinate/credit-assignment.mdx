@@ -1,0 +1,194 @@
+---
+title: "Credit Assignment"
+description: "How cooperative learners infer which agents and actions contributed to a shared outcome."
+related:
+  - slug: coordinate/value-decomposition
+    icon: lightbulb
+  - slug: coordinate/centralized-critics
+    icon: cycle
+  - slug: background/cooperative-rewards
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+Which of an agent's actions produced the reward the team received?
+</Callout>
+
+Credit assignment asks how a shared outcome should influence the agents and actions that produced it.
+
+<Objectives>
+
+- Separate temporal credit assignment from multi-agent credit assignment
+- Use joint-action values to supply the missing context
+- Construct a counterfactual comparison for one agent's action
+
+</Objectives>
+
+## Temporal and Multi-Agent Credit Assignment
+
+"Credit assignment" refers to two different difficulties, and separating them
+helps.
+
+**Temporal credit assignment** asks *which of my earlier actions* mattered.
+Agent 1 served the order at step 5, but the collect at step 1 was just as
+necessary. This exists in single-agent reinforcement learning too, and
+discounted returns and value functions are the standard machinery for it.
+
+**Multi-agent credit assignment** asks *which agent* mattered. Both agents
+received $+10$. Did agent 2's step-2 wait help, or was it idling? Would the
+order still have gone out if it had done something else? This one is new, and
+it is what this chapter is about.
+
+<Callout variant="definition" title="Multi-agent credit assignment">
+> Which agents and which actions were responsible for the observed team
+> return?
+
+The textbook notes this is particularly difficult in **common-reward**
+environments precisely because the same reward is applied across all agents,
+leaving the learners to disentangle the effects of individual actions
+themselves.
+
+The shared reward that makes the problem cooperative is the same feature that
+makes credit impossible to read off.
+</Callout>
+
+Note the shape of the difficulty. It is not that the information is noisy. It
+is that the reward was never a sum of per-agent contributions in the first
+place, nothing was added up, so nothing can be taken apart by inspecting the
+total.
+
+## Credit from Joint-Action Values
+
+*Coordination* introduced the two forms. Bring them back, because this is what
+they are for.
+
+<Equation
+  label="Figure 1"
+  wide
+  tex={String.raw`\cbox{action}{Q\bigl(\tone{observe}{s}, \tone{action}{\jointact}\bigr)}`}
+  terms={[
+    { tex: String.raw`Q(s, \jointact)`, is: 'the value of this state together with this particular combination of actions', tone: 'action' },
+  ]}
+  caption="A value that can hold different numbers for different combinations of who did what."
+/>
+
+Because this function is defined on the whole joint action, it can assign
+different values to different combinations, and that is more information
+about how the agents contributed than a single team reward carries. The
+textbook identifies joint-action values as one approach to disentangling
+contributions for exactly this reason.
+
+Consider a two-agent step, with values a joint-action function could hold:
+
+<div class="table-scroll">
+
+| Agent 1 | Agent 2 | $Q(s, \jointact)$ |
+| --- | --- | --- |
+| collect | prepare | **8.0** |
+| collect | collect | 2.5 |
+| prepare | prepare | 2.0 |
+| prepare | collect | 7.5 |
+</div>
+
+Read down the first column. When agent 1 collects, the outcome is 8.0 or 2.5
+depending entirely on agent 2. A per-agent value $Q_1(s, a^1)$ would have to
+report one number for "collect", somewhere in the middle, describing neither
+case.
+
+## Counterfactual Credit
+
+The table also suggests how to extract an individual contribution from a joint
+value, and the idea is simple enough to state in a sentence.
+
+> **What would have happened if agent 1 had chosen a different action, while
+> everybody else behaved the same way?**
+
+That question is answerable from the table. Holding agent 2 at "prepare",
+agent 1 collecting is worth 8.0 and preparing is worth 2.0. The difference is
+attributable to agent 1, because nothing else changed.
+
+<Equation
+  label="Figure 2"
+  wide
+  tex={String.raw`\text{contribution of } \ag \;\approx\; \tone{action}{Q(s, \jointact)} \;-\; \ubrace{observe}{\textstyle\sum_{a'} \pol{\ag}(a') \, Q\bigl(s, (a', \jointact^{-\ag})\bigr)}{the same step with agent i's action replaced}`}
+  terms={[
+    { tex: String.raw`\jointact^{-\ag}`, is: 'what every OTHER agent did, held fixed', tone: 'action' },
+    { tex: String.raw`a'`, is: 'an alternative action agent i could have taken instead' },
+    { tex: String.raw`\pol{\ag}(a')`, is: 'how likely agent i was to take that alternative', tone: 'policy' },
+  ]}
+  caption="Compare what happened against the average of what would have happened if only this agent had acted differently."
+/>
+
+Hold the partners fixed, vary one agent, and the change in value is that
+agent's contribution to this step. This is
+<Term tone="policy">counterfactual</Term> credit assignment, and it is a
+genuinely satisfying answer to "what did I do?"
+
+<Callout variant="takeaway">
+In a small kitchen game, a counterfactual can be computed exactly by holding
+one partner action fixed and enumerating the alternatives available to the
+other agent. Larger problems estimate the same quantity with a learned critic.
+</Callout>
+
+<Callout tone="observe" title="COMA, for later" icon="compass">
+The counterfactual idea above is the core of a method called COMA
+(counterfactual multi-agent policy gradients), which uses a centralized critic
+to compute exactly this baseline. It is worth knowing the name exists; this
+resource does not develop it, because the *idea* is what transfers and the
+next two sections take a different route to the same goal.
+</Callout>
+
+<KnowledgeCheck
+  id="co-1-6-credit"
+  type="choice"
+  question="In the kitchen trajectory above, agent 2 'waits' at step 2 and the episode ends with +10. What can a learner conclude about that wait?"
+  options={[
+    {
+      text: 'Nothing from the team reward alone. Deciding whether the wait helped needs a comparison against what would have happened had agent 2 acted differently.',
+      correct: true,
+      feedback: 'Correct, and this is the whole motivation for counterfactual reasoning. The wait may have been essential, the ingredient was not chopped yet, or pure idling. The +10 is identical either way, so the comparison has to come from somewhere else.',
+    },
+    {
+      text: 'That waiting was a good action, since the episode succeeded.',
+      correct: false,
+      feedback: 'This is the trap the shared reward sets. Every action in a successful episode gets the same positive signal, including the useless ones. Learning from that directly reinforces idling whenever the rest of the team happens to succeed.',
+    },
+    {
+      text: 'That waiting contributed one ninth of the reward, since nine actions were taken.',
+      correct: false,
+      feedback: 'Dividing equally is a real technique and it is also plainly wrong as an account of contribution. It would credit an idle step exactly as much as the serve. The reward never decomposed into per-action shares, so any split is an assumption rather than a reading.',
+    },
+    {
+      text: 'That agent 2 should be given its own reward function instead.',
+      correct: false,
+      feedback: 'That would make credit legible and would stop the problem being cooperative. You would now have a mixed-incentive game, where agent 2 can score by doing things that do not serve orders. The point of this chapter is recovering individual signal *while keeping* the shared reward.',
+    },
+  ]}
+>
+"The same reward is consistent with several different stories" is the sentence
+to keep.
+</KnowledgeCheck>
+
+## Credit Assignment Summary
+
+- **Temporal** credit assignment asks which of *my earlier* actions mattered;
+  **multi-agent** credit assignment asks which *agent* mattered. This chapter
+  is about the second.
+- A common reward makes it hard by construction: the same number goes to every
+  agent, and it was never a sum of per-agent contributions.
+- A **joint-action value** $Q(s, \jointact)$ can distinguish combinations, and
+  so carries information about contributions that the team reward does not.
+- **Counterfactual reasoning** extracts an individual contribution: compare
+  what happened against what would have happened if only that agent had acted
+  differently, holding partners fixed.
+- Handing out per-agent rewards would make credit legible and would stop the
+  problem being cooperative.

@@ -1,0 +1,85 @@
+---
+title: "Communicate"
+description: "What should agents tell each other when they know different things?"
+related:
+  - slug: communicate/communication-in-marl
+    icon: message
+  - slug: communicate/lab
+    icon: beaker
+  - slug: coordinate/introduction
+    icon: chart
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import ChapterHero from '../../../components/diagrams/ChapterHero.astro';
+import Progression from '../../../components/ui/Progression.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this chapter you can answer">
+What should agents tell each other when they know different things?
+</Callout>
+
+## Let's say
+
+Two agents are preparing meals together.
+
+- Agent A can see the incoming orders.
+- Agent B can see the stove.
+- Agent A sees that soup is needed next.
+- Agent B sees that the current dish is almost finished.
+- Neither agent has the full picture.
+
+Agent A now knows something that could change Agent B's next action.
+
+<ChapterHero variant="communicate">
+Different information. Shared task. Communication connects the missing pieces.
+</ChapterHero>
+
+## The communication problem
+
+- When agents have different observations, useful information is distributed
+  across the team.
+- Communication gives agents a way to share what could improve another agent's
+  decision.
+- The information is not missing from the system. It is in the wrong place.
+
+That creates new questions:
+
+- What should be sent?
+- When should it be sent?
+- Who needs it?
+- How much information can the channel carry?
+- What happens when messages are noisy or lost?
+- What happens when agents learn different communication conventions?
+
+## In this chapter
+
+- **Messages:** Learn how communication can be represented as part of an
+  agent's action.
+- **Message content:** Explore what agents may share, including observations,
+  intentions and plans.
+- **Communication constraints:** Study limited capacity, range, noise and
+  message loss.
+- **Communication policies:** Understand how agents decide what to
+  communicate, when to communicate, and when to remain silent.
+- **Learned communication protocols:** See how agents can develop their own
+  conventions through learning.
+- **Interpretable communication:** Explore why an effective learned protocol
+  may still be difficult for humans or unfamiliar agents to understand.
+- **LangGround:** Connect these ideas to recent work on grounding learned
+  communication in human-interpretable language.
+
+## How the ideas build
+
+<Progression steps={[
+  'Private information',
+  'Message',
+  'Shared information',
+  'Better joint decisions',
+]} />
+
+By the end of this chapter, you should be able to reason about when
+communication is useful, what information should be transmitted, and why a
+successful learned protocol may still fail with unfamiliar agents.

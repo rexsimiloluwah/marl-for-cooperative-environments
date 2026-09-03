@@ -1,0 +1,449 @@
+---
+/**
+ * WORKSHEET QUESTION
+ *
+ * One question: a prompt, somewhere to answer, graduated hints, and a worked
+ * answer that stays hidden until the learner asks for it.
+ *
+ * The prompt, hints and answer are all SLOTS rather than string props, and
+ * that is load-bearing. Props are plain strings, so `$Q_1 = 4$` written in a
+ * prop reaches the browser as literal dollar signs, the maths never renders.
+ * Slot content is MDX, so it goes through remark-math like any other prose,
+ * and lists, emphasis and links work inside an answer too.
+ *
+ * Numeric questions get checked here. Worked answers are NOT attached to the
+ * question: they live in one answer key at the end of the worksheet, the way
+ * a textbook puts them at the back. A reveal button beside every prompt is
+ * too easy to press before thinking, and it doubles the length of the page.
+ */
+import Icon from '../ui/Icon.astro';
+
+interface Props {
+  /** Stable id. Storage key for the written answer, so renaming loses work. */
+  id: string;
+  /** Question number, e.g. "6.1". Rendered as a hanging label. */
+  n?: string;
+  /** Rows in the notes area. */
+  rows?: number;
+  /**
+   * Expected numeric answer. When set, a short answer box appears with a
+   * Check button that marks it.
+   */
+  numeric?: number;
+  /** Accepted absolute error. Exact match by default. */
+  tolerance?: number;
+  /** Shown after the numeric box, e.g. "joint actions". */
+  unit?: string;
+  /** Drop the notes area, for a purely numeric question. */
+  notes?: boolean;
+  placeholder?: string;
+}
+const {
+  id,
+  n,
+  rows = 3,
+  numeric,
+  tolerance = 0,
+  unit,
+  notes = true,
+  placeholder,
+} = Astro.props;
+
+if (!/^[a-z0-9-]+$/.test(id)) {
+  throw new Error(`<Question> needs a kebab-case id, got "${id}".`);
+}
+
+const hasNum = typeof numeric === 'number';
+const hasHints =
+  Astro.slots.has('hint') || Astro.slots.has('hint2') || Astro.slots.has('hint3');
+const showNotes = notes;
+---
+
+<worksheet-question
+  class="q"
+  data-q={id}
+  data-numeric={hasNum ? String(numeric) : undefined}
+  data-tol={hasNum ? String(tolerance) : undefined}
+>
+  {n && <span class="q__n not-content" aria-hidden="true">{n}</span>}
+  <div class="q__prompt">
+    <slot />
+  </div>
+
+  {
+    hasNum && (
+      <div class="q__num not-content">
+        <label class="q__numLabel" for={`q-${id}-num`}>
+          Answer
+        </label>
+        <input
+          class="q__numInput"
+          id={`q-${id}-num`}
+          type="text"
+          inputmode="decimal"
+          autocomplete="off"
+          spellcheck="false"
+          data-num
+        />
+        {unit && <span class="q__unit">{unit}</span>}
+        <button class="q__btn" type="button" data-checknum>
+          Check
+        </button>
+        <span class="q__verdict" data-verdict aria-live="polite" />
+      </div>
+    )
+  }
+
+  {
+    showNotes && (
+      <div class="q__notesWrap not-content">
+        <textarea
+          class="q__notes"
+          id={`q-${id}`}
+          rows={rows}
+          placeholder={placeholder}
+          spellcheck="true"
+          aria-label="Your notes"
+          data-notes
+        />
+        <p class="q__saved" data-saved aria-live="polite" />
+      </div>
+    )
+  }
+
+  {
+    hasHints && (
+      <div class="q__hints not-content" data-hints>
+        <button class="q__hintBtn" type="button" data-hintbtn>
+          <Icon name="lightbulb" size={15} />
+          <span data-hintlabel>Need a hint?</span>
+        </button>
+
+        {
+          Astro.slots.has('hint') && (
+            <div class="q__hint" data-hintitem hidden>
+              <span class="q__hintN">Hint 1.</span>
+              <slot name="hint" />
+            </div>
+          )
+        }
+        {
+          Astro.slots.has('hint2') && (
+            <div class="q__hint" data-hintitem hidden>
+              <span class="q__hintN">Hint 2.</span>
+              <slot name="hint2" />
+            </div>
+          )
+        }
+        {
+          Astro.slots.has('hint3') && (
+            <div class="q__hint" data-hintitem hidden>
+              <span class="q__hintN">Hint 3.</span>
+              <slot name="hint3" />
+            </div>
+          )
+        }
+      </div>
+    )
+  }
+
+</worksheet-question>
+
+<script>
+  class WorksheetQuestion extends HTMLElement {
+    connectedCallback() {
+      const id = this.dataset.q;
+      if (!id) return;
+
+      /* ---- written answer, saved locally ---- */
+      const box = this.querySelector<HTMLTextAreaElement>('[data-notes]');
+      const saved = this.querySelector('[data-saved]');
+      const key = `marl:worksheet:v1:${id}`;
+
+      if (box) {
+        // localStorage THROWS on access in private windows and embedded
+        // previews, so every touch is guarded. A box that cannot save must
+        // still be writable.
+        try {
+          const prev = localStorage.getItem(key);
+          if (prev) {
+            box.value = prev;
+            if (saved) saved.textContent = 'Saved in this browser';
+          }
+        } catch {
+          /* no persistence available */
+        }
+
+        let timer = 0;
+        box.addEventListener('input', () => {
+          window.clearTimeout(timer);
+          timer = window.setTimeout(() => {
+            try {
+              if (box.value.trim()) {
+                localStorage.setItem(key, box.value);
+                if (saved) saved.textContent = 'Saved in this browser';
+              } else {
+                localStorage.removeItem(key);
+                if (saved) saved.textContent = '';
+              }
+            } catch {
+              if (saved) saved.textContent = 'Cannot save in this browser';
+            }
+          }, 400);
+        });
+      }
+
+      /* ---- hints, revealed one at a time ---- */
+      // One control rather than a disclosure per hint. A learner who opens
+      // every hint at once has not been helped, and the label has to say what
+      // the next click will actually do.
+      const hintBtn = this.querySelector<HTMLButtonElement>('[data-hintbtn]');
+      const hintLabel = this.querySelector('[data-hintlabel]');
+      const hintItems = [...this.querySelectorAll<HTMLElement>('[data-hintitem]')];
+
+      hintBtn?.addEventListener('click', () => {
+        const next = hintItems.find((el) => el.hasAttribute('hidden'));
+        if (next) next.removeAttribute('hidden');
+        const remaining = hintItems.some((el) => el.hasAttribute('hidden'));
+        if (!remaining) {
+          hintBtn.hidden = true;
+        } else if (hintLabel) {
+          hintLabel.textContent = 'Show another hint';
+        }
+      });
+
+      /* ---- numeric checking ---- */
+      const want = this.dataset.numeric;
+      if (want === undefined) return;
+      const target = Number(want);
+      const tol = Number(this.dataset.tol ?? 0);
+      const input = this.querySelector<HTMLInputElement>('[data-num]');
+      const verdict = this.querySelector('[data-verdict]');
+      const button = this.querySelector('[data-checknum]');
+      const numKey = `${key}:num`;
+
+      try {
+        const prev = localStorage.getItem(numKey);
+        if (prev && input) input.value = prev;
+      } catch {
+        /* no persistence available */
+      }
+
+      const mark = () => {
+        if (!input || !verdict) return;
+        // Accept thousands separators and stray spaces: 6,561 and 6561 are
+        // the same answer, and a learner reading a table will type the commas.
+        const raw = input.value.replace(/[,\s]/g, '');
+        if (!raw) {
+          verdict.textContent = '';
+          verdict.className = 'q__verdict';
+          return;
+        }
+        const got = Number(raw);
+        if (!Number.isFinite(got)) {
+          verdict.textContent = 'Enter a number';
+          verdict.className = 'q__verdict is-wrong';
+          return;
+        }
+        const ok = Math.abs(got - target) <= tol;
+        verdict.textContent = ok ? 'Correct' : 'Not yet';
+        verdict.className = `q__verdict ${ok ? 'is-right' : 'is-wrong'}`;
+        try {
+          localStorage.setItem(numKey, input.value);
+        } catch {
+          /* answer still on screen */
+        }
+      };
+
+      button?.addEventListener('click', mark);
+      input?.addEventListener('keydown', (e) => {
+        if ((e as KeyboardEvent).key === 'Enter') {
+          e.preventDefault();
+          mark();
+        }
+      });
+      // A changed answer clears the previous verdict.
+      input?.addEventListener('input', () => {
+        if (verdict && verdict.textContent) {
+          verdict.textContent = '';
+          verdict.className = 'q__verdict';
+        }
+      });
+    }
+  }
+  if (!customElements.get('worksheet-question')) {
+    customElements.define('worksheet-question', WorksheetQuestion);
+  }
+</script>
+
+<style>
+  .q {
+    display: block;
+    position: relative;
+    margin-block: var(--s-6);
+    /* Explicit rather than a spacing token: the gutter has to fit a
+       two-digit question number like "1.11" without touching the prompt. */
+    padding-left: 3.25rem;
+    border-left: 2px solid var(--rule);
+  }
+
+  .q__prompt { position: relative; }
+  .q__prompt :global(> :first-child) { margin-top: 0; }
+  .q__prompt :global(> :last-child) { margin-bottom: 0; }
+
+  /* Hangs in the gutter so every prompt starts at the same x position and
+     the numbers read as a series down the page. */
+  .q__n {
+    position: absolute;
+    left: 0.75rem;
+    top: 1px;
+    font-family: var(--font-mono);
+    font-size: var(--t-small);
+    font-weight: var(--w-semibold);
+    color: var(--ui);
+  }
+
+  /* ---- numeric answer row ---- */
+  .q__num {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    margin-top: var(--s-3);
+    flex-wrap: wrap;
+  }
+  .q__numLabel {
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    color: var(--ink-muted);
+  }
+  .q__numInput {
+    width: 7rem;
+    padding: 5px 9px;
+    font-family: var(--font-mono);
+    font-size: var(--t-small);
+    color: var(--ink);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule-strong, var(--rule));
+    border-radius: var(--r-sm);
+  }
+  .q__numInput:focus-visible {
+    outline: 2px solid var(--ui);
+    outline-offset: 1px;
+    border-color: var(--ui);
+  }
+  .q__unit {
+    font-size: var(--t-small);
+    color: var(--ink-muted);
+  }
+  .q__verdict {
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    color: var(--ink-muted);
+  }
+  .q__verdict.is-right { color: var(--c-reward-ink); }
+  .q__verdict.is-wrong { color: var(--c-conflict-ink); }
+
+  .q__btn {
+    padding: 5px 11px;
+    font: inherit;
+    font-size: var(--t-small);
+    color: var(--ink);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+  .q__btn:hover { border-color: var(--ui); }
+
+  /* ---- notes area: ruled paper rather than a form field ---- */
+  .q__notesWrap { margin-top: var(--s-3); }
+
+  .q__notes {
+    display: block;
+    width: 100%;
+    padding: 0 var(--s-3);
+    font-family: var(--font-sans);
+    font-size: var(--t-small);
+    line-height: 28px;
+    color: var(--ink);
+    background-color: var(--paper, var(--surface));
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0 27px,
+      var(--rule) 27px 28px
+    );
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-sm);
+    resize: vertical;
+  }
+  .q__notes::placeholder { color: var(--ink-faint); }
+  .q__notes:focus-visible {
+    outline: 2px solid var(--ui);
+    outline-offset: 1px;
+  }
+
+  .q__saved {
+    margin: var(--s-1) 0 0;
+    font-size: var(--t-micro);
+    color: var(--ink-faint);
+    min-height: 1em;
+  }
+
+  /* ---- hints ---- */
+  .q__hints { margin-top: var(--s-3); }
+
+  /* A link-like control, not a button. The dotted underline says "there is
+     more here" without competing with the Check button beside it. */
+  .q__hintBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding: 0 2px 3px;
+    font: inherit;
+    font-size: var(--t-small);
+    font-weight: var(--w-semibold);
+    color: var(--ink);
+    background: none;
+    border: 0;
+    border-bottom: 1.5px dotted var(--rule-strong, var(--rule));
+    border-radius: 0;
+    cursor: pointer;
+  }
+  .q__hintBtn:hover {
+    color: var(--ui);
+    border-bottom-color: var(--ui);
+  }
+  .q__hintBtn:focus-visible {
+    outline: 2px solid var(--ui);
+    outline-offset: 3px;
+  }
+  .q__hintBtn[hidden] { display: none; }
+
+  .q__hint {
+    margin-top: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+    font-size: var(--t-small);
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--hint-tint);
+    border: var(--hairline) solid var(--hint-edge);
+    border-radius: var(--r-sm);
+  }
+  .q__hint[hidden] { display: none; }
+
+  /* The number runs into the first sentence, as a printed hint would. The
+     margin supplies the word space, since the span and the paragraph are
+     adjacent in the markup with no whitespace between them. */
+  .q__hintN {
+    font-weight: var(--w-semibold);
+    margin-right: 0.35em;
+  }
+  .q__hint :global(> p:first-of-type) { display: inline; }
+  .q__hint :global(p) { margin-block: var(--s-2); }
+  .q__hint :global(> :last-child) { margin-bottom: 0; }
+  .q__hint :global(ul),
+  .q__hint :global(ol) {
+    margin: var(--s-2) 0 0;
+    padding-left: var(--s-4);
+  }
+</style>

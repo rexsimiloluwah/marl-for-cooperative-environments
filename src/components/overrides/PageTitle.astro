@@ -1,0 +1,141 @@
+---
+/**
+ * PAGE TITLE
+ *
+ * Breadcrumb, numbered heading, and page actions.
+ *
+ * The section number is rendered as its own element rather than being baked
+ * into the title string, so it stays consistent with the sidebar, can be
+ * cited in prose ("see 2.3"), and renumbers automatically when the structure
+ * in src/lib/nav.ts changes.
+ */
+import { findPage, slugFromPath } from '../../lib/nav';
+import Icon from '../ui/Icon.astro';
+import PageActions from '../ui/PageActions.astro';
+
+const slug = slugFromPath(Astro.url.pathname);
+const page = findPage(slug);
+const { title } = Astro.locals.starlightRoute.entry.data;
+---
+
+<div class="topbar">
+  {
+    page ? (
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="/" class="crumbs__home">
+          <Icon name="home" size={14} label="Home" />
+        </a>
+        <Icon name="chevron-right" size={13} class="crumbs__sep" />
+        <span class="crumbs__section">{page.section.short}</span>
+        <Icon name="chevron-right" size={13} class="crumbs__sep" />
+        <span class="crumbs__here" aria-current="page">
+          {page.number && `${page.number} `}
+          {page.title}
+        </span>
+      </nav>
+    ) : (
+      <div />
+    )
+  }
+  <PageActions sourceFile={`${Astro.locals.starlightRoute.entry.id}.mdx`} />
+</div>
+
+<div class="ptitle">
+  <h1 id="_top">
+    {page?.number && <span class="ptitle__num">{page.number}</span>}
+    <span class="ptitle__text">{title}</span>
+  </h1>
+</div>
+
+<style>
+  .topbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--s-4);
+    margin-bottom: var(--s-4);
+  }
+
+  /* ---- breadcrumb ---- */
+
+  .crumbs {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    font-size: var(--t-meta);
+    color: var(--ink-faint);
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .crumbs__home {
+    display: grid;
+    place-items: center;
+    color: var(--ui);
+    border-radius: var(--r-sm);
+  }
+
+  .crumbs__sep {
+    color: var(--rule-strong);
+  }
+
+  .crumbs__section {
+    color: var(--ui);
+  }
+
+  .crumbs__here {
+    color: var(--ink-faint);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ---- title ---- */
+
+  .ptitle h1 {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-4);
+    margin: 0 0 var(--s-4);
+    font-size: var(--t-h1);
+    font-weight: var(--w-bold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tr-display);
+    color: var(--ink);
+    text-wrap: balance;
+  }
+
+  /* Fixed measure on the number so titles across consecutive pages start at
+     the same x position, which makes the chapter read as a numbered series. */
+  .ptitle__num {
+    flex: none;
+    min-width: 3rem;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+    font-weight: var(--w-semibold);
+  }
+
+  .ptitle__text {
+    min-width: 0;
+  }
+
+  @media (max-width: 50rem) {
+    .ptitle h1 {
+      display: block;
+    }
+    .ptitle__num {
+      display: block;
+      min-width: 0;
+      margin-bottom: var(--s-1);
+      font-size: var(--t-meta);
+      letter-spacing: var(--tr-label);
+    }
+    .crumbs__section {
+      display: none;
+    }
+    .crumbs__sep:first-of-type ~ .crumbs__sep {
+      display: none;
+    }
+  }
+</style>

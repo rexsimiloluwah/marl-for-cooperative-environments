@@ -1,0 +1,92 @@
+---
+title: "Adapt"
+description: "Did the agent learn how to cooperate, or did it learn one particular partner?"
+related:
+  - slug: adapt/partner-dependence
+    icon: users-round
+  - slug: adapt/lab
+    icon: beaker
+  - slug: communicate/introduction
+    icon: message
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import ChapterHero from '../../../components/diagrams/ChapterHero.astro';
+import Progression from '../../../components/ui/Progression.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this chapter you can answer">
+Did the agent learn how to cooperate, or did it learn one particular partner?
+</Callout>
+
+## Let's say
+
+Agent A and Agent B have trained together for thousands of episodes. They have
+developed an effective routine:
+
+- Agent B usually collects ingredients.
+- Agent A usually prepares and cooks.
+- They rarely duplicate work.
+- Their team reward is consistently high.
+
+Now replace Agent B with Agent C. Agent C is also capable, but it learned a
+different routine:
+
+- Agent C expects its partner to collect ingredients.
+- Agent C prepares to cook.
+
+The next order arrives.
+
+- Agent A waits for Agent C to collect the ingredient.
+- Agent C waits for Agent A.
+- Neither moves.
+
+Both agents were successful with their original partners. Together, they fail.
+
+<ChapterHero variant="adapt">
+Same task. Same shared reward. Different partner.
+</ChapterHero>
+
+## The adaptation problem
+
+- Strong performance with a familiar partner does not mean an agent learned a
+  general ability to cooperate.
+- Agents become dependent on habits, roles, conventions and communication
+  protocols developed during training.
+- Nothing is broken in either agent. What is missing is the agreement between
+  them.
+
+## In this chapter
+
+- **Partner dependence:** Understand how agents become specialized to familiar
+  partners.
+- **Partner generalization:** Compare performance with familiar and unfamiliar
+  partners.
+- **Training partner diversity:** Learn why exposure to different behaviours
+  can improve robustness.
+- **Agent modelling:** See how an agent can predict what another agent is
+  likely to do.
+- **Partner representations:** Explore how useful behavioural information can
+  be summarized compactly.
+- **Ad hoc teamwork:** Learn how agents cooperate with partners they did not
+  design or train with.
+- **Zero-shot coordination:** Study cooperation with unseen partners without
+  prior joint training.
+- **Evaluation:** Use cross-play and held-out partners to determine whether
+  cooperation really generalizes.
+- **N-Agent Ad Hoc Teamwork and ZSC-Eval:** Connect the chapter to recent
+  research on partner generalization and evaluation.
+
+## How the ideas build
+
+<Progression
+  steps={['Familiar partners', 'Partner diversity', 'Agent modelling', 'Unseen partners', 'Evaluation']}
+  loop={['Observe', 'Infer', 'Adjust', 'Cooperate']}
+  loopLabel="And the loop an adaptive agent runs while it plays"
+/>
+
+By the end of this chapter, you should be able to distinguish specialization
+from general cooperation, and evaluate whether an agent can work effectively
+with unfamiliar partners.

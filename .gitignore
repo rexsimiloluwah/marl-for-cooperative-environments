@@ -1,0 +1,41 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+.astro/
+
+# environment
+.env
+.env.production
+
+# python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+venv/
+.venv/
+
+# manim
+manim/media/
+media/
+
+# quarto
+slides/*_files/
+slides/*.html
+/.quarto/
+
+# os
+.DS_Store
+Thumbs.db
+
+# vendored Pyodide runtime (optional, for offline builds)
+public/pyodide/
+
+# transient clone made by the notebooks when run locally
+notebooks/marl-for-cooperative-environments/
+
+# python package build artifacts
+cooperative-marl-labs/dist/
+cooperative-marl-labs/src/*.egg-info/

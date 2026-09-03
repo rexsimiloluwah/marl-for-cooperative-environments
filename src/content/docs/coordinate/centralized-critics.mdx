@@ -1,0 +1,179 @@
+---
+title: "Centralized Critics"
+description: "How centralized critics use global training information to evaluate decentralized actors."
+related:
+  - slug: coordinate/credit-assignment
+    icon: lightbulb
+  - slug: coordinate/ctde
+    icon: cycle
+  - slug: coordinate/value-decomposition
+    icon: chart
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import CtdeSplit from '../../../components/diagrams/CtdeSplit.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+What changes when the critic sees more than the actor does?
+</Callout>
+
+A centralized critic is one way to use global information under CTDE: the critic evaluates actions during training while each actor remains a local policy for execution.
+
+<Objectives>
+
+- Separate the roles of the actor and the critic
+- Expand the critic's inputs to the state and the joint action
+- Explain how a richer evaluation changes the policy update
+- State what remains decentralized at execution
+
+</Objectives>
+
+## Actor and Critic Roles
+
+Many reinforcement learning methods split the learner in two.
+
+The <Term tone="policy">actor</Term> is the policy: the thing that chooses
+actions. The <Term tone="reward">critic</Term> is a learned value or advantage
+function used to improve that policy. It does not choose anything, it
+*evaluates*.
+
+<Equation
+  label="Figure 1"
+  wide
+  tex={String.raw`\underset{\text{\scriptsize chooses}}{\tone{policy}{\pi_\theta(a \given s)}} \qquad\qquad \underset{\text{\scriptsize evaluates}}{\tone{reward}{V_\phi(s)}}`}
+  terms={[
+    { tex: String.raw`\pi_\theta`, is: 'the actor: the policy, with its own parameters θ', tone: 'policy' },
+    { tex: String.raw`V_\phi`, is: 'the critic: a learned estimate of how good a situation is, parameters φ', tone: 'reward' },
+  ]}
+  caption="Two components with two jobs. Only one of them has to run at deployment."
+/>
+
+The critic exists to make the actor's updates less noisy. Instead of judging
+an action by the whole messy return that followed it, the actor is nudged
+according to how that action compared with what the critic expected.
+
+And here is the observation that makes this section work: **only the actor is
+needed at deployment.** The critic is training scaffolding. Once the policy is
+trained, the critic is discarded.
+
+<Callout variant="takeaway">
+If the critic is thrown away before deployment, the decentralization
+constraint never applies to it.
+
+So there is no reason to keep it blind.
+</Callout>
+
+## Centralized Critic Information
+
+That is the whole idea. Condition the critic on the centralized information
+$z_t$, and leave the actor exactly as constrained as it has to be.
+
+<Equation
+  label="Figure 2"
+  wide
+  tex={String.raw`\tone{reward}{V_\ag\bigl(\tone{observe}{h^\ag_t},\ \tone{comm}{z_t}\bigr)} \qquad\text{or}\qquad \tone{reward}{Q_\ag\bigl(\tone{observe}{h^\ag_t},\ \tone{comm}{z_t},\ \tone{action}{\jointact}\bigr)}`}
+  terms={[
+    { tex: String.raw`h^\ag_t`, is: 'agent i’s own history, what it has personally seen and done', tone: 'observe' },
+    { tex: String.raw`z_t`, is: 'centralized information, available because this is training', tone: 'comm' },
+    { tex: String.raw`\jointact`, is: 'the joint action; an action-value critic is conditioned on what everybody did', tone: 'action' },
+  ]}
+  caption="Two flavours of centralized critic: one evaluates the situation, one evaluates the situation together with what the whole team did."
+/>
+
+Both forms appear in the literature. A **centralized state-value critic** is
+conditioned on the agent's history plus the centralized information. A
+**centralized action-value critic** is additionally conditioned on the joint
+action, which, from *Coordination*, is exactly the form that can tell
+combinations apart.
+
+Meanwhile the actor is untouched:
+
+<Equation
+  label="Figure 3"
+  tex={String.raw`\tone{policy}{\pol{\ag}\bigl(\tone{action}{\act{\ag}} \given \tone{observe}{h^\ag_t}\bigr)}`}
+  terms={[
+    { tex: String.raw`\pol{\ag}`, is: 'the actor: still local, still deployable, still the only thing that runs', tone: 'policy' },
+    { tex: String.raw`h^\ag_t`, is: 'its own history and nothing else, no z, no partner action', tone: 'observe' },
+  ]}
+  caption="The part that survives deployment never learned to depend on anything it will not have."
+/>
+
+<CtdeSplit signalLabel="critic" />
+
+The picture is the CTDE picture with one box renamed, and that is the point. A
+centralized critic is not a different arrangement. It is a specific answer to
+"what consumes $z_t$?"
+
+## Effects on the Learning Signal
+
+The critic's job is to say how good things were. A blind critic has to do that
+from one agent's partial view, which means the same observation gets the same
+evaluation whether the team's other half was doing something useful or
+something disastrous. Its estimates are noisy for a reason that has nothing to
+do with the agent being evaluated.
+
+Give it $z_t$ and it can see **what the team actually did**. Its estimates get
+sharper, the actor's updates get less noisy, and learning gets more stable,
+all without changing what the actor is allowed to know.
+
+<Callout variant="pitfall">
+Do not oversell this. A centralized critic makes the learning signal better
+informed; it does not solve coordination.
+
+The actor still chooses from local information, still cannot see its
+partner's choice for the current step, and still has to arrive at a policy
+that happens to fit with its partner's. A better-informed teacher does not
+remove the student's blindfold, it just stops giving misleading feedback.
+</Callout>
+
+<KnowledgeCheck
+  id="co-1-5-critic"
+  type="choice"
+  question="Why is it acceptable for a critic to use the global state when the actor may not?"
+  options={[
+    {
+      text: 'The critic is discarded after training, so it never has to run under the deployment constraint.',
+      correct: true,
+      feedback: 'Exactly. The decentralization constraint applies to what executes. The critic exists only to shape the actor’s updates, so conditioning it on anything training can provide costs nothing at deployment.',
+    },
+    {
+      text: 'The critic only estimates values, and values are less sensitive than actions.',
+      correct: false,
+      feedback: 'Nothing about values is inherently less sensitive. The reason is about lifetime, not about the type of quantity: the critic does not exist at deployment, so its inputs are unconstrained.',
+    },
+    {
+      text: 'The actor indirectly receives the global state through the critic’s gradients, so both effectively see it.',
+      correct: false,
+      feedback: 'The first half is true and the conclusion is wrong. Information does reach the actor’s parameters through the gradients. That is the mechanism. But the deployed actor still cannot condition on the state it does not receive, so it has not "effectively seen" it in any usable sense.',
+    },
+    {
+      text: 'Because the global state is usually similar to the agent’s observation anyway.',
+      correct: false,
+      feedback: 'Often false, and if it were true the centralized critic would be pointless. The value comes precisely from the state containing what the observation lacks.',
+    },
+  ]}
+>
+"Which components have to exist at deployment?" is the question that resolves
+most CTDE design arguments.
+</KnowledgeCheck>
+
+## Centralized Critics Summary
+
+- An **actor** chooses actions; a **critic** evaluates. Only the actor is
+  needed at deployment.
+- A **centralized critic** is conditioned on the agent's history plus
+  centralized information $z_t$; an action-value version is additionally
+  conditioned on the joint action $\jointact$.
+- The actor stays local: $\pol{\ag}(\act{\ag} \given h^\ag_t)$.
+- The benefit is a **better-informed learning signal**, the critic can see
+  what the team did, so its estimates are less confounded by partner
+  behaviour.
+- It does **not** solve coordination. The actor still decides alone, on
+  partial information.

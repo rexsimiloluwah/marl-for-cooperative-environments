@@ -1,0 +1,274 @@
+---
+/**
+ * COOPERATIVE MARL OVERVIEW
+ *
+ * The one illustration on the Introduction page: the three capabilities the
+ * tutorial develops, side by side, in the same kitchen world as the chapter
+ * heroes.
+ *
+ * WHY A COMPONENT RATHER THAN A FILE IN public/
+ * An SVG loaded through `<img>` is an isolated document. It cannot read the
+ * page's custom properties, and it cannot see the theme toggle, which sets
+ * `data-theme` on the root element. It would follow the operating system
+ * instead and mismatch the page whenever a reader overrides the theme. Every
+ * other figure in this resource is inline for that reason, so this one is too.
+ *
+ * Same panel geometry as ChapterHero, so the Introduction and the chapter
+ * openings are visibly the same kitchen.
+ */
+import IsoRobot from '../landing/IsoRobot.astro';
+
+const W = 240;
+const H = 174;
+const arrow = 'ov-arrow';
+const dot = 'ov-dot';
+
+const PANELS = [
+  { key: 'coordinate', label: 'Coordinate', caption: 'actions that fit together' },
+  { key: 'communicate', label: 'Communicate', caption: 'information that reaches the other agent' },
+  { key: 'adapt', label: 'Adapt', caption: 'a partner you did not train with' },
+] as const;
+---
+
+<figure class="ov not-content">
+  <svg class="ov__defs" aria-hidden="true" width="0" height="0">
+    <defs>
+      <marker id={arrow} viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5"
+        markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 1 L 9 5 L 0 9 z" fill="context-stroke" />
+      </marker>
+      <pattern id={dot} width="4" height="4" patternUnits="userSpaceOnUse">
+        <circle cx="1.4" cy="1.4" r="0.9" fill="currentColor" opacity="0.55" />
+      </pattern>
+    </defs>
+  </svg>
+
+  <div class="ov__grid">
+    {
+      PANELS.map((panel) => (
+        <div class="ov__cell">
+          <p class="ov__label">{panel.label}</p>
+          <svg viewBox={`0 0 ${W} ${H}`} class="ov__svg" role="img">
+            <ellipse class="ov__floor" cx="120" cy="150" rx="106" ry="16" />
+
+            {/* the order on the wall, the same in all three panels */}
+            {panel.key !== 'communicate' && (
+              <g class="ov__board">
+                <rect x="12" y="16" width="78" height="58" rx="5" />
+                <path class="ov__bowl" d="M 38 46 h 28 a 14 14 0 0 1 -28 0 Z" />
+                <path class="ov__steam" d="M 47 40 c 3 -6 -3 -8 0 -13" />
+                <path class="ov__steam" d="M 58 40 c 3 -6 -3 -8 0 -13" />
+                <line x1="24" y1="62" x2="78" y2="62" />
+              </g>
+            )}
+
+            <g class="ov__hood">
+              <path d="M 168 34 h 10 v 12 h -10 Z" />
+              <path d="M 142 46 H 204 L 212 68 H 134 Z" />
+            </g>
+
+            <IsoRobot x={78} y={134} scale={0.58} tone="policy" piece="cube" noShadow />
+            {panel.key === 'adapt' ? (
+              <IsoRobot x={162} y={134} scale={0.58} tone="conflict" piece="cone" flip noShadow />
+            ) : (
+              <IsoRobot x={162} y={134} scale={0.58} tone="action" piece="sphere" flip noShadow />
+            )}
+
+            <path class="ov__counterFront" d="M 24 128 H 216 V 148 H 24 Z" />
+            <path class="ov__counterTop" d="M 40 112 H 200 L 216 128 H 24 Z" />
+
+            <path class="ov__station" d="M 44 116 h 46 l 6 8 h -46 Z" />
+            <circle class="ov__veg" cx="58" cy="120" r="4.2" />
+            <circle class="ov__veg" cx="73" cy="121" r="3.6" />
+
+            <path class={`ov__hob${panel.key === 'adapt' ? '' : ' is-on'}`}
+              d="M 148 116 h 46 l 6 8 h -46 Z" />
+            <ellipse class={`ov__hobRing${panel.key === 'adapt' ? '' : ' is-on'}`}
+              cx="170" cy="120" rx="15" ry="4.6" />
+            <path class="ov__pot" d="M 158 106 h 25 v 10 a 12.5 4 0 0 1 -25 0 Z" />
+            {panel.key !== 'adapt' && <path class="ov__steam" d="M 168 96 c 4 -7 -4 -9 0 -16" />}
+
+            {/* one agent takes the ingredient, the other takes the hob */}
+            {panel.key === 'coordinate' && (
+              <>
+                <path class="ov__reach is-good" d="M 90 106 C 80 94, 66 100, 61 112"
+                  marker-end={`url(#${arrow})`} />
+                <path class="ov__reach is-good" d="M 150 104 C 156 94, 164 106, 167 114"
+                  marker-end={`url(#${arrow})`} />
+              </>
+            )}
+
+            {/* a message crosses the kitchen */}
+            {panel.key === 'communicate' && (
+              <>
+                <path class="ov__msg" d="M 96 74 H 142" marker-end={`url(#${arrow})`} />
+                <g class="ov__token">
+                  <rect x="52" y="52" width="30" height="30" rx="6" />
+                  <rect x="57" y="57" width="20" height="20" fill={`url(#${dot})`} stroke="none" />
+                </g>
+                <path class="ov__reach is-good" d="M 150 104 C 156 94, 164 106, 167 114"
+                  marker-end={`url(#${arrow})`} />
+              </>
+            )}
+
+            {/* both reach for the same thing, and the hob is cold */}
+            {panel.key === 'adapt' && (
+              <>
+                <path class="ov__reach is-clash" d="M 96 104 C 118 84, 140 94, 152 112"
+                  marker-end={`url(#${arrow})`} />
+                <path class="ov__reach is-clash" d="M 146 104 C 148 92, 154 102, 156 112"
+                  marker-end={`url(#${arrow})`} />
+              </>
+            )}
+          </svg>
+          <p class="ov__caption">{panel.caption}</p>
+        </div>
+      ))
+    }
+  </div>
+  <figcaption class="ov__figcaption"><slot /></figcaption>
+</figure>
+
+<style>
+  .ov {
+    margin-block: var(--s-6);
+    container-type: inline-size;
+  }
+  .ov__defs { position: absolute; width: 0; height: 0; }
+
+  .ov__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--s-2);
+    /* Top-aligned, not bottom-aligned: a caption that wraps to two lines would
+       otherwise push its panel's label out of line with the others. */
+    align-items: start;
+    padding: var(--s-3) var(--s-2);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+
+  .ov__cell { min-width: 0; }
+  .ov__svg { display: block; width: 100%; height: auto; }
+
+  .ov__label,
+  .ov__caption {
+    margin: 0;
+    text-align: center;
+    font-family: var(--font-sans);
+    line-height: 1.3;
+  }
+  .ov__label {
+    margin-bottom: var(--s-2);
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    color: var(--ink);
+  }
+  .ov__caption {
+    margin-top: var(--s-1);
+    font-size: var(--t-micro);
+    color: var(--ink-muted);
+  }
+
+  /* ---------------------------------------------------------------- kitchen */
+  .ov__floor { fill: color-mix(in srgb, var(--ui) 6%, transparent); }
+
+  .ov__counterTop {
+    fill: var(--iso-body, #e7e7ea);
+    stroke: color-mix(in srgb, var(--ink) 14%, transparent);
+    stroke-width: 1;
+  }
+  .ov__counterFront {
+    fill: color-mix(in srgb, var(--ink) 10%, var(--surface));
+    stroke: color-mix(in srgb, var(--ink) 14%, transparent);
+    stroke-width: 1;
+  }
+  .ov__hood path {
+    fill: color-mix(in srgb, var(--ink) 8%, var(--surface));
+    stroke: color-mix(in srgb, var(--ink) 20%, transparent);
+    stroke-width: 1;
+  }
+  .ov__board rect {
+    fill: var(--surface);
+    stroke: color-mix(in srgb, var(--c-observe) 55%, transparent);
+    stroke-width: 1.4;
+  }
+  .ov__board line {
+    stroke: color-mix(in srgb, var(--c-observe) 40%, transparent);
+    stroke-width: 2;
+  }
+  .ov__bowl { fill: color-mix(in srgb, var(--c-reward) 40%, var(--surface)); }
+
+  .ov__station {
+    fill: color-mix(in srgb, var(--c-observe) 16%, var(--surface));
+    stroke: color-mix(in srgb, var(--c-observe) 45%, transparent);
+    stroke-width: 1;
+  }
+  .ov__veg { fill: var(--c-reward); }
+
+  .ov__hob {
+    fill: color-mix(in srgb, var(--ink) 12%, var(--surface));
+    stroke: color-mix(in srgb, var(--ink) 20%, transparent);
+    stroke-width: 1;
+  }
+  .ov__hob.is-on {
+    fill: color-mix(in srgb, var(--c-action) 20%, var(--surface));
+    stroke: color-mix(in srgb, var(--c-action) 50%, transparent);
+  }
+  .ov__hobRing {
+    fill: none;
+    stroke: color-mix(in srgb, var(--ink) 25%, transparent);
+    stroke-width: 2;
+  }
+  .ov__hobRing.is-on { stroke: var(--c-action); }
+  .ov__pot {
+    fill: color-mix(in srgb, var(--ink) 30%, var(--surface));
+    stroke: color-mix(in srgb, var(--ink) 40%, transparent);
+    stroke-width: 1;
+  }
+  .ov__steam {
+    fill: none;
+    stroke: color-mix(in srgb, var(--ink) 28%, transparent);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+  }
+
+  /* ------------------------------------------------------------- intentions */
+  .ov__reach {
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  .ov__reach.is-good { stroke: var(--c-reward); }
+  .ov__reach.is-clash { stroke: var(--c-conflict); }
+
+  .ov__msg {
+    fill: none;
+    stroke: var(--c-comm);
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  .ov__token { color: var(--c-comm); }
+  .ov__token rect:first-child {
+    fill: color-mix(in srgb, var(--c-comm) 14%, var(--surface));
+    stroke: var(--c-comm);
+    stroke-width: 1.4;
+  }
+
+  /* ---------------------------------------------------------------- caption */
+  .ov__figcaption {
+    margin-top: var(--s-3);
+    font-family: var(--font-sans);
+    font-size: var(--t-meta);
+    line-height: var(--lh-tight, 1.45);
+    color: var(--ink-muted);
+    text-align: center;
+  }
+  .ov__figcaption:empty { display: none; }
+
+  /* Below this a panel stops being readable, so the strip becomes a column. */
+  @container (max-width: 36rem) {
+    .ov__grid { grid-template-columns: 1fr; }
+  }
+</style>

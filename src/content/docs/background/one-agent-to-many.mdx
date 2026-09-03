@@ -1,0 +1,245 @@
+---
+title: "From One Agent to Many"
+description: "Action interdependence, non-stationarity, and the coordination, communication, and adaptation problems created by multiple learners."
+related:
+  - slug: background/multi-agent-environment
+    icon: lightbulb
+  - slug: coordinate/independent-learning
+    icon: chart
+  - slug: coordinate/coordination
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import AgentLoop from '../../../components/diagrams/AgentLoop.astro';
+import KitchenScene from '../../../components/diagrams/KitchenScene.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+What breaks when a second learning agent enters the same environment?
+</Callout>
+
+Multi-agent reinforcement learning is not simply single-agent learning repeated for several agents.
+
+<Objectives>
+
+- Explain why the value of an action depends on what the other agent does
+- Describe why a learning partner makes the environment non-stationary
+- State the scope of the cooperative setting used throughout this resource
+- Name the three capabilities the rest of the resource develops
+
+</Objectives>
+
+<KitchenScene>
+Two agents now make simultaneous decisions in the same kitchen and receive one
+shared reward.
+</KitchenScene>
+
+## Consequences of Multiple Learners
+
+The single-agent interaction loop changes only by adding a second learner.
+
+<AgentLoop agents={2} showInfluence />
+
+Notice what is *not* there: no arrow between the two agents. They never touch
+each other directly. Everything one agent does reaches the other only by
+changing the kitchen they share.
+
+<Callout variant="predict">
+Before reading on. The loop is the same shape, the reward is the same, the
+environment is the same. From one agent's point of view, what has actually
+become harder?
+
+Try to name it in a sentence of your own before continuing.
+</Callout>
+
+Two things, and they are the reason this subject exists.
+
+> **My outcome depends on your actions.** I can choose perfectly and still get
+> a bad result.
+>
+> **If you are learning too, the world I am learning in keeps changing.** The
+> thing I am adapting to is itself adapting.
+
+The rest of this section takes those one at a time.
+
+## Interdependent Actions
+
+Consider two steps in the kitchen, and what the team gets from each.
+
+<div class="table-scroll">
+
+| Agent 1 does | Agent 2 does | What the team gets |
+| --- | --- | --- |
+| place pot on stove | bring the ingredient | the pot heats while the ingredient arrives: **progress** |
+| bring the ingredient | bring the ingredient | two agents, one ingredient, cold stove: **duplicated effort** |
+| place pot on stove | place pot on stove | one of them is redundant: **wasted step** |
+</div>
+
+Look at the first column. "Bring the ingredient" is an excellent action in row
+one and a wasted one in row two, and the agent doing it did exactly the same
+thing both times.
+
+That is the whole difficulty in one observation: **an action can no longer be
+evaluated on its own.** In the single-agent kitchen, if the ingredient was not
+brought, the agent did not bring it. Now, whether bringing it was the right
+call depends on a decision being made simultaneously by somebody else.
+
+So the object the environment responds to is not any one agent's action. It is
+all of them together.
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\tone{action}{\jointact} = \bigl(\tone{policy}{\act{1}},\ \dots,\ \tone{policy}{\act{\nag}}\bigr)`}
+  terms={[
+    { tex: String.raw`\jointact`, is: 'the joint action: what everybody did this step, in bold', tone: 'action' },
+    { tex: String.raw`\act{i}`, is: 'the action agent i chose, from its own information', tone: 'policy' },
+    { tex: String.raw`\nag`, is: 'the number of agents' },
+  ]}
+  caption="Actions arrive at the environment as a set, and the environment responds to the set."
+/>
+
+The next section builds the environment around this object properly. For now
+only the shape matters: rewards and transitions will be functions of
+$\jointact$, never of $\act{i}$ alone.
+
+## Non-Stationarity During Learning
+
+The second change is subtler and does more damage.
+
+In single-agent reinforcement learning the environment is a fixed thing. It
+may be random, but its rules do not move. Learn them well enough and they stay
+learned.
+
+Now put yourself inside agent 1. From where you stand, agent 2 is *part of
+your environment*. It is one of the things that determines what happens when
+you act. And agent 2 is learning.
+
+> Yesterday, passing an ingredient to agent 2 worked: it was waiting at the
+> stove, it took the ingredient, the order went out. Today agent 2 has learned
+> to fetch its own ingredients, so it is not at the stove any more. The same
+> action, in the same situation, now fails.
+
+Nothing in the kitchen changed. The stove works the same way. What changed is
+a partner's policy, and from agent 1's point of view that is
+indistinguishable from the environment's rules changing underneath it.
+
+<Callout variant="definition" title="Non-stationarity">
+When several agents learn at once, each agent faces an environment whose
+behaviour changes over time, because the other agents' policies are part of
+that behaviour and they are being updated too.
+
+Every agent is simultaneously chasing a target and moving somebody else's.
+</Callout>
+
+This breaks something that single-agent methods quietly rely on: that
+experience collected earlier still describes the world you are in now. It does
+not, and the staler the experience, the less it describes. *Independent Learning* works
+through the consequences and what can be done about them. Here it is enough to
+see where the problem comes from.
+
+<KnowledgeCheck
+  id="bg-1-2-what-changed"
+  type="choice"
+  question="Agent 1's policy is unchanged and the kitchen's physics are unchanged, yet the returns it collects have got worse over the last hundred episodes. What is the most likely explanation?"
+  options={[
+    {
+      text: 'Its partner learned something different, so the same actions now produce different outcomes.',
+      correct: true,
+      feedback: 'Yes. This is non-stationarity from the inside. Agent 1 is holding still in an environment that includes a learner, so its returns can drift without anything it controls having changed.',
+    },
+    {
+      text: 'Agent 1 must have a bug, since a fixed policy in a fixed environment gives fixed returns.',
+      correct: false,
+      feedback: 'That reasoning is right for single-agent RL and wrong here. The environment is not fixed: it contains another learning agent, whose policy is part of what determines agent 1’s outcomes.',
+    },
+    {
+      text: 'The reward function changed.',
+      correct: false,
+      feedback: 'Possible in principle, but not needed to explain this. The reward function can be completely fixed and returns will still drift, because the reward depends on the joint action and the other half of that joint action is changing.',
+    },
+    {
+      text: 'The discount factor is too low.',
+      correct: false,
+      feedback: 'The discount factor changes what the agent is optimising, not whether its outcomes drift while it holds still. That drift comes from the partner.',
+    },
+  ]}
+>
+The useful habit is to stop treating "the environment" as the physical world
+and start treating it as *everything outside this agent*, partners included.
+</KnowledgeCheck>
+
+## The Cooperative MARL Scope
+
+<Term tone="policy">Multi-agent reinforcement learning</Term> is the study of
+several agents that
+
+- interact in a **shared environment**,
+- make their **own decisions**, each from its own information,
+- and **learn** from what happens.
+
+That definition says nothing about whether they are on the same side, and in
+general they need not be. Agents can be strictly opposed, as in a two-player
+game where one wins exactly what the other loses. They can have partly
+overlapping interests, which is where most of economics and game theory
+happens.
+
+**This resource is about the cooperative case:** every agent receives the same
+team reward and they are trying to achieve one thing together. That is a
+genuine restriction, and it is also the setting behind warehouse robotics,
+collaborative search, autonomous traffic, and the cooperative kitchen used
+here. It is worth understanding before mixed or competitive cases.
+
+<Callout tone="observe" title="Cooperative does not mean easy" icon="compass">
+It is tempting to assume that agents wanting the same thing will therefore do
+the right thing. They will not, and the whole of the Coordinate chapter is about why.
+Wanting the same outcome does not tell you who should fetch the ingredient.
+</Callout>
+
+## Coordination, Communication, and Adaptation
+
+Everything hard about the two-agent kitchen falls under one of three
+questions, and each of them is a chapter of this resource.
+
+**Coordinate.** *How should agents choose actions that work well together?*
+Their actions interfere, their reward is shared, and nobody can evaluate a
+choice in isolation. the Coordinate chapter.
+
+**Communicate.** *What should agents share when they know different things?*
+Each agent sees only part of the kitchen. Talking helps, but a channel has
+limited bandwidth and messages are not free. the Communicate chapter.
+
+**Adapt.** *Can agents cooperate when the agents around them change?* A team
+that trained together can be very good at working with each other and useless
+with anybody else. the Adapt chapter.
+
+<Equation
+  label="Figure 2"
+  tex={String.raw`\cbox{action}{\text{Coordinate}} \;\longrightarrow\; \cbox{comm}{\text{Communicate}} \;\longrightarrow\; \cbox{policy}{\text{Adapt}}`}
+  terms={[
+    { tex: String.raw`\text{Coordinate}`, is: 'select compatible actions under a shared objective', tone: 'action' },
+    { tex: String.raw`\text{Communicate}`, is: 'exchange decision-relevant local information', tone: 'comm' },
+    { tex: String.raw`\text{Adapt}`, is: 'cooperate when partner behaviour changes', tone: 'policy' },
+  ]}
+  caption="The course progression from compatible actions to information exchange and partner generalization."
+/>
+
+## Multi-Agent Learning Summary
+
+- Multi-agent reinforcement learning is not single-agent learning run $n$
+  times. Adding one learner changes the problem, not just its size.
+- Actions are **interdependent**: the same action can be right or wrong
+  depending on what a partner chose at the same moment. So the environment
+  responds to the **joint action** $\jointact$.
+- Learning agents make each other's environments **non-stationary**. Held
+  fixed, an agent's returns can still drift, because its partners are moving.
+- Agents never influence each other directly. Everything travels through the
+  shared environment.
+- This resource covers the **cooperative** case: one shared reward, one team
+  objective. Competitive and mixed settings exist and are out of scope.

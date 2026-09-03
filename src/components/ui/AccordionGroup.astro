@@ -1,0 +1,33 @@
+---
+/**
+ * ACCORDION GROUP
+ *
+ * Stacks Accordion panels with a single hairline between them, so the set
+ * reads as one list rather than as a column of separate cards.
+ *
+ * Panels are independent on purpose. Making them mutually exclusive would
+ * stop a reader comparing two chapters side by side, which is the main thing
+ * anyone wants from a structure page.
+ */
+---
+
+<div class="accgroup not-content"><slot /></div>
+
+<style>
+  .accgroup {
+    margin-block: var(--s-5);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Collapse the shared borders into one hairline between panels. */
+  .accgroup :global(> details) { border-radius: 0; }
+  .accgroup :global(> details + details) { border-top: 0; }
+  .accgroup :global(> details:first-child) {
+    border-radius: var(--r-md) var(--r-md) 0 0;
+  }
+  .accgroup :global(> details:last-child) {
+    border-radius: 0 0 var(--r-md) var(--r-md);
+  }
+  .accgroup :global(> details:only-child) { border-radius: var(--r-md); }
+</style>

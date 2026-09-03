@@ -1,0 +1,237 @@
+---
+title: "Evaluating Partner Generalization"
+description: "Disjoint and diverse partner sets, cross-play, summary statistics, and controls for evaluating partner generalization."
+related:
+  - slug: adapt/research-zsc-eval
+    icon: book
+  - slug: adapt/lab
+    icon: beaker
+  - slug: coordinate/research-smacv2
+    icon: chart
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import CrossPlay from '../../../components/lab/CrossPlay.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+What evidence would convince you that cooperation actually generalizes?
+</Callout>
+
+Evaluating partner generalization requires more than reporting performance with a held-out policy.
+
+<Objectives>
+
+- Build disjoint training and test partner sets
+- Read self-play performance against cross-play performance
+- Interpret a cross-play matrix
+- Check the behavioural diversity and sample size of the test partners
+- Control the environment variation so the comparison is about partners
+
+</Objectives>
+
+## Disjoint Training and Test Partners
+
+The first rule, and it is not negotiable.
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\tone{policy}{\Pi_{\text{train}}} \;\cap\; \tone{conflict}{\Pi_{\text{test}}} \;=\; \varnothing`}
+  terms={[
+    { tex: String.raw`\Pi_{\text{train}}`, is: 'partners seen during training', tone: 'policy' },
+    { tex: String.raw`\Pi_{\text{test}}`, is: 'partners used for evaluation', tone: 'conflict' },
+  ]}
+  caption="No partner appears in both. Otherwise you are reporting training performance."
+/>
+
+Disjoint at the level of specific policies, at minimum. Nobody would evaluate
+a classifier on its training set, and evaluating a cooperative agent with its
+training partner is the same error with the word "partner" substituted for
+"example".
+
+## Self-Play and Cross-Play Evidence
+
+Report $J(\pi_A, \pi_B)$ for the co-trained pair. It tells you the method can
+solve the task at all, which is worth knowing, and it is the ceiling against
+which everything else is read.
+
+It is also the number that says nothing about this chapter, so it cannot be
+the headline.
+
+## Cross-Play Matrices
+
+The core instrument. Pair every policy with every partner, including ones it
+never trained with.
+
+Here is a real one. These are the six sender/receiver pairs from the Communicate chapter
+lab, each trained independently on the same task, scored as percentage
+success over 4000 evaluation trials.
+
+<CrossPlay
+  id="ad-crossplay-real"
+  policies={['S0', 'S1', 'S2', 'S3', 'S4', 'S5']}
+  partners={['R0', 'R1', 'R2', 'R3', 'R4', 'R5']}
+  values={[
+    [100, 25, 50, 0, 50, 25],
+    [25, 100, 0, 50, 0, 0],
+    [50, 0, 100, 25, 100, 50],
+    [0, 50, 25, 100, 25, 0],
+    [50, 0, 100, 25, 100, 50],
+    [25, 0, 50, 0, 50, 100],
+  ]}
+  unit="%"
+/>
+
+Read the **diagonal** first: every entry is 100. That is what each of these
+agents would report under a standard evaluation, and all six look perfect.
+
+Now the **off-diagonal**, which averages 30%. Switch the panel to *cross-play
+mean* and the six agents separate: S2 and S4 hold up much better than S1 and
+S3, and nothing in the diagonal predicted that.
+
+Three specific things worth noticing in this matrix.
+
+**Some entries are 0%**, against a chance baseline of 25%. A confidently
+mismatched convention is worse than no information, because the receiver acts
+decisively on a symbol it has misread.
+
+**S2 and S4 score 100% with each other.** Two independent runs converged on
+the same convention. Compatibility happens, and neither agent arranged it.
+
+**The matrix is symmetric here** because the task is, and it usually will not
+be. Do not assume $J(\pi_i, \pi_j) = J(\pi_j, \pi_i)$ in general.
+
+<Callout variant="takeaway">
+A strong agent should not only have a bright diagonal.
+
+The diagonal measures whether a pair can solve the task. The off-diagonal
+measures whether either half of it learned anything portable.
+</Callout>
+
+## Generalization Gap Limitations
+
+The *gap* mode shows familiar-partner score minus cross-play mean, which is
+the $\Delta_{\text{gen}}$ from *Partner Generalization*.
+
+It is a useful summary and it has a failure mode worth stating plainly: a
+policy that is uniformly mediocre has a small gap. An agent scoring 40% with
+everyone has a gap of zero and is not what anybody wanted.
+
+<Callout tone="observe" title="Report both, always" icon="compass">
+A small gap only means something alongside a high familiar-partner score.
+Quote them together, or quote the cross-play mean directly, which cannot be
+gamed by being bad at everything.
+</Callout>
+
+## Behavioural Diversity of Test Partners
+
+Now the subtlest requirement, and the one most often missed.
+
+Suppose an agent scores 90% with three unseen partners. Is that strong
+zero-shot coordination?
+
+Not necessarily. If those three partners happen to behave much like the
+training partners, then 90% measures very little. The evaluation set was
+nominally held out and functionally in-distribution.
+
+<div class="table-scroll">
+
+| Test set | What it actually tests |
+| --- | --- |
+| the training partners | nothing about generalization |
+| new seeds of the same training algorithm | robustness to seed noise, maybe |
+| **behaviourally different held-out partners** | **partner generalization** |
+</div>
+
+The middle row is the trap. Fresh seeds are genuinely held-out policies and
+can still be near-identical in behaviour, exactly as in the diversity argument
+of *Training Partner Diversity*. The Communicate chapter matrix shows both cases at once: most seed pairs
+disagree, and S2 and S4 do not.
+
+So the question to ask of any evaluation set is:
+
+> **How different are the behaviours in it?**
+
+That requires measuring the partners rather than counting them, which is what
+*Partner Dependence*0's research connection is about.
+
+## Partner Sample Size and Summary Statistics
+
+One pairing is an anecdote. Evaluate over several unseen partners and report
+
+- the **mean** across partners,
+- the **variation** across them, since a method can be good on average and
+  catastrophic with one common partner type,
+- the **worst case** or lower tail, which is what matters if any single
+  encounter can be costly.
+
+A single averaged number hides precisely the finding this chapter is about.
+The example table in *Partner Generalization* averaged to 74% while containing a 48%.
+
+## Controlling Environment Variation
+
+Finally, the discipline from *Partner Generalization* applied as procedure.
+
+1. **Fix the environment.** Vary only the partner. Any change is partner
+   generalization.
+2. **Then**, if you want it, fix the partner and vary the environment. Any
+   change is environment generalization.
+3. **Only then** vary both, and read the result knowing what each axis
+   contributes.
+
+Vary both at once from the start and a performance drop tells you something
+broke, not what.
+
+<KnowledgeCheck
+  id="ad-3-8-eval"
+  type="choice"
+  question="A paper reports that its agent achieves 88% with held-out partners, against 91% with training partners, and concludes it generalises across partners. What is the most important thing still missing?"
+  options={[
+    {
+      text: 'Evidence that the held-out partners are behaviourally different from the training partners, rather than merely different policy instances.',
+      correct: true,
+      feedback: 'Exactly. A 3-point gap is either an excellent result or an artefact of an easy test set, and the two are indistinguishable without characterising the partners. Held-out is a claim about provenance; behaviourally different is a claim about content.',
+    },
+    {
+      text: 'A larger gap would be more convincing, since a 3-point gap looks implausible.',
+      correct: false,
+      feedback: 'A small gap is the desirable outcome, not a red flag by itself. What makes it uninterpretable is not its size but the absence of information about what was tested against.',
+    },
+    {
+      text: 'The absolute numbers are too low to support any conclusion.',
+      correct: false,
+      feedback: '88% and 91% are strong scores. The question is what the 88% was measured against, not how large it is.',
+    },
+    {
+      text: 'It should report the environment-generalization gap as well.',
+      correct: false,
+      feedback: 'Worth having and not the gap here. The claim being made is about partners, so the missing evidence is about partners. Adding a second axis would not repair the first.',
+    },
+  ]}
+>
+"Held out from what, and how different?" is the question that separates a
+generalization result from a well-presented training result.
+</KnowledgeCheck>
+
+## Partner Generalization Evaluation Summary
+
+- **Disjoint** train and test partners, or you are reporting training
+  performance.
+- **Self-play** performance is necessary and not sufficient. It is the
+  ceiling, not the headline.
+- **Cross-play** is the instrument: every policy against every partner. A
+  strong agent needs more than a bright diagonal.
+- Scores can fall **below chance**, because a confidently mismatched
+  convention is worse than no information.
+- The **gap** is only meaningful next to a high familiar-partner score, since
+  uniform mediocrity has a small gap.
+- The **behavioural diversity** of the test partners decides what the
+  evaluation measures. Fresh seeds are held out and may not be different.
+- Report **mean, variation and worst case** over several unseen partners.
+- **Hold the environment fixed first**, then vary it separately.

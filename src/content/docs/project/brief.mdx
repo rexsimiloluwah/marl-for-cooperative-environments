@@ -1,0 +1,127 @@
+---
+title: "Final Project Overview"
+description: "Design and justify a cooperative multi-agent disaster-response system and a rigorous evaluation plan."
+related:
+  - slug: project/system
+    icon: box
+  - slug: project/rubric
+    icon: award
+  - slug: lab/challenge
+    icon: beaker
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+The final project asks you to design a cooperative multi-agent system for
+disaster response. You will define heterogeneous agent roles, states, local
+observations, actions, and a shared reward; select coordination,
+communication, and adaptation mechanisms; and propose an evaluation that can
+expose failure under realistic variation. No algorithm or environment is
+prescribed. By the end, your design should make clear how decentralized agents
+cooperate, what assumptions support the chosen methods, and which evidence
+would justify deployment claims.
+
+<Equation
+  label="Figure 1"
+  wide
+  tex={String.raw`\text{Learn} \rightarrow \text{Experiment} \rightarrow \text{Transfer} \rightarrow \cbox{policy}{\text{Create}}`}
+  terms={[
+    { tex: String.raw`\text{Learn}`, is: 'develop the conceptual model' },
+    { tex: String.raw`\text{Experiment}`, is: 'test mechanisms in chapter labs' },
+    { tex: String.raw`\text{Transfer}`, is: 'apply the concepts in a supplied new domain' },
+    { tex: String.raw`\text{Create}`, is: 'design and evaluate a new cooperative system', tone: 'policy' },
+  ]}
+  caption="The final project applies the course concepts to a system designed by the learner."
+/>
+
+## Disaster-Response Scenario
+
+A natural disaster has affected a region. A multi-agent system is deployed to
+
+- locate people,
+- assess hazards,
+- deliver supplies,
+- maintain communication,
+- coordinate rescue activities.
+
+The system may include aerial drones, ground robots, communication relay
+agents and supply-delivery robots.
+
+Three things are true of it, and each one is a chapter:
+
+**No single agent has complete information.** The region is large, sensors are
+local, and the map is out of date.
+
+**Communication can be unreliable.** Infrastructure is damaged, range is
+limited, and bandwidth is contested.
+
+**Some agents arrive later, or come from organisations that were not part of
+the original system.** You did not train them, cannot inspect them, and cannot
+change them.
+
+## System Design Objective
+
+> **How would you design a cooperative multi-agent system that can coordinate,
+> communicate, and adapt during disaster response?**
+
+## Project Boundaries
+
+<Callout variant="pitfall">
+This is not an implementation exercise, and it is not a vocabulary test.
+
+You are **not** asked to train anything, and you are not asked to use every
+technique in the resource. A design that uses independent learning and defends
+the choice will score better than one that lists CTDE, value decomposition,
+agent modelling and population training without saying why any of them is
+there.
+
+The project assesses **design decisions and their justification**. Every part
+below asks you to choose one thing and say why.
+</Callout>
+
+## Five-Part Design Process
+
+<div class="table-scroll">
+
+| Part | What you produce |
+| --- | --- |
+| **1 · Define the system** | agents, state, observations, actions, reward |
+| **2 · Coordinate** | one coordination problem, and a training approach that addresses it |
+| **3 · Communicate** | what is sent, to whom, in what representation, under what constraint |
+| **4 · Adapt** | how the system handles agents it did not train with |
+| **5 · Evaluate** | four to six metrics, and the test conditions that would distinguish a robust system from a lucky one |
+</div>
+
+Parts 2 to 4 are on one page, because they are the same design decision seen
+from three angles.
+
+## Required Deliverables
+
+Three artifacts, and they are deliberately lean:
+
+1. **One system diagram.**
+2. **A design brief**, maximum two pages.
+3. **An evaluation plan**, one compact table.
+
+No long essay. The [Deliverables](/project/deliverables/) page has the detail,
+and there is an optional implementation extension for anyone who wants it.
+
+## Recommended Scope
+
+<Callout tone="observe" title="Keep it finishable" icon="compass">
+Disaster response is a real field with real practitioners, and a two-page
+brief is not going to solve it. That is fine and it is the point: the exercise
+is to show you can formulate a cooperative multi-agent problem, choose
+mechanisms that address the difficulties you identified, and design an
+evaluation that could actually falsify your own claims.
+
+Pick three to five agent roles, not fifteen. Choose one coordination problem,
+not every conceivable one. A tight, well-justified design beats a sprawling
+survey.
+</Callout>
+
+Start with [Part 1](/project/system/).

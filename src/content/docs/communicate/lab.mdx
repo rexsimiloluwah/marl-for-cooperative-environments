@@ -1,0 +1,274 @@
+---
+title: "Communication Lab"
+description: "A lightweight Colab investigation of message value, capacity, loss, learned semantics, and cross-play."
+related:
+  - slug: communicate/worksheet
+    icon: clipboard
+  - slug: communicate/communication-failures
+    icon: cycle
+  - slug: adapt/partner-dependence
+    icon: users-round
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import NotebookLink from '../../../components/lab/NotebookLink.astro';
+import CodeExercise from '../../../components/code/CodeExercise.astro';
+import Explore from '../../../components/worksheet/Explore.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+The Communication Lab is a hands-on Colab investigation of the smallest task
+in which one agent must communicate private information to another. Six
+experiments compare performance without a channel, learn a four-symbol
+protocol, restrict its capacity, introduce message loss, inspect the learned
+symbol mapping, and test cross-play with an independently trained partner. The
+provided tabular learners run on free Colab CPU, keeping the focus on measured
+communication behaviour and interpretation rather than implementation scale.
+
+<NotebookLink
+  path="notebooks/01_communicate.ipynb"
+  time="about 30 minutes"
+  compute="CPU is enough; no GPU, nothing to install"
+/>
+
+## Experimental Task
+
+- An order arrives, one of four dishes. **Only agent 1 can see which.**
+- **Only agent 2 can act.** It picks one of four preparations.
+- The team scores $+1$ if the preparation matches the dish, $0$ otherwise.
+- Between them, a channel carrying one symbol from a message space
+  $\mathcal{M}$.
+
+Agent 1 knows and cannot act. Agent 2 acts and cannot know. The asymmetry from
+*Communication in Cooperative MARL*, reduced until nothing else is left.
+
+Both agents are plain tabular learners. The sender learns a value for
+$(\text{order}, \text{message})$; the receiver learns a value for
+$(\text{message received}, \text{action})$. **Neither is told what any symbol
+means**, because there is nothing to tell: the symbols have no meaning until
+the pair gives them one.
+
+<Callout tone="observe" title="What these numbers are" icon="compass">
+Every figure below comes from running the notebook's own code. They are
+reproducible and they are **not** benchmark results. The task is deliberately
+the smallest one in which communication can matter, chosen so each effect is
+visible on a laptop and attributable to a single cause.
+
+Carry the shapes rather than the numbers.
+</Callout>
+
+## Experiment 1 · No channel
+
+A message space of size 1 is a channel that can only say one thing, which is
+the same as no channel: the symbol never varies, so it carries nothing.
+
+Measured success: **0.25**. Random guessing over four dishes is $1/4$.
+
+Note what agent 2 is not: badly trained. No policy it could learn would do
+better, because nothing reaching it depends on the order. This is the baseline
+every later number should be read against.
+
+## Experiment 2 · Four symbols
+
+Widen the channel to four symbols, enough to name every dish, and change
+nothing else.
+
+Measured success: **1.00**.
+
+The agents worked out an assignment between dishes and symbols with no
+dictionary, no supervision, and no shared initialisation. That is the whole of
+what "learning a protocol" means.
+
+## Experiment 3 · Capacity
+
+Vary $|\mathcal{M}|$ and hold everything else fixed. Ten seeds each.
+
+<Explore
+  id="cm-lab-capacity"
+  kind="line"
+  labels={['1', '2', '3', '4', '8']}
+  values={[0.25, 0.5, 0.75, 1.0, 1.0]}
+  xLabel="Size of the message space"
+  yLabel="Task success"
+  slider
+  readout="|M| = {x} → success {y}"
+/>
+
+<div class="table-scroll">
+
+| $\|\mathcal{M}\|$ | 1 | 2 | 3 | 4 | 8 |
+| --- | --- | --- | --- | --- | --- |
+| Success | 0.250 | 0.500 | 0.750 | 1.000 | 1.000 |
+</div>
+
+Read the numbers rather than the curve, because they are exact. With
+$|\mathcal{M}|$ symbols the team names $|\mathcal{M}|$ of the four dishes
+precisely and guesses the rest, giving $|\mathcal{M}|/4$ until the channel is
+wide enough, then nothing further.
+
+This is *Communication Constraints* made measurable. **A narrow channel does
+not make the team describe each situation more briefly. It forces the team to
+merge situations**, and every merged pair costs exactly a coin flip.
+
+## Experiment 4 · Message loss
+
+Four symbols, and now the channel drops a fraction of them. A dropped message
+arrives as the empty message, indistinguishable from silence.
+
+<div class="table-scroll">
+
+| $p_{\text{loss}}$ | Measured | Predicted by $1 - \tfrac{3}{4}p$ |
+| --- | --- | --- |
+| 0.0 | 1.000 | 1.000 |
+| 0.1 | 0.924 | 0.925 |
+| 0.3 | 0.778 | 0.775 |
+| 0.5 | 0.609 | 0.625 |
+</div>
+
+The prediction is worth deriving. When the message arrives the team is right;
+when it is lost, agent 2 is back to guessing at $1/4$. So expected success is
+$(1-p) \cdot 1 + p \cdot \tfrac{1}{4} = 1 - \tfrac{3}{4}p$.
+
+That measurement and prediction agree tells you something specific: the agents
+learned **nothing clever** about loss. They learned the same protocol as
+before and simply lose it a fraction of the time. A team that had adapted to
+an unreliable channel would beat this line.
+
+<Callout variant="predict">
+What would agent 2 have to do differently on receiving an empty message to
+beat $1 - \tfrac{3}{4}p$?
+
+The notebook asks you to try it. The hint is to ask which dish is most likely
+given no information at all.
+</Callout>
+
+## Experiment 5 · Read the protocol
+
+The team scores 1.00, so it has agreed on something. Here is what, from
+seed 0:
+
+<div class="table-scroll">
+
+| Dish | Symbol sent | Receiver prepares |
+| --- | --- | --- |
+| 0 | `1` | 0 |
+| 1 | `2` | 1 |
+| 2 | `3` | 2 |
+| 3 | `0` | 3 |
+</div>
+
+Look at the dish-to-symbol column. It is **not** the identity, and nothing is
+wrong with that.
+
+This is *Learning Communication Protocols* on one screen. The symbol `1` does
+not mean dish 0 in any intrinsic sense. It means dish 0 because this receiver
+prepares dish 0 on seeing it. Any permutation works equally well, provided
+both agents permute together.
+
+The notebook asks you to re-run with other seeds and count how many distinct
+protocols you find.
+
+## Experiment 6 · Pair them with a stranger
+
+Six independent training runs. Each pair scores 1.00 with itself. Now take the
+sender from one run and the receiver from another.
+
+<div class="table-scroll">
+
+| | R0 | R1 | R2 | R3 | R4 | R5 |
+| --- | --- | --- | --- | --- | --- | --- |
+| **S0** | **1.00** | 0.25 | 0.50 | 0.00 | 0.50 | 0.25 |
+| **S1** | 0.25 | **1.00** | 0.00 | 0.50 | 0.00 | 0.00 |
+| **S2** | 0.50 | 0.00 | **1.00** | 0.25 | 1.00 | 0.50 |
+| **S3** | 0.00 | 0.50 | 0.25 | **1.00** | 0.25 | 0.00 |
+| **S4** | 0.50 | 0.00 | 1.00 | 0.25 | **1.00** | 0.50 |
+| **S5** | 0.25 | 0.00 | 0.50 | 0.00 | 0.50 | **1.00** |
+</div>
+
+Diagonal mean: **1.000**. Off-diagonal mean: **0.300**.
+
+Three things to notice.
+
+**The diagonal is what these agents would report** if evaluated with the
+partner they trained with. Every one of them looks perfect.
+
+**Some off-diagonal entries are 0.00**, which is worse than guessing. A
+confidently wrong protocol is more damaging than no protocol, because the
+receiver acts decisively on a symbol it has misunderstood.
+
+**S2 and S4 score 1.00 with each other.** Those two runs happened to converge
+on the same assignment. Compatibility is possible; it is just not something
+either agent arranged.
+
+<Callout variant="takeaway">
+Nothing is broken in any of these twelve policies. Each sender sends
+informative symbols. Each receiver responds appropriately to symbols it
+understands.
+
+What is missing is **agreement**, and agreement is not a property either agent
+holds by itself. It lives in the pairing, and it was never stored anywhere
+else.
+</Callout>
+
+<KnowledgeCheck
+  id="cm-lab-crossplay"
+  type="choice"
+  question="In the matrix above, some off-diagonal cells are 0.00 while random guessing would give 0.25. How can a trained pair do worse than chance?"
+  options={[
+    {
+      text: 'The receiver acts decisively on a symbol it has misunderstood, so a systematic mismatch maps every dish to a consistently wrong preparation.',
+      correct: true,
+      feedback: 'Exactly. Guessing gets a quarter right by luck. A mismatched protocol is not guessing: it is a reliable mapping composed with the wrong dictionary, so it can be reliably wrong on every dish. Confident misunderstanding is worse than no information.',
+    },
+    {
+      text: 'The agents were undertrained, so the 0.00 entries reflect incomplete learning.',
+      correct: false,
+      feedback: 'Every one of these agents scores 1.00 with its own partner, which is only possible if training converged. The zeros are a property of the pairing, not of either policy.',
+    },
+    {
+      text: 'The evaluation has too few trials, so 0.00 is noise.',
+      correct: false,
+      feedback: 'The evaluation runs 4000 trials. A 0.00 over that many trials is a systematic mapping to wrong answers, not sampling error.',
+    },
+    {
+      text: 'Message loss corrupted the cross-pairings.',
+      correct: false,
+      feedback: 'This experiment runs with no loss. The only thing that changed between the diagonal and the off-diagonal is which receiver the sender was paired with.',
+    },
+  ]}
+>
+"Worse than chance" is the signature of a confidently mismatched convention,
+and it is a useful thing to be able to recognise.
+</KnowledgeCheck>
+
+## Experimental Findings
+
+- With **no usable channel**, agent 2 guesses at $1/4$, and no amount of
+  training helps.
+- With a **wide enough channel**, two tabular learners with no dictionary
+  reach 1.00.
+- **Capacity merges situations.** Success is $|\mathcal{M}|/4$ until the
+  channel is wide enough, and nothing more after that.
+- **Loss** degrades as $1 - \tfrac{3}{4}p$ here, which is the signature of a
+  protocol that ignores the channel rather than adapting to it.
+- **Symbol assignments are arbitrary.** Seed 0's mapping is a permutation, and
+  it works.
+- **Cross-play collapses from 1.000 to 0.300**, with some pairings worse than
+  chance. Nothing is wrong with any agent; the agreement is missing.
+
+<NotebookLink
+  path="notebooks/01_communicate.ipynb"
+  compact
+  label="Run it yourself:"
+/>
+
+## Cross-Play Implications
+
+> Two individually capable agents suddenly stop cooperating. The task did not
+> change, the channel did not change, and neither agent got worse.
+>
+> **So what, exactly, did each of them learn?**
+
+That is the Adapt chapter.

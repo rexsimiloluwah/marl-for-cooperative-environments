@@ -1,0 +1,181 @@
+---
+title: "Communication Failures"
+description: "Diagnosing missing information, irrelevant content, message loss, ambiguity, and protocol mismatch."
+related:
+  - slug: communicate/worksheet
+    icon: cycle
+  - slug: communicate/communication-constraints
+    icon: lightbulb
+  - slug: adapt/partner-dependence
+    icon: users-round
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+The team has a channel and still fails. Which cause is it?
+</Callout>
+
+Communication can fail even when a channel exists and every agent is trained successfully.
+
+<Objectives>
+
+- Distinguish missing information from irrelevant information
+- Distinguish a lost message from an ambiguous one
+- Recognize a protocol mismatch between agents
+- Match each symptom to the intervention that can actually repair it
+
+</Objectives>
+
+## Missing Information
+
+The sender holds something useful and does not transmit it.
+
+Agent 1 can see the order ticket and never mentions the dish. The information
+exists in the system, the channel exists, and the two are not connected.
+
+**How to spot it:** compare each agent's private information against what it
+sends. Anything the receiver could act on and never hears is a candidate.
+
+**Where it comes from:** usually a communication policy that was never
+pressured to find the useful message, either because $\lambda$ was high enough
+to discourage sending anything, or because the bootstrapping problem from
+*Learning Communication Protocols* never resolved.
+
+## Irrelevant Information
+
+Messages are sent and change no decision.
+
+Agent 1 reports the pot temperature, which agent 2 can already see. Or reports
+the chopping board, which agent 2 cannot use. Bandwidth is spent, nothing
+changes.
+
+**How to spot it:** ablate. Replace a message with $\varnothing$ and see
+whether performance moves. If it does not, that message was not doing
+anything.
+
+**Why it matters even when it seems harmless:** it costs $\lambda c_t$ every
+step, it makes the protocol unreadable by burying the useful part, and under a
+narrower channel it displaces something that mattered.
+
+## Message Loss
+
+The protocol assumes reliable delivery and messages disappear.
+
+*Communication Constraints* covered the mechanism. The sharp version is that a
+lost message becomes $\varnothing$, which is a legitimate message meaning "say
+nothing", so a protocol in which silence carries meaning misreads loss as
+content.
+
+**How to spot it:** sweep $p_{\text{loss}}$ and look at the shape of the
+decline. A protocol robust to loss degrades gently. One that depends on
+silence falls off a cliff.
+
+## Message Ambiguity
+
+The message arrives and does not narrow the receiver's options enough.
+
+Agent 1 sends `1`, meaning "help needed". Agent 2 does not know whether to
+fetch an ingredient, take over the stove, or start plating. It has been told
+that something is wrong and not what.
+
+**How to spot it:** look for messages after which the receiver's action
+distribution stays wide. If receiving a message leaves the receiver as
+uncertain as before, it did not resolve anything.
+
+**Where it comes from:** most often a capacity limit. With two messages
+available, several situations must share one symbol, and the receiver has to
+disambiguate from context. That is a design choice with a known cost, not
+necessarily a bug.
+
+## Protocol Mismatch
+
+Two individually successful agents interpret the same message differently.
+
+<Callout variant="takeaway">
+This is the important one, and it is unlike the other four.
+
+In the first four, something is wrong: information withheld, bandwidth wasted,
+a channel dropping, a distinction unmade. Fix the sender, the channel, or the
+capacity and the problem goes away.
+
+In protocol mismatch **nothing is wrong with either agent.** Each has a
+complete, working, well-tested protocol. What is missing is agreement, and
+agreement is not a property either agent can hold by itself.
+</Callout>
+
+Agent A learned `2` means *bring an ingredient*. Agent D learned `2` means
+*serve the dish*. Both scored highly with their own partners. Paired, they
+fail, and no amount of retraining either one alone identifies the fault.
+
+**How to spot it:** cross-play. Pair policies that were not trained together
+and compare against their within-team scores. A large drop is the signature.
+the Adapt chapter makes this a measurement discipline.
+
+**Why it has no single-agent analogue:** there is no such thing as a
+convention held by one agent. The failure lives in the relationship, so it is
+invisible to any evaluation that tests agents only with the partners they
+trained with.
+
+## Failure Diagnosis
+
+<div class="table-scroll">
+
+| Failure | What is wrong | First thing to try |
+| --- | --- | --- |
+| Missing information | useful facts never sent | check private information against messages sent |
+| Irrelevant information | messages change no decision | ablate messages and watch performance |
+| Message loss | protocol assumes delivery | sweep $p_{\text{loss}}$ |
+| Ambiguity | message does not narrow options | check the receiver's action spread after a message |
+| **Protocol mismatch** | **nothing, in either agent** | **cross-play against unfamiliar partners** |
+</div>
+
+<KnowledgeCheck
+  id="cm-2-9-diagnose"
+  type="choice"
+  question="A team scores 94% together. Each agent, paired with an equally strong agent from a different training run, scores 31%. Which failure is this?"
+  options={[
+    {
+      text: 'Protocol mismatch. Both protocols work internally and assign symbols differently, so nothing is wrong with either agent.',
+      correct: true,
+      feedback: 'Correct, and the signature is the gap between within-team and cross-team performance. The other four failures would show up within the original team as well; this one is invisible until you pair across runs.',
+    },
+    {
+      text: 'Ambiguity. The messages are not specific enough for the new partner.',
+      correct: false,
+      feedback: 'Ambiguity would also hurt the original pairing, since the same messages carry the same amount of information regardless of who receives them. The 94% rules it out.',
+    },
+    {
+      text: 'Message loss on the new channel.',
+      correct: false,
+      feedback: 'The channel did not change; only the partner did. Loss would degrade both pairings.',
+    },
+    {
+      text: 'Irrelevant information. The messages were never carrying anything useful.',
+      correct: false,
+      feedback: 'If the messages carried nothing, removing them would not hurt, and the cross-play score would be closer to the within-team score. A large drop on repairing is evidence the messages mattered a great deal, to the partner that understood them.',
+    },
+  ]}
+>
+The diagnostic habit worth building: a failure that appears only on repairing
+is about the relationship, not about either agent.
+</KnowledgeCheck>
+
+## Communication Failures Summary
+
+- **Missing information:** useful private facts are never sent.
+- **Irrelevant information:** messages arrive and change no decision. Ablate
+  to detect.
+- **Message loss:** the protocol assumed delivery. Worst where silence carries
+  meaning.
+- **Ambiguity:** the message does not narrow the receiver's options, usually a
+  consequence of limited capacity.
+- **Protocol mismatch:** two working protocols disagree. Nothing is wrong with
+  either agent, the failure lives in the relationship, and only cross-play
+  reveals it.

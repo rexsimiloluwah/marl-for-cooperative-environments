@@ -1,0 +1,152 @@
+---
+/**
+ * CALLOUT
+ *
+ * A titled, tinted aside. Colour is chosen by MEANING, not by callout kind:
+ * the tone names the concept the box is about, using the same six semantic
+ * tones as the diagrams, the equations, the lab and the videos.
+ *
+ * That is why a box titled "Example reward" is green, green means reward
+ * throughout the resource, rather than green meaning "example". Presets
+ * exist for the recurring pedagogical moves, and every field can be
+ * overridden when the content calls for a different tone:
+ *
+ *   <Callout variant="intuition">…</Callout>
+ *   <Callout tone="reward" title="Example reward (two agents)" center>…</Callout>
+ */
+import Icon from './Icon.astro';
+
+type Tone = 'action' | 'observe' | 'policy' | 'comm' | 'reward' | 'conflict';
+
+interface Preset {
+  tone: Tone;
+  title: string;
+  icon?: string;
+}
+
+const PRESETS: Record<string, Preset> = {
+  /* Build the mental model before the notation. */
+  intuition: { tone: 'action', title: 'Intuition', icon: 'lightbulb' },
+  /* What to carry forward from the section. */
+  takeaway: { tone: 'reward', title: 'Key takeaway', icon: 'check' },
+  /* A worked instance of something just formalised. */
+  example: { tone: 'observe', title: 'Example', icon: 'chart' },
+  /* A formal statement of a term. */
+  definition: { tone: 'policy', title: 'Definition', icon: 'book' },
+  /* A common misreading, named so it can be avoided. */
+  pitfall: { tone: 'conflict', title: 'Common pitfall', icon: 'help-circle' },
+  /* Ask the reader to commit to a prediction before revealing. */
+  predict: { tone: 'comm', title: 'Predict first', icon: 'help-circle' },
+  /* Where a concept shows up in the wireless environment.
+     Kept visually distinct so foundational prose is not interleaved with
+     simulator documentation: the concepts have to stand on their own, and the
+     wireless setting has to read as an application of them, not as the thing
+     through which they must be understood. */
+  lab: { tone: 'comm', title: 'Challenge Lab connection', icon: 'antenna' },
+};
+
+interface Props {
+  variant?: keyof typeof PRESETS;
+  tone?: Tone;
+  title?: string;
+  icon?: string;
+  /** Centre the body. For a box whose content is a single display equation. */
+  center?: boolean;
+}
+
+const { variant, tone, title, icon, center = false } = Astro.props;
+const preset = variant ? PRESETS[variant] : undefined;
+
+if (variant && !preset) {
+  throw new Error(
+    `<Callout variant="${variant}"> is not a preset. ` +
+      `Use one of: ${Object.keys(PRESETS).join(', ')}, or pass tone and title directly.`
+  );
+}
+
+const resolvedTone = tone ?? preset?.tone ?? 'observe';
+const resolvedTitle = title ?? preset?.title;
+const resolvedIcon = icon ?? preset?.icon;
+---
+
+<aside class:list={['co', `co--${resolvedTone}`, center && 'co--center']}>
+  {
+    resolvedTitle && (
+      <p class="co__title">
+        {resolvedIcon && <Icon name={resolvedIcon} size={15} />}
+        <span>{resolvedTitle}</span>
+      </p>
+    )
+  }
+  <div class="co__body">
+    <slot />
+  </div>
+</aside>
+
+<style>
+  .co {
+    margin-block: var(--s-5);
+    padding: var(--s-4);
+    border: var(--hairline) solid;
+    border-inline-start-width: 3px;
+    border-radius: var(--r-md);
+  }
+
+  /* Two classes, not one. `.sl-markdown-content p` in theme.css is a class
+     plus a type selector, and Astro's :where() scoping keeps component rules
+     at a single class, so `.co__title` alone would be outranked and the title
+     would inherit paragraph margins. */
+  .co .co__title {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    margin: 0 0 var(--s-2);
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    letter-spacing: var(--tr-label);
+    text-transform: uppercase;
+  }
+
+  .co__body {
+    font-size: var(--t-small);
+    line-height: var(--lh-loose);
+    color: var(--ink);
+  }
+
+  .co__body :global(> :first-child) {
+    margin-top: 0;
+  }
+
+  .co__body :global(> :last-child) {
+    margin-bottom: 0;
+  }
+
+  .co--center .co__body {
+    text-align: center;
+  }
+
+  /* Display maths inside a callout is the point of the box, so it keeps its
+     size rather than shrinking to the callout's smaller body text. */
+  .co__body :global(.katex-display) {
+    margin-block: var(--s-3);
+    font-size: 1.15rem;
+  }
+
+  .co--action { background: var(--c-action-tint); border-color: var(--c-action-edge); border-inline-start-color: var(--c-action); }
+  .co--action .co__title { color: var(--c-action-ink); }
+
+  .co--observe { background: var(--c-observe-tint); border-color: var(--c-observe-edge); border-inline-start-color: var(--c-observe); }
+  .co--observe .co__title { color: var(--c-observe-ink); }
+
+  .co--policy { background: var(--c-policy-tint); border-color: var(--c-policy-edge); border-inline-start-color: var(--c-policy); }
+  .co--policy .co__title { color: var(--c-policy-ink); }
+
+  .co--comm { background: var(--c-comm-tint); border-color: var(--c-comm-edge); border-inline-start-color: var(--c-comm); }
+  .co--comm .co__title { color: var(--c-comm-ink); }
+
+  .co--reward { background: var(--c-reward-tint); border-color: var(--c-reward-edge); border-inline-start-color: var(--c-reward); }
+  .co--reward .co__title { color: var(--c-reward-ink); }
+
+  .co--conflict { background: var(--c-conflict-tint); border-color: var(--c-conflict-edge); border-inline-start-color: var(--c-conflict); }
+  .co--conflict .co__title { color: var(--c-conflict-ink); }
+</style>

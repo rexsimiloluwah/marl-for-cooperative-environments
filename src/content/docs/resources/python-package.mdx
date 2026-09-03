@@ -1,0 +1,232 @@
+---
+title: "The Python Package"
+description: "cooperative-marl-labs: the installable environments, agents and utilities behind the Colab labs."
+related:
+  - slug: resources/notebooks
+    icon: code
+  - slug: lab/environment
+    icon: box
+  - slug: lab/challenge
+    icon: beaker
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+import { REPO_BASE } from '../../../lib/site';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+Where does the code behind each lab actually live, and how do you read it?
+</Callout>
+
+Every environment, baseline, training loop and plot used by the Colab labs is
+published as one installable package, `cooperative-marl-labs`, so a notebook
+holds the experiment and nothing else.
+
+<Objectives>
+
+- Install the package, with or without the PyTorch extra
+- Name which environment belongs to which lab
+- Read a wireless observation without memorising array offsets
+- Find the source for anything a notebook calls
+- State what the wireless model does and does not simulate
+
+</Objectives>
+
+## Install
+
+```bash
+pip install cooperative-marl-labs
+```
+
+The speaker-listener protocol experiments in the Communicate lab train a small
+neural network, so they need one extra:
+
+```bash
+pip install "cooperative-marl-labs[learning]"
+```
+
+Everything runs on a free Colab CPU. No GPU, no Ray, no RLlib, no Stable
+Baselines.
+
+<Callout tone="observe" title="Import name" icon="compass">
+The distribution is `cooperative-marl-labs` with hyphens; the import is
+`cooperative_marl_labs` with underscores. That is the usual Python convention
+and it catches people out once.
+</Callout>
+
+## What is in it
+
+<div class="table-scroll">
+
+| Environment | Lab | The question it asks |
+| --- | --- | --- |
+| `SpeakerListenerEnv` | Communicate | What can one symbol per episode buy? |
+| `PartnerCoordinationEnv` | Adapt | Did the ego learn to cooperate, or learn one partner? |
+| `WirelessResourceAllocationEnv` | Challenge Lab | Which pair of access points should share a channel? |
+</div>
+
+All three are PettingZoo `ParallelEnv`s and the test suite runs
+`pettingzoo.test.parallel_api_test` against each of them, so a PettingZoo
+release that changes the API fails there rather than in your notebook.
+
+The Coordinate lab is **not** in the package. It runs entirely in the browser,
+so it has no Python to install.
+
+## The public API
+
+Three environments:
+
+```python
+from cooperative_marl_labs.envs import (
+    SpeakerListenerEnv,
+    PartnerCoordinationEnv,
+    WirelessResourceAllocationEnv,
+)
+```
+
+Scripted partners for the Adapt lab, each with its own seeded generator:
+
+```python
+from cooperative_marl_labs.policies import (
+    FetchFirstPartner,    # P(FETCH) = 0.95
+    CookFirstPartner,     # 0.05
+    BalancedPartner,      # 0.50
+    HeldOutPartner,       # 0.25, evaluation only
+    ReactivePartner,      # takes whichever role the ego did not
+)
+```
+
+Wireless agents, all tabular:
+
+```python
+from cooperative_marl_labs.agents import (
+    RandomWirelessAgent,
+    GreedyWirelessAgent,
+    QLearningWirelessAgent,
+    CommunicatingWirelessAgent,
+)
+```
+
+Training, evaluation and plots:
+
+```python
+from cooperative_marl_labs.training import (
+    train_independent_q_learning, train_vdn, train_communication_agents)
+from cooperative_marl_labs.evaluation import evaluate_agents, crossplay_matrix
+from cooperative_marl_labs.visualization import (
+    plot_protocol_heatmap, plot_crossplay_matrix, plot_partner_estimate,
+    render_wireless_network, plot_wireless_comparison)
+```
+
+## Reading a wireless observation
+
+Each access point sees only its own situation, laid out as
+
+```
+[demand, quality per channel, interference per channel, previous channel, messages]
+```
+
+Read it through the helpers rather than by index, so nothing breaks when
+communication is switched on and the vector gets longer:
+
+```python
+from cooperative_marl_labs.envs import (
+    extract_demand,
+    extract_channel_quality,
+    extract_interference,
+    extract_previous_channel,
+)
+
+demand = extract_demand(observation)
+interference = extract_interference(observation, env)   # pass env when comm is on
+```
+
+`env.state()` returns the centralized picture, for centralized training and for
+evaluation. Passing it to an agent at execution time would break the
+decentralized-execution constraint the whole resource is about.
+
+## Interventions
+
+Every stress test in the labs goes through a method, so a notebook never
+reaches into environment attributes:
+
+```python
+env.set_traffic("ap_2", demand=1.0)
+env.set_channel_quality(agent="ap_1", channel=1, quality=0.5)
+env.set_message_loss(0.3)
+env.set_communication(True)
+```
+
+The speaker-listener environment has the same shape:
+`set_message_vocab_size` for channel capacity, `set_message_error` for noise.
+And `PartnerCoordinationEnv` has `set_partner` and `set_partner_switch`, the
+second of which replaces the partner part-way through an episode without
+warning.
+
+## What the wireless model is not
+
+<Callout variant="pitfall">
+This is a teaching model of interference, not a calibrated simulation.
+
+- Access points sit at fixed 2D positions and never move.
+- Two on the same channel interfere by `1 / (1 + (distance / d0) ** 2)`.
+- Rate is `log2(1 + quality * P / (noise + interference))`.
+- Useful throughput is `min(demand, rate)`.
+- No fading, no mobility, no protocol overhead, no user scheduling, no power
+  control.
+
+No number this package produces is a benchmark result or a wireless
+engineering result. Every figure quoted in the labs is a measurement of this
+model, reproducible from these seeds, and nothing more.
+</Callout>
+
+`env.best_possible()` enumerates all `n_channels ** n_agents` allocations and
+returns the ceiling, which is what any result should be read against. Reporting
+a reward without its ceiling is the most common way to make a mediocre
+allocation look good.
+
+## Determinism
+
+Every environment reseeds from `reset(seed=...)`, every agent and partner owns
+its own generator, and nothing in the package touches global NumPy random
+state. Two runs with the same seeds give the same numbers.
+
+One trap is worth naming because it produced a wrong result during development:
+agents constructed with the *same* seed behave identically, so four
+identically-seeded random access points pick the identical channel every step
+and score like the worst possible policy rather than like chance.
+`make_fixed_agents` offsets the seed per agent for exactly that reason.
+
+## Source and development
+
+<p>
+  <a href={`${REPO_BASE}/tree/main/cooperative-marl-labs`}>
+    Browse the package source
+  </a>
+</p>
+
+```bash
+git clone https://github.com/rexsimiloluwah/marl-for-cooperative-environments
+cd marl-for-cooperative-environments/cooperative-marl-labs
+python -m pip install -e ".[dev,learning]"
+pytest
+ruff check .
+```
+
+The suite covers the PettingZoo API, the physics, the interventions, seed
+reproducibility, the evaluation helpers, every public import, and every Python
+block in the package README.
+
+## The Python Package Summary
+
+- One install, `cooperative-marl-labs`, carries all three lab environments plus
+  the baselines, training loops, evaluation helpers and plots.
+- The labs import from it, so a notebook contains the experiment rather than
+  the infrastructure.
+- The wireless model is deliberately simple and its assumptions are written
+  down. Read every number as a measurement of that model.
+- Read observations through the `extract_*` helpers and run stress tests through
+  the `set_*` methods, never by touching attributes.

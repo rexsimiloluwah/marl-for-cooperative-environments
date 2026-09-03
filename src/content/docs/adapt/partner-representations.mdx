@@ -1,0 +1,195 @@
+---
+title: "Partner Representations"
+description: "Compact behavioural representations that support cooperation without reconstructing a partner's complete policy."
+related:
+  - slug: adapt/ad-hoc-teamwork
+    icon: lightbulb
+  - slug: adapt/agent-modelling
+    icon: cycle
+  - slug: adapt/research-naht
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+How much of a partner does an agent actually need to represent?
+</Callout>
+
+A partner representation is a compact summary of behaviour that helps an agent choose compatible actions without reconstructing another agent's complete policy.
+
+<Objectives>
+
+- Explain why recovering a full policy is usually unnecessary
+- Describe a learned behaviour embedding
+- Separate behavioural features from identity labels
+- Infer a representation online as evidence arrives
+
+</Objectives>
+
+## Limits of Full Policy Recovery
+
+Three obstacles, and the textbook names all of them as motivation for a
+compact representation instead. Other agents' policies may be
+
+- **unknown at execution**, since nothing gives you access to them,
+- **too complex to represent directly**, being large neural networks,
+- **changing over time**, so any reconstruction goes stale.
+
+The third is the sharpest. Even a perfect reconstruction of a partner's
+policy describes the partner *as it was*, and a partner that is still
+learning has moved on. This is the non-stationarity of the Coordinate chapter, arriving
+here as an obsolescence problem.
+
+## Behaviour Embeddings
+
+So do not reconstruct the policy. Learn a summary that is useful for
+interacting with it.
+
+<Equation
+  label="Figure 1"
+  wide
+  tex={String.raw`\ubrace{observe}{h^{\ag}_t}{what I have seen of you} \;\xrightarrow{\;\text{encoder}\;}\; \ubrace{policy}{z_j}{a compact summary of how you behave}`}
+  terms={[
+    { tex: String.raw`h^{\ag}_t`, is: 'the modelling agent’s own observation history', tone: 'observe' },
+    { tex: String.raw`z_j`, is: 'a learned vector standing for agent j’s behaviour', tone: 'policy' },
+  ]}
+  caption="Not a copy of the partner's policy. A description of it, only as detailed as acting well requires."
+/>
+
+Then condition on that instead.
+
+<Equation
+  label="Figure 2"
+  wide
+  tex={String.raw`\tone{action}{a^{\ag}_t} \sim \tone{policy}{\pol{\ag}}\bigl(\cdot \given \tone{observe}{\obs{\ag}},\ \tone{policy}{z_j}\bigr)`}
+  terms={[
+    { tex: String.raw`a^i_t`, is: 'agent i\u2019s selected action', tone: 'action' },
+    { tex: String.raw`o^i_t`, is: 'agent i\u2019s local observation', tone: 'observe' },
+    { tex: String.raw`z_j`, is: 'the inferred representation of partner j', tone: 'policy' },
+  ]}
+  caption="The local policy conditions its action on both observation and inferred partner behaviour."
+/>
+
+The gain is that $z_j$ can be much smaller than a policy and still carry what
+matters. Deciding whether to fetch or cook needs to know roughly what kind of
+partner this is, not how it would behave in every situation it will never
+encounter.
+
+## Behaviour Rather Than Identity
+
+Here is the distinction that decides whether a representation is any use.
+
+<div class="table-scroll">
+
+| | What is learned | What it supports |
+| --- | --- | --- |
+| **Identity** | `partner = #7` $\rightarrow$ do X | recognising partners seen in training |
+| **Behaviour** | prefers cooking, commits early, responds to requests, takes left-side tasks | acting sensibly with a partner never seen before |
+</div>
+
+An identity representation is a lookup table over training partners. It can be
+learned, it can score well on any evaluation that reuses those partners, and
+it fails completely on a stranger, because a stranger has no entry.
+
+A behaviour representation places a partner in a space of *behaviours*. A new
+partner that happens to behave like a known one lands nearby and inherits a
+sensible response. This is the same argument as the difference between
+memorising and generalising in supervised learning, applied to partners.
+
+<Callout variant="pitfall">
+Partner identity is a shortcut that evaluation can easily fail to catch.
+
+If your evaluation partners are the training partners, an identity
+representation looks as good as a behavioural one. The two are only
+distinguishable on held-out partners, which is *Evaluating Partner Generalization*'s argument for
+insisting on them.
+</Callout>
+
+## Online Representation Inference
+
+The representation is not fixed at the start of an episode. It is revised as
+evidence arrives.
+
+<Equation
+  label="Figure 3"
+  wide
+  tex={String.raw`\tone{observe}{h_1} \rightarrow \tone{policy}{z_1} \qquad \tone{observe}{h_2} \rightarrow \tone{policy}{z_2} \qquad \tone{observe}{h_3} \rightarrow \tone{policy}{z_3} \qquad \cdots`}
+  terms={[
+    { tex: String.raw`h_t`, is: 'the interaction history available at step t', tone: 'observe' },
+    { tex: String.raw`z_t`, is: 'the partner representation inferred from that history', tone: 'policy' },
+  ]}
+  caption="The partner representation is updated as interaction history accumulates."
+/>
+
+Early in an episode the agent has seen almost nothing, so $z$ should be close
+to uninformative and the agent's behaviour appropriately non-committal. After
+several steps of watching a partner head for the stove every time, $z$ is
+much more specific and the agent can commit.
+
+<Callout variant="takeaway">
+This is adaptation **without retraining**.
+
+No weights change. The policy is fixed at deployment, and what changes is the
+input it receives, because the agent has learned more about its partner.
+
+That distinction matters practically: retraining at deployment needs a reward
+signal, a learning rate and time. Revising a belief needs only observation.
+</Callout>
+
+It also gives a shape worth expecting in results: performance that starts near
+partner-agnostic and improves over the course of an episode. An adaptive agent
+that shows no such curve is probably not using its model.
+
+<KnowledgeCheck
+  id="ad-3-5-behaviour"
+  type="choice"
+  question="An agent's partner encoder maps observation histories to one of five learned vectors, each corresponding to one training partner. On held-out partners it performs no better than a partner-agnostic policy. What is the most likely explanation?"
+  options={[
+    {
+      text: 'The encoder learned partner identity rather than partner behaviour, so a stranger falls outside the five categories it can represent.',
+      correct: true,
+      feedback: 'Exactly. Five vectors for five training partners is a lookup table. It scores well on the partners it was built from and has nothing to say about a sixth, which is why the advantage vanishes on held-out partners.',
+    },
+    {
+      text: 'The encoder needs more training on the five partners.',
+      correct: false,
+      feedback: 'More training on the same five would sharpen the lookup table, making the identity shortcut stronger rather than weaker. The problem is what it is representing, not how well.',
+    },
+    {
+      text: 'Five partners is too few to learn from.',
+      correct: false,
+      feedback: 'A contributing factor and not the mechanism. Even with five genuinely different partners, an encoder that maps to five discrete identities cannot place a sixth. The fix is a representation of behaviour, not just more of it.',
+    },
+    {
+      text: 'Held-out partners are always harder, so this is expected.',
+      correct: false,
+      feedback: 'Held-out partners are harder, and the specific finding here is that the model provided no benefit at all over ignoring the partner. That is the signature of a representation that does not transfer.',
+    },
+  ]}
+>
+"Would this representation say anything about a partner it has never seen?" is
+the question that separates the two cases.
+</KnowledgeCheck>
+
+## Partner Representations Summary
+
+- Reconstructing a partner's policy is hard: policies are **unknown at
+  execution**, **too complex to represent directly**, and **changing over
+  time**.
+- A **behaviour embedding** $z_j$ summarises how a partner behaves, learned
+  from the modelling agent's own history, and only as detailed as acting well
+  requires.
+- Representing **behaviour** generalises to strangers. Representing
+  **identity** is a lookup table over training partners and does not.
+- Identity shortcuts are invisible to any evaluation that reuses training
+  partners.
+- $z$ is revised **online** as evidence arrives, which is adaptation without
+  any weight update. Expect within-episode improvement as the signature.

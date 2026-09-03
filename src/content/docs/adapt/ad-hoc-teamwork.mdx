@@ -1,0 +1,177 @@
+---
+title: "Ad Hoc Teamwork"
+description: "Cooperation with unfamiliar agents that were not selected, designed, or co-trained with the controlled policy."
+related:
+  - slug: adapt/zero-shot-coordination
+    icon: lightbulb
+  - slug: adapt/research-naht
+    icon: book
+  - slug: adapt/partner-representations
+    icon: cycle
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+What does a policy need in order to join a team it never trained with?
+</Callout>
+
+Ad hoc teamwork studies cooperation with partners that were not selected, designed, or co-trained with the controlled agent.
+
+<Objectives>
+
+- Define the unfamiliar-partner setting
+- Contrast a fixed team with an ad hoc team
+- Describe the open deployment conditions this reflects
+- State the three requirements this places on a policy
+
+</Objectives>
+
+## Previously Unknown Partners
+
+<Callout variant="definition" title="Ad hoc teamwork">
+Settings in which agents must collaborate with **previously unknown** agents,
+whose behaviours may initially be unknown.
+
+The core requirement: **cooperate without having trained together
+beforehand.**
+</Callout>
+
+Everything in Chapters 1 and 2 quietly assumed the opposite. The agents were
+trained together, by us, under one objective, and deployed together. Under
+that assumption a convention is a perfectly good solution, because both halves
+of it were installed by the same process.
+
+## Fixed Teams and Ad Hoc Teams
+
+<div class="table-scroll">
+
+| | Standard cooperative MARL | Ad hoc teamwork |
+| --- | --- | --- |
+| **Training** | A with B, every episode | A with B, then C, then D |
+| **Deployment** | A with B | A with **?** |
+| Who designed the partners | we did | somebody else, or nobody we can ask |
+| Can we inspect their policies | yes | no |
+| Do they share our objective | by construction | we hope so |
+| Is a convention a solution | yes | only if the other party holds it too |
+</div>
+
+The last row is the one that reorganises everything. A convention is a
+solution exactly when you control both parties, and ad hoc teamwork is
+defined by not controlling both.
+
+<Callout tone="observe" title="One controlled agent, or several" icon="compass">
+Historically many ad hoc teamwork formulations assume the learning system
+controls a **single** agent, with the other participants treated as external
+partners given by the world.
+
+That is a clean setting and a restrictive one. Real deployments often sit in
+between: you control some of the team and not the rest. *Research Connection: N-Agent Ad Hoc Teamwork*'s research
+connection is precisely about that middle ground, so it is worth noticing the
+assumption now rather than absorbing it as inevitable.
+</Callout>
+
+The key idea to carry, whatever the formulation:
+
+> The learner cannot assume that it designed, trained, or knows the policies
+> of everyone else.
+
+## Open Deployment Conditions
+
+Not a thought experiment. The situations where cooperative multi-agent systems
+are most wanted are mostly ad hoc:
+
+**Autonomous vehicles from different manufacturers.** Each fleet is trained
+separately, by companies that do not share models, and they meet at
+junctions. No manufacturer can train against the others' actual policies.
+
+**Robots from different organisations.** Warehouse equipment, agricultural
+machinery and inspection drones increasingly come from multiple vendors and
+have to share space.
+
+**AI agents built by different developers.** Two assistants negotiating a
+meeting were not co-trained and cannot be.
+
+**Human-AI teams.** The most common case, and the hardest, because the human
+was not trained at all in the relevant sense and will not adapt to an
+arbitrary convention just because the system holds one.
+
+**Emergency response.** Teams assembled from whatever units are available,
+with no opportunity to train the combination beforehand.
+
+<Callout variant="takeaway">
+The constraint these share is **interoperability**.
+
+Each of these systems can be excellent on its own terms and still be
+unusable, because working with others was never what it was optimised for.
+That is not a performance problem, and no amount of additional training
+against a familiar partner addresses it.
+</Callout>
+
+## Policy Requirements
+
+Three requirements follow, and each one has already appeared:
+
+**Do not depend on an arbitrary convention.** If your behaviour requires the
+partner to hold an agreement, and the agreement was never communicated, you
+are relying on coincidence. The Communication Lab measured the coincidence rate.
+
+**Infer what you can from behaviour.** A stranger's policy is unavailable and
+its behaviour is observable. Sections 3.4 and 3.5 are the machinery.
+
+**Be evaluated against strangers.** An ad hoc teamwork claim tested with
+familiar partners is not a claim about ad hoc teamwork. *Evaluating Partner Generalization* makes this
+a procedure.
+
+<KnowledgeCheck
+  id="ad-3-6-adhoc"
+  type="choice"
+  question="A team of four warehouse robots is trained together and deployed together, in the same warehouse, forever. Is this ad hoc teamwork?"
+  options={[
+    {
+      text: 'No. The same policies are trained and deployed together, so conventions between them are a legitimate solution.',
+      correct: true,
+      feedback: 'Correct, and it is worth being clear that this is a fine engineering situation rather than a deficiency. You control all four agents, so an arbitrary shared convention is installed by construction and will hold. Chapters 1 and 2 apply and this chapter mostly does not.',
+    },
+    {
+      text: 'Yes, because the robots still cannot see each other’s policies at execution.',
+      correct: false,
+      feedback: 'That is decentralized execution, which is present throughout this resource. Ad hoc teamwork is about not having trained together, which is a different condition.',
+    },
+    {
+      text: 'Yes, because the warehouse will change over time.',
+      correct: false,
+      feedback: 'That is environment shift, covered in *Partner Generalization* as a separate axis. Partner shift is what makes a setting ad hoc, and here the partners never change.',
+    },
+    {
+      text: 'It depends on whether the robots communicate.',
+      correct: false,
+      feedback: 'Communication does not decide it. A co-trained team can be ad hoc-free with or without a channel, and a channel does not help if the partner uses a different protocol.',
+    },
+  ]}
+>
+Being able to say when this chapter does *not* apply is as useful as knowing
+when it does.
+</KnowledgeCheck>
+
+## Ad Hoc Teamwork Summary
+
+- **Ad hoc teamwork** is collaboration with previously unknown agents whose
+  behaviours are initially unknown: cooperate without having trained together.
+- Chapters 1 and 2 assumed co-training, which is what makes an arbitrary
+  convention a legitimate solution.
+- Many formulations assume the learner controls **one** agent, with the rest
+  external. Real deployments often control some and not others.
+- The learner cannot assume it designed, trained, or knows the policies of
+  everyone else.
+- The realistic cases are mostly ad hoc: vehicles across manufacturers, robots
+  across vendors, agents across developers, **human-AI teams**, emergency
+  response.
+- The shared constraint is **interoperability**, and it is not addressed by
+  more training against a familiar partner.

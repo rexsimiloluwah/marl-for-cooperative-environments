@@ -1,0 +1,143 @@
+---
+title: "Why Wireless Resource Allocation"
+description: "How physical interference turns channel selection into a cooperative MARL resource-allocation problem."
+related:
+  - slug: lab/environment
+    icon: box
+  - slug: background/dec-pomdp
+    icon: book
+  - slug: lab/challenge
+    icon: beaker
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+Wireless resource allocation provides a physical example of action
+interdependence: access points that choose the same channel change one
+another's achievable rates. This section maps agents, actions, observations,
+rewards, communication, and partner change into the allocation problem, then
+identifies what makes the task non-trivial and what the teaching environment
+does not claim to model. The mapping prepares you to apply general cooperative
+MARL reasoning inside the Challenge Lab.
+
+## Interference as Action Interdependence
+
+Most cooperative multi-agent examples have to *construct* a reason for actions
+to interact. Two robots collide because we placed a wall. Two agents duplicate
+work because we said the ingredient was singular.
+
+Radio does not need the construction. Two transmitters on the same frequency
+degrade each other's signal-to-noise ratio, and there is nothing anybody can
+do about that. The interdependence is in the physics.
+
+<Callout variant="takeaway">
+That makes the joint action **unavoidable** rather than stipulated.
+
+The rate an access point achieves is a function of what every nearby access
+point chose. Not by design, and not as a modelling convenience.
+</Callout>
+
+## Cooperative MARL Mapping
+
+Each concept from the three chapters has a physical counterpart here.
+
+<div class="table-scroll">
+
+| Concept | In this network |
+| --- | --- |
+| Agent | an access point choosing a channel |
+| Joint action | the channel assignment across the whole network |
+| State | demands, channel conditions, current assignment |
+| Observation | one access point's own demand and local measurements |
+| Shared reward | network throughput, less interference and message cost |
+| Interdependence | co-channel interference |
+| Partial observability | you measure your own interference, not your neighbour's demand |
+| Credit assignment | which access point earned the throughput |
+| Communication | a few bits of control signalling, which cost airtime |
+| Partner shift | equipment from another operator joins |
+| Environment shift | traffic patterns change |
+</div>
+
+Nothing in the right column was invented to fit the left. These are ordinary
+features of wireless networks, and they are why resource allocation has been a
+live application area for multi-agent learning.
+
+## Sources of Allocation Difficulty
+
+Four access points, three channels. Two of them must share, so the question is
+not *whether* somebody suffers but **who**.
+
+And the answer depends on demand. An access point that wants very little loses
+nothing by sharing, because even a shared channel delivers more than it needs.
+An access point with heavy demand loses a great deal.
+
+<Callout variant="pitfall">
+Here is the part worth pausing on, because it is the whole lab.
+
+The optimal allocation depends on **who has high demand**. Each access point
+knows its own demand and nobody else's.
+
+So this is a problem where the information needed to act well is present in
+the system and distributed across the agents. That is precisely the condition
+from *Communication in Cooperative MARL*, arriving from the physics rather
+than from a teaching example.
+</Callout>
+
+## Scope of the Teaching Environment
+
+Worth being explicit, since this is an engineering domain with a large
+literature.
+
+The environment in the notebook is a **teaching model** of interference. It
+uses a simple rate function, a fixed coupling coefficient, and no fading,
+mobility, protocol overhead, or realistic traffic model. It is not calibrated
+against any real deployment.
+
+Nothing measured in it is a wireless engineering result, and none of its
+numbers should be quoted as one. What transfers is the reasoning.
+
+<KnowledgeCheck
+  id="lab-why-mapping"
+  type="choice"
+  question="Why does this problem test transfer better than repeating the kitchen with more agents?"
+  options={[
+    {
+      text: 'Because the concepts are not labelled. The problem is stated in its own vocabulary, so recognising which idea applies is part of the work.',
+      correct: true,
+      feedback: 'Yes. Every chapter told you what to notice. Here demand, interference and channels are just network features, and mapping them onto joint actions, asymmetric information and partner shift is the exercise.',
+    },
+    {
+      text: 'Because wireless networks are more difficult than kitchens.',
+      correct: false,
+      feedback: 'The environment here is deliberately simpler than the kitchen in several ways: one decision per step, no movement, no sequencing. Difficulty is not what makes it a transfer task.',
+    },
+    {
+      text: 'Because it uses real measured channel data.',
+      correct: false,
+      feedback: 'It does not. The environment is an explicit teaching model of interference, and the page says so. Its value is structural, not empirical.',
+    },
+    {
+      text: 'Because it needs a different algorithm from the ones already covered.',
+      correct: false,
+      feedback: 'It uses the same methods: independent learning, value decomposition, a small discrete message. What changes is the problem, not the toolkit.',
+    },
+  ]}
+>
+A transfer task is one where nobody tells you which chapter to open.
+</KnowledgeCheck>
+
+## Wireless Resource Allocation Summary
+
+- Radio interference makes **interdependence physical** rather than
+  stipulated: the rate you achieve depends on what your neighbours chose.
+- Every concept from the three chapters has a counterpart here, and none of
+  them was invented to fit.
+- Four access points and three channels means somebody must share, and **who
+  should share depends on demand**, which is local information.
+- The environment is a **teaching model** of interference. Nothing it produces
+  is a wireless engineering result.

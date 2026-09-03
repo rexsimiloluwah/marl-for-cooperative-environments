@@ -1,0 +1,59 @@
+---
+/**
+ * LEARNING OBJECTIVES
+ *
+ * Deliberately not a Callout. The opening question already sits in a box
+ * directly above, and two stacked boxes read as noise, so this is a labelled
+ * list with a rule down the side.
+ */
+interface Props {
+  /** Override for pages where "in this section" is the wrong noun. */
+  title?: string;
+}
+const { title = 'In this section you will' } = Astro.props;
+---
+
+<div class="objectives">
+  <p class="objectives__label">{title}</p>
+  <div class="objectives__body"><slot /></div>
+</div>
+
+<style>
+  .objectives {
+    margin-block: var(--s-5);
+    padding-left: var(--s-4);
+    border-left: 2px solid var(--rule-strong, var(--rule));
+  }
+
+  .objectives__label {
+    margin: 0 0 var(--s-2);
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    letter-spacing: 0.02em;
+    color: var(--ink-muted);
+  }
+
+  /* Doubled class: `.sl-markdown-content ul` is class + type and would
+     otherwise outrank a single-class rule under Astro's :where() scoping. */
+  .objectives__body.objectives__body :global(ul) {
+    margin: 0;
+    padding-left: 1.15em;
+    list-style: none;
+  }
+  .objectives__body.objectives__body :global(li) {
+    position: relative;
+    margin-block: var(--s-2);
+    font-size: var(--t-body);
+    line-height: var(--lh-body);
+  }
+  .objectives__body.objectives__body :global(li)::before {
+    content: '';
+    position: absolute;
+    left: -1.15em;
+    top: 0.62em;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--ink-subtle, var(--ink-muted));
+  }
+</style>

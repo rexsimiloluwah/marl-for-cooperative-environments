@@ -1,0 +1,198 @@
+---
+title: "Zero-Shot Coordination"
+description: "Coordination with unseen partners without prior joint training, negotiation, or shared interaction history."
+related:
+  - slug: adapt/evaluating-generalization
+    icon: chart
+  - slug: adapt/research-zsc-eval
+    icon: book
+  - slug: communicate/interpretable-communication
+    icon: message
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+Can two agents cooperate on the very first attempt?
+</Callout>
+
+Zero-shot coordination evaluates whether an agent can cooperate with an unseen partner without prior joint training, negotiation, or an agreed convention.
+
+<Objectives>
+
+- Define zero-shot coordination
+- Distinguish zero-shot evaluation from a policy that never adapts
+- Explain compatibility in terms of shared conventions
+- List the mechanisms that improve first-encounter coordination
+
+</Objectives>
+
+## Zero-Shot Coordination Definition
+
+<Callout variant="definition" title="Zero-shot coordination">
+**Zero-shot coordination** asks whether an agent can cooperate with an unseen
+partner at deployment, without prior coordination with that partner.
+</Callout>
+
+The setup the ZSC literature uses: an **ego agent** is trained with a limited
+set of training partners, then evaluated with diverse **unseen** deployment
+partners. No joint training, no negotiation, no warm-up round in which the two
+agree on anything.
+
+"Zero-shot" is about what happened *before* the encounter. It means no shared
+history: no co-training, no exchanged conventions, nothing pre-arranged.
+
+## Zero-Shot Evaluation and Online Adaptation
+
+Here is the distinction worth getting right.
+
+<div class="table-scroll">
+
+| | What it says | When it happens |
+| --- | --- | --- |
+| **Zero-shot coordination** | the partner was **unseen before deployment** | a fact about the setup |
+| **Online adaptation** | the agent **uses interaction during deployment** to infer how this partner behaves | a capability of the agent |
+</div>
+
+These are orthogonal, and they compose. An agent can begin an encounter
+zero-shot, knowing nothing about its partner, and then adapt as evidence
+arrives, exactly as in *Partner Representations*. That is still zero-shot
+coordination: nothing was arranged in advance.
+
+<Callout variant="pitfall">
+The misreading to avoid is that zero-shot means the agent may not learn
+anything about its partner during the episode.
+
+It may. What it may not have is **prior** coordination. An agent that watches
+its partner for three steps and then commits is doing zero-shot coordination
+with online adaptation, and that combination is what most practical systems
+should aim for.
+</Callout>
+
+There is a genuine trade inside this. Adapting takes evidence, and evidence
+takes steps, and those steps are spent behaving non-committally. On a long
+task that cost is trivial. On a short one the agent may be better served by a
+good partner-agnostic prior than by a belief it never has time to sharpen.
+
+## Conventions and Compatibility
+
+Zero-shot coordination fails for a specific reason, and the Communicate chapter already
+produced it.
+
+<div class="table-scroll">
+
+| | Agent A learned | Agent C learned |
+| --- | --- | --- |
+| message `2` | bring an ingredient | begin cooking |
+</div>
+
+Both learned successful protocols. Paired zero-shot, `2` means one thing to
+the sender and another to the receiver, and the team does worse than if
+neither had spoken.
+
+The Communication Lab measured the general case: six independently trained pairs,
+1.00 within pairs, 0.300 across them, some pairings at 0.00.
+
+<Callout variant="takeaway">
+Adaptation is not only about physical behaviour. What has to be compatible
+includes
+
+- **roles**, who takes which part of the task,
+- **conventions**, which side you pass on,
+- **communication**, what the symbols mean,
+- **action preferences**, what you do when several options are equally good,
+- **timing**, who commits first.
+
+Every one of these is an arbitrary agreement that a co-trained pair settles
+for free and a zero-shot pair has to get right by luck or by inference.
+</Callout>
+
+## Mechanisms for Zero-Shot Compatibility
+
+No guarantees here, and it would be dishonest to present these as
+prescriptions. They are intuitions consistent with the framing, and they are
+worth holding loosely.
+
+**Avoid rigid assumptions.** A policy that requires the partner to fetch will
+fail with any partner that does not. One that checks whether fetching has
+happened will not.
+
+**Respond to observable behaviour.** Anything you condition on that the
+partner actually does is information you genuinely have. Anything you assume
+is a bet.
+
+**Keep more than one interpretation alive.** Committing to a partner model
+after one ambiguous step is how confident-and-wrong happens.
+
+**Choose actions that leave room.** Where two actions are equally good for
+you, the one that leaves your partner more options is likely better for the
+team, because it fails more gracefully if you have misread them.
+
+**Prefer interpretable signals.** A protocol anchored to something outside the
+pair has some chance of being read by a stranger, which is exactly the
+argument of the LangGround connection.
+
+<Callout tone="observe" title="Why these are intuitions" icon="compass">
+Each of these has counterexamples. Conditioning on observed behaviour is
+slower than assuming correctly. Leaving room can mean neither agent commits,
+which is the both-wait failure from *Partner Dependence*. Interpretable protocols give
+up expressiveness.
+
+The reason for stating them anyway is that they are the right *questions* to
+ask of a design, even when the answers are situational.
+</Callout>
+
+<KnowledgeCheck
+  id="ad-3-7-zsc"
+  type="choice"
+  question="An agent meets an unfamiliar partner, spends four steps observing it, infers its role preference, and then coordinates well. Is this zero-shot coordination?"
+  options={[
+    {
+      text: 'Yes. Zero-shot refers to having no prior coordination with that partner. Inferring during the episode is online adaptation, and the two are compatible.',
+      correct: true,
+      feedback: 'Correct. The condition is on what happened before the encounter, not on whether the agent may learn during it. This combination, zero-shot plus online adaptation, is what most practical systems should aim for.',
+    },
+    {
+      text: 'No. The agent used information about the partner, so it was not zero-shot.',
+      correct: false,
+      feedback: 'It used information it gathered itself, during the encounter. That is exactly what an agent meeting a stranger is entitled to do. Zero-shot forbids prior arrangement, not observation.',
+    },
+    {
+      text: 'No, because four steps of observation counts as a warm-up round.',
+      correct: false,
+      feedback: 'A warm-up would be a phase outside the evaluated task in which the agents coordinate. Here the four steps are part of the episode and are paid for in performance, which is the real cost of adapting.',
+    },
+    {
+      text: 'Only if the agent updates its weights during those four steps.',
+      correct: false,
+      feedback: 'It should not need to. Adaptation here means revising an input, the partner representation, with fixed weights. Retraining at deployment would need a reward signal and time that a deployed agent usually does not have.',
+    },
+  ]}
+>
+The two axes are worth keeping separate: what was arranged beforehand, and
+what the agent can work out while playing.
+</KnowledgeCheck>
+
+## Zero-Shot Coordination Summary
+
+- **Zero-shot coordination**: cooperating with an unseen partner at
+  deployment, with no prior coordination. An ego agent trained on limited
+  partners, evaluated on diverse unseen ones.
+- "Zero-shot" constrains what happened **before** the encounter, not what the
+  agent may infer during it.
+- **Online adaptation** is a separate axis and composes with it. Beginning
+  zero-shot and then adapting is still zero-shot coordination.
+- Adapting costs steps. On short tasks a good partner-agnostic prior may beat
+  a belief there is no time to sharpen.
+- Compatibility is needed over **roles, conventions, communication, action
+  preferences and timing**, all of which a co-trained pair gets for free.
+- What tends to help: avoid rigid assumptions, condition on observed
+  behaviour, keep several interpretations alive, leave your partner room, and
+  prefer interpretable signals. These are intuitions, not rules.

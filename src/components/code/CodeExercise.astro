@@ -1,0 +1,386 @@
+---
+/**
+ * CODE EXERCISE
+ *
+ * Executable Python inside the chapter. Runs entirely in the reader's browser
+ * through Pyodide: no backend, no accounts, and nothing to keep running after
+ * the conference.
+ *
+ * Checking is TEST-BASED. The author supplies Python assertions using the
+ * harness helpers (`expect`, `expect_close`, `expect_true`, `expect_raises`),
+ * and each assertion carries a `hint` explaining what it is really testing.
+ * That hint is the component's reason to exist: "Incorrect" teaches nothing,
+ * whereas "Your value can exceed 1, but Jain's index is bounded above by 1,
+ * so check your denominator" tells a learner where to look.
+ *
+ * ```mdx
+ * <CodeExercise
+ *   id="coordinate-team-reward"
+ *   title="Cooperative reward"
+ *   starter={`def team_reward(a, b):\n    # TODO\n    ...`}
+ *   tests={`
+ * expect("different channels earn +1", team_reward(0, 1), 1,
+ *        "When the agents pick different channels nothing collides.")
+ * expect("same channel is penalised", team_reward(0, 0), -1,
+ *        "Both agents transmitting on one channel is the collision case.")
+ * `}
+ *   hints={['The two cases are "equal" and "not equal".']}
+ *   solution={`def team_reward(a, b):\n    return 1 if a != b else -1`}
+ * />
+ * ```
+ */
+import Icon from '../ui/Icon.astro';
+
+interface Props {
+  /** Stable id. Used as the progress key, so renaming it loses saved work. */
+  id: string;
+  title: string;
+  /** Code the reader starts from. Mark the gap with `# TODO`. */
+  starter: string;
+  /**
+   * Python assertions using the harness helpers. Required for an exercise;
+   * omitted for an experiment, which has nothing to be right about.
+   */
+  tests?: string;
+  /**
+   * 'exercise' (default) has a right answer, so it offers Check, hints and a
+   * solution. 'experiment' does not: the learner edits parameters, runs, and
+   * reads the output. Labs use the second, an experiment that graded you
+   * would be a puzzle, and the point is to observe.
+   */
+  mode?: 'exercise' | 'experiment';
+  /** Progressive hints, revealed one at a time. */
+  hints?: string[];
+  /** Reference solution. Revealing it is recorded. */
+  solution?: string;
+  /** One sentence on what the exercise is for. */
+  children?: unknown;
+}
+
+const {
+  id,
+  title,
+  starter,
+  tests = '',
+  hints = [],
+  solution,
+  mode = 'exercise',
+} = Astro.props;
+
+const isExercise = mode === 'exercise';
+
+if (!id || !/^[a-z0-9-]+$/.test(id)) {
+  throw new Error(
+    `<CodeExercise> needs a stable kebab-case id, got "${id}". ` +
+      `It is the key learner progress is stored under.`
+  );
+}
+if (isExercise && !tests.trim()) {
+  throw new Error(`<CodeExercise id="${id}"> has no tests, so Check cannot work.`);
+}
+if (isExercise && !/expect/.test(tests)) {
+  console.warn(
+    `[CodeExercise] "${id}": tests use no expect helper, so no per-check ` +
+      `feedback will be shown. Use expect / expect_close / expect_true.`
+  );
+}
+if (isExercise && !/hint\s*=|,\s*"[^"]{10,}"\s*\)/.test(tests)) {
+  console.warn(
+    `[CodeExercise] "${id}": assertions appear to carry no hints. A failing ` +
+      `check without a hint tells a learner only that they are wrong.`
+  );
+}
+
+const config = JSON.stringify({ id, starter, tests, hints, solution });
+---
+
+<figure class="ex not-content">
+  <div class="ex__head">
+    <span class={isExercise ? 'label label--action' : 'label label--observe'}>
+      <Icon name={isExercise ? 'code' : 'beaker'} size={13} />
+      {isExercise ? 'Exercise' : 'Experiment'}
+    </span>
+    <span class="ex__badge" data-status hidden></span>
+  </div>
+
+  <h4 class="ex__title">{title}</h4>
+
+  {
+    Astro.slots.has('default') && (
+      <div class="ex__brief">
+        <slot />
+      </div>
+    )
+  }
+
+  <code-exercise class="ex__app">
+    {/* Falls back to readable, selectable source when the editor cannot
+        start. The exercise is then not interactive, but it is not blank. */}
+    <div class="ex__editor" data-editor><pre>{starter}</pre></div>
+
+    <div class="ex__bar">
+      <div class="ex__actions">
+        <button type="button" class="btn btn--primary" data-run>
+          <Icon name="play-circle" size={15} />
+          Run
+        </button>
+        {isExercise && <button type="button" class="btn" data-check>Check</button>}
+        {hints.length > 0 && <button type="button" class="btn btn--quiet" data-hint>Hint</button>}
+        {solution && <button type="button" class="btn btn--quiet" data-solution>Show solution</button>}
+        <button type="button" class="btn btn--quiet" data-reset>Reset</button>
+      </div>
+      <p class="ex__phase" data-phase hidden aria-live="polite"></p>
+    </div>
+
+    <div class="ex__panel" data-output hidden>
+      <p class="ex__panelLabel">Output</p>
+      <pre class="ex__outputBody" data-output-body></pre>
+    </div>
+
+    {
+      isExercise && (
+        <div class="ex__panel ex__checks" data-checks hidden aria-live="polite">
+          <p class="ex__checksSummary" data-checks-summary />
+          <ul class="ex__checksList" data-checks-list />
+        </div>
+      )
+    }
+
+    {
+      hints.length > 0 && (
+        <div class="ex__panel ex__hints" data-hints hidden>
+          <p class="ex__panelLabel">Hints</p>
+          <ol>
+            {hints.map((h) => (
+              <li data-hint-item hidden>{h}</li>
+            ))}
+          </ol>
+        </div>
+      )
+    }
+
+    {
+      solution && (
+        <div class="ex__panel ex__solution" data-solution-panel hidden>
+          <p class="ex__panelLabel">One solution</p>
+          <pre>{solution}</pre>
+          <p class="ex__solutionNote">
+            Other correct answers exist. The checks test behaviour, not wording.
+          </p>
+        </div>
+      )
+    }
+
+    <script type="application/json" data-config is:inline set:html={config}></script>
+  </code-exercise>
+</figure>
+
+<script>
+  import '../../lib/exercises/element.ts';
+</script>
+
+<style>
+  .ex {
+    margin-block: var(--s-6);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-lg);
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  .ex__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-4) 0;
+  }
+
+  .ex__badge {
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    letter-spacing: var(--tr-label);
+    text-transform: uppercase;
+    padding: 0.15rem 0.4rem;
+    border-radius: var(--r-sm);
+  }
+  .ex__badge[data-state='passed'] {
+    color: var(--c-reward-ink);
+    background: var(--c-reward-tint);
+  }
+  .ex__badge[data-state='failed'] {
+    color: var(--c-conflict-ink);
+    background: var(--c-conflict-tint);
+  }
+
+  .ex__title {
+    margin: var(--s-2) 0 0;
+    padding-inline: var(--s-4);
+    font-size: var(--t-body);
+    font-weight: var(--w-semibold);
+  }
+
+  .ex__brief {
+    padding: var(--s-2) var(--s-4) 0;
+    font-size: var(--t-small);
+    line-height: 1.55;
+    color: var(--ink-muted);
+  }
+
+  .ex__brief :global(p) { margin-block: var(--s-2); }
+
+  .ex__app { display: block; margin-top: var(--s-3); }
+
+  /* ---- editor ---- */
+
+  .ex__editor {
+    border-block: var(--hairline) solid var(--rule);
+    background: var(--surface);
+    max-height: 26rem;
+    overflow: auto;
+  }
+
+  .ex__editor pre {
+    margin: 0;
+    padding: var(--s-3) var(--s-4);
+    font-family: var(--font-mono);
+    font-size: var(--t-small);
+    line-height: 1.6;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  /* ---- controls ---- */
+
+  .ex__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    padding: var(--s-3) var(--s-4);
+  }
+
+  .ex__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+  }
+
+  .ex__phase {
+    margin: 0;
+    font-size: var(--t-micro);
+    color: var(--ink-faint);
+  }
+  .ex__phase[data-state='failed'] { color: var(--c-conflict-ink); }
+
+  /* ---- panels ---- */
+
+  .ex__panel {
+    padding: var(--s-3) var(--s-4);
+    border-top: var(--hairline) solid var(--rule);
+  }
+
+  .ex__panelLabel {
+    margin: 0 0 var(--s-2);
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    letter-spacing: var(--tr-label);
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .ex__outputBody,
+  .ex__solution pre {
+    margin: 0;
+    padding: var(--s-3);
+    background: var(--surface-sunken);
+    border-radius: var(--r-sm);
+    font-family: var(--font-mono);
+    font-size: var(--t-small);
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-x: auto;
+  }
+
+  .ex__outputBody[data-error='true'] {
+    color: var(--c-conflict-ink);
+    background: var(--c-conflict-tint);
+  }
+
+  /* ---- checks ---- */
+
+  .ex__checksSummary {
+    margin: 0 0 var(--s-2);
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+  }
+  .ex__checks[data-state='passed'] .ex__checksSummary { color: var(--c-reward-ink); }
+  .ex__checks[data-state='failed'] .ex__checksSummary,
+  .ex__checks[data-state='error'] .ex__checksSummary { color: var(--c-conflict-ink); }
+
+  .ex__checksList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--s-2);
+  }
+
+  .ex__checksList li {
+    display: grid;
+    gap: 0.15rem;
+    margin: 0;
+    padding: var(--s-2) var(--s-3);
+    border-radius: var(--r-sm);
+    border-inline-start: 3px solid var(--c-reward);
+    background: var(--c-reward-tint);
+    font-size: var(--t-small);
+  }
+
+  .ex__checksList li[data-passed='false'] {
+    border-inline-start-color: var(--c-conflict);
+    background: var(--c-conflict-tint);
+  }
+
+  /* Pass and fail differ by prefix as well as colour, so the result is
+     readable without colour vision and in a greyscale printout. */
+  .ex__checkName::before {
+    content: 'PASS ';
+    font-weight: var(--w-bold);
+    font-size: var(--t-micro);
+    letter-spacing: var(--tr-label);
+    color: var(--c-reward-ink);
+  }
+  li[data-passed='false'] .ex__checkName::before {
+    content: 'FAIL ';
+    color: var(--c-conflict-ink);
+  }
+
+  .ex__checkDetail {
+    font-family: var(--font-mono);
+    font-size: var(--t-micro);
+    color: var(--ink-muted);
+  }
+
+  .ex__checkHint {
+    color: var(--ink);
+    line-height: 1.5;
+  }
+
+  /* ---- hints and solution ---- */
+
+  .ex__hints ol { margin: 0; padding-inline-start: var(--s-5); }
+  .ex__hints li {
+    font-size: var(--t-small);
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  .ex__hints li + li { margin-top: var(--s-2); }
+
+  .ex__solutionNote {
+    margin: var(--s-2) 0 0;
+    font-size: var(--t-micro);
+    color: var(--ink-faint);
+  }
+</style>

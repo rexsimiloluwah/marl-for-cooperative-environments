@@ -1,0 +1,29 @@
+---
+/**
+ * TERM
+ *
+ * Marks a word in prose with a semantic tone, so a concept keeps the same
+ * colour in the sentence that introduces it as it has in the diagram beside
+ * it. Use sparingly: at the moment a term is introduced, not every time it
+ * recurs, or the colour stops meaning anything.
+ *
+ * Renders as <strong>, so the emphasis survives with colour unavailable.
+ */
+type Tone = 'action' | 'observe' | 'policy' | 'comm' | 'reward' | 'conflict';
+interface Props { tone: Tone }
+const { tone } = Astro.props;
+---
+
+<strong class:list={['tm', `tm--${tone}`]}><slot /></strong>
+
+<style>
+  .tm {
+    font-weight: var(--w-semibold);
+  }
+  .tm--action { color: var(--c-action-ink); }
+  .tm--observe { color: var(--c-observe-ink); }
+  .tm--policy { color: var(--c-policy-ink); }
+  .tm--comm { color: var(--c-comm-ink); }
+  .tm--reward { color: var(--c-reward-ink); }
+  .tm--conflict { color: var(--c-conflict-ink); }
+</style>

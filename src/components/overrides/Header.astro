@@ -1,0 +1,164 @@
+---
+/**
+ * HEADER
+ *
+ * Sidebar toggle, course title, search, theme.
+ *
+ * The toggle collapses the sidebar on wide screens, which matters more than
+ * it sounds: this resource is meant to be projected in a lecture room, and
+ * reclaiming 17rem gives the article and the wireless lab room to breathe.
+ * On narrow screens Starlight's own mobile menu button (rendered by
+ * PageFrame, not here) opens the sidebar as a drawer, so this one hides.
+ */
+import config from 'virtual:starlight/user-config';
+import Search from 'virtual:starlight/components/Search';
+import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
+import Icon from '../ui/Icon.astro';
+
+const shouldRenderSearch =
+  config.pagefind ||
+  config.components.Search !== '@astrojs/starlight/components/Search.astro';
+
+// `config.title` is a locale-keyed object in Starlight 0.42, so it renders as
+// "[object Object]" if used directly. The resolved string for this route is on
+// the route data instead.
+const { siteTitle, siteTitleHref } = Astro.locals.starlightRoute;
+---
+
+<div class="hd">
+  <button
+    type="button"
+    class="hd__toggle"
+    data-sidebar-toggle
+    aria-expanded="true"
+    aria-controls="starlight__sidebar"
+  >
+    <Icon name="menu" size={19} label="Toggle contents sidebar" />
+  </button>
+
+  <a class="hd__title" href={siteTitleHref}>{siteTitle}</a>
+
+  <div class="hd__spacer"></div>
+
+  {
+    shouldRenderSearch && (
+      <div class="hd__search print:hidden">
+        <Search />
+      </div>
+    )
+  }
+
+  <div class="hd__theme print:hidden">
+    <ThemeSelect />
+  </div>
+</div>
+
+<script>
+  /**
+   * Collapsed state lives on <html> so the stylesheet can react to it, and
+   * persists so a reader who wants more width keeps it while they read.
+   */
+  const KEY = 'marl:sidebar-collapsed:v1';
+  const root = document.documentElement;
+
+  function set(collapsed: boolean, persist = true) {
+    root.toggleAttribute('data-sb-collapsed', collapsed);
+    document
+      .querySelectorAll<HTMLButtonElement>('[data-sidebar-toggle]')
+      .forEach((b) => b.setAttribute('aria-expanded', String(!collapsed)));
+    if (!persist) return;
+    try {
+      localStorage.setItem(KEY, collapsed ? '1' : '0');
+    } catch {
+      /* preference will not survive a reload */
+    }
+  }
+
+  try {
+    if (localStorage.getItem(KEY) === '1') set(true, false);
+  } catch {
+    /* no stored preference */
+  }
+
+  document
+    .querySelectorAll<HTMLButtonElement>('[data-sidebar-toggle]')
+    .forEach((btn) => {
+      btn.addEventListener('click', () => {
+        set(!root.hasAttribute('data-sb-collapsed'));
+      });
+    });
+</script>
+
+<style>
+  .hd {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    height: 100%;
+    min-width: 0;
+  }
+
+  .hd__toggle {
+    display: none;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: none;
+    border: none;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--ink-muted);
+    cursor: pointer;
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease);
+  }
+
+  .hd__toggle:hover {
+    background: var(--surface-hover);
+    color: var(--ink);
+  }
+
+  .hd__title {
+    font-size: 1.0625rem;
+    font-weight: var(--w-bold);
+    letter-spacing: var(--tr-heading);
+    color: var(--ink);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  .hd__spacer {
+    flex: 1;
+    min-width: var(--s-2);
+  }
+
+  .hd__search {
+    flex: none;
+    width: min(20rem, 36vw);
+  }
+
+  .hd__theme {
+    flex: none;
+  }
+
+  /* The collapse control only makes sense where there is a persistent
+     sidebar to collapse. Below that, PageFrame's drawer button takes over. */
+  @media (min-width: 50rem) {
+    .hd__toggle {
+      display: grid;
+    }
+  }
+
+  @media (max-width: 30rem) {
+    .hd__search {
+      width: auto;
+    }
+    .hd__title {
+      font-size: 0.9375rem;
+    }
+  }
+</style>

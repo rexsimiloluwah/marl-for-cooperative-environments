@@ -1,0 +1,92 @@
+---
+/**
+ * ANSWER KEY
+ *
+ * The answers to a whole worksheet, in one place at the end, the way a
+ * textbook puts them in the back.
+ *
+ * Hidden behind one deliberate click. Not to be coy: an answer sitting open
+ * beside its question gets read instead of attempted, and the value of a
+ * worksheet is entirely in the attempt.
+ *
+ * Children are <Answer n="..."> rows, so the numbering is structural. An
+ * earlier version had authors write "**2.1**" inside a markdown list, which
+ * put the number at the mercy of list styling and made every key look
+ * slightly different.
+ */
+interface Props {
+  /** Overrides the heading, for a partial key. */
+  label?: string;
+}
+const { label = 'Answers' } = Astro.props;
+---
+
+<details class="ak not-content">
+  <summary class="ak__head">
+    <span class="ak__title">{label}</span>
+    <span class="ak__cue" data-cue>Reveal</span>
+  </summary>
+  <div class="ak__body">
+    <slot />
+  </div>
+</details>
+
+<style>
+  .ak {
+    display: block;
+    margin-block: var(--s-6);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+
+  .ak__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+    margin-inline-start: 0;
+    cursor: pointer;
+    list-style: none;
+  }
+  .ak__head::-webkit-details-marker { display: none; }
+
+  .ak__title {
+    font-size: var(--t-body);
+    font-weight: var(--w-semibold);
+    color: var(--ink);
+  }
+
+  /* Reads as the control it is, rather than as a heading you may click. */
+  .ak__cue {
+    padding: 3px 11px;
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    color: var(--ink-muted);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-sm);
+    white-space: nowrap;
+  }
+  .ak__head:hover .ak__cue { border-color: var(--ui); color: var(--ink); }
+  .ak[open] .ak__cue::after { content: ''; }
+  .ak[open] .ak__cue { color: var(--ink-faint); }
+
+  .ak__body {
+    padding: var(--s-2) var(--s-4) var(--s-4);
+    border-top: var(--hairline) solid var(--rule);
+  }
+</style>
+
+<script>
+  // The cue says what the click will do, so it has to change when it changes.
+  document.querySelectorAll<HTMLDetailsElement>('details.ak').forEach((el) => {
+    const cue = el.querySelector('[data-cue]');
+    if (!cue) return;
+    const sync = () => {
+      cue.textContent = el.open ? 'Hide' : 'Reveal';
+    };
+    el.addEventListener('toggle', sync);
+    sync();
+  });
+</script>

@@ -1,0 +1,217 @@
+---
+/**
+ * STATE VERSUS OBSERVATION
+ *
+ * The single most important distinction in the chapter, drawn as a crop.
+ *
+ * The observation panel is deliberately the LEFT HALF of the state panel, at
+ * identical scale and identical item positions. An agent's observation is not
+ * a different picture of the kitchen; it is less of the same picture. Redrawing
+ * the scene at a different scale or with different furniture would suggest the
+ * agent sees something else, which is the misreading this diagram exists to
+ * prevent.
+ *
+ * The unobserved region stays on the page as a dashed empty box. What is out
+ * there is still true and still affects the reward; the agent simply has no
+ * access to it. Deleting it entirely would teach that it does not exist.
+ */
+interface Props {
+  /** Which agent's view to draw. Only changes the labels. */
+  agent?: string;
+}
+const { agent = 'Agent 1' } = Astro.props;
+
+const W = 640;
+const H = 386;
+
+/* Item positions are declared ONCE and used by both panels, so the two can
+   never drift apart. dx/dy are offsets from a panel's own origin. */
+const LEFT = [
+  { dx: 52, dy: 40, label: agent, kind: 'agent' },
+  { dx: 148, dy: 66, label: 'tomato', kind: 'item' },
+  { dx: 226, dy: 40, label: 'counter', kind: 'prop' },
+];
+const RIGHT = [
+  { dx: 344, dy: 40, label: 'stove', kind: 'prop' },
+  { dx: 424, dy: 66, label: 'Agent 2', kind: 'agent2' },
+  { dx: 500, dy: 40, label: 'plate', kind: 'item' },
+];
+
+const PX = 40;          /* panel left edge   */
+const SY = 34;          /* state panel top   */
+const OY = 244;         /* observation top   */
+const PH = 118;         /* panel height      */
+const SW = 560;         /* state panel width */
+const OW = 280;         /* observation width, exactly half of SW */
+---
+
+<figure class="sv not-content">
+  <div class="sv__frame">
+    <svg viewBox={`0 0 ${W} ${H}`} class="sv__svg" role="img" aria-labelledby="sv-t">
+      <title id="sv-t">
+        Two panels of the same kitchen. The upper panel is the true state and
+        contains {agent}, a tomato, a counter, a stove, Agent 2 and a plate.
+        The lower panel is what {agent} observes: the same left-hand portion of
+        the same scene, containing only {agent}, the tomato and the counter.
+        The stove, Agent 2 and the plate are still there in the true state but
+        fall outside the observation.
+      </title>
+
+      <!-- ── true state ─────────────────────────────────────────────── -->
+      <text class="sv__cap" x={PX} y={SY - 12}>TRUE STATE</text>
+      <text class="sv__capSym" x={PX + 108} y={SY - 12}>s</text>
+      <text class="sv__capSub" x={PX + 116} y={SY - 8}>t</text>
+
+      <rect class="sv__panel" x={PX} y={SY} width={SW} height={PH} rx="6" />
+      {/* the crop line: where the observation will end */}
+      <path class="sv__cropLine" d={`M ${PX + OW} ${SY} V ${SY + PH}`} />
+
+      {
+        [...LEFT, ...RIGHT].map((it) => (
+          <>
+            <circle
+              class={`sv__dot sv__dot--${it.kind}`}
+              cx={PX + it.dx}
+              cy={SY + it.dy}
+              r={it.kind.startsWith('agent') ? 11 : 7}
+            />
+            <text class="sv__lbl" x={PX + it.dx} y={SY + it.dy + 28} text-anchor="middle">
+              {it.label}
+            </text>
+          </>
+        ))
+      }
+
+      <!-- ── the observation function ───────────────────────────────── -->
+      <path class="sv__arrow" d={`M ${PX + 140} ${SY + PH + 14} V ${OY - 22}`} />
+      <path
+        class="sv__arrowHead"
+        d={`M ${PX + 134} ${OY - 28} L ${PX + 140} ${OY - 18} L ${PX + 146} ${OY - 28} Z`}
+      />
+      <text class="sv__fn" x={PX + 154} y={OY - 44}>O</text>
+      <text class="sv__fnSub" x={PX + 165} y={OY - 40}>1</text>
+      <text class="sv__fnNote" x={PX + 176} y={OY - 44}>keeps only what this agent can see</text>
+
+      <!-- ── observation ────────────────────────────────────────────── -->
+      <text class="sv__cap" x={PX} y={OY - 12}>WHAT {agent.toUpperCase()} OBSERVES</text>
+      <text class="sv__capSym" x={PX + 232} y={OY - 12}>o</text>
+      <text class="sv__capSub" x={PX + 241} y={OY - 8}>t</text>
+
+      <rect class="sv__panel sv__panel--obs" x={PX} y={OY} width={OW} height={PH} rx="6" />
+      {
+        LEFT.map((it) => (
+          <>
+            <circle
+              class={`sv__dot sv__dot--${it.kind}`}
+              cx={PX + it.dx}
+              cy={OY + it.dy}
+              r={it.kind.startsWith('agent') ? 11 : 7}
+            />
+            <text class="sv__lbl" x={PX + it.dx} y={OY + it.dy + 28} text-anchor="middle">
+              {it.label}
+            </text>
+          </>
+        ))
+      }
+
+      <!-- what is true but unavailable -->
+      <rect class="sv__gone" x={PX + OW + 10} y={OY} width={SW - OW - 10} height={PH} rx="6" />
+      <text class="sv__goneLbl" x={PX + OW + 10 + (SW - OW - 10) / 2} y={OY + PH / 2 - 4} text-anchor="middle">
+        still true
+      </text>
+      <text class="sv__goneLbl" x={PX + OW + 10 + (SW - OW - 10) / 2} y={OY + PH / 2 + 14} text-anchor="middle">
+        not observed
+      </text>
+    </svg>
+  </div>
+  <figcaption class="sv__caption"><slot /></figcaption>
+</figure>
+
+<style>
+  .sv { margin-block: var(--s-5); }
+
+  .sv__frame {
+    padding: var(--s-4) var(--s-3);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+  .sv__svg {
+    display: block;
+    width: 100%;
+    max-width: 38rem;
+    margin-inline: auto;
+    height: auto;
+  }
+
+  .sv__panel {
+    fill: color-mix(in srgb, var(--ui) 5%, transparent);
+    stroke: var(--rule);
+    stroke-width: 1.2;
+  }
+  .sv__panel--obs {
+    fill: var(--c-observe-tint);
+    stroke: var(--c-observe-edge);
+  }
+
+  /* the crop boundary, shown in the state panel so the halves are visible */
+  .sv__cropLine {
+    stroke: var(--c-observe-edge);
+    stroke-width: 1.2;
+    stroke-dasharray: 4 4;
+  }
+
+  .sv__dot--agent { fill: var(--c-observe); }
+  .sv__dot--agent2 { fill: var(--c-action); }
+  .sv__dot--item { fill: color-mix(in srgb, var(--ink) 38%, transparent); }
+  .sv__dot--prop { fill: color-mix(in srgb, var(--ink) 20%, transparent); }
+
+  .sv__lbl {
+    font: 500 10px / 1 var(--font-sans);
+    fill: var(--ink-2);
+  }
+
+  .sv__cap {
+    font: 600 11px / 1 var(--font-sans);
+    letter-spacing: 0.07em;
+    fill: var(--ink-2);
+  }
+  .sv__capSym,
+  .sv__fn {
+    font: italic 600 13px / 1 var(--font-mono);
+    fill: var(--ink);
+  }
+  .sv__capSub,
+  .sv__fnSub {
+    font: 600 9px / 1 var(--font-mono);
+    fill: var(--ink-2);
+  }
+  .sv__fnNote {
+    font: 400 10.5px / 1 var(--font-sans);
+    fill: var(--ink-3);
+  }
+
+  .sv__arrow {
+    stroke: var(--c-observe);
+    stroke-width: 1.6;
+  }
+  .sv__arrowHead { fill: var(--c-observe); }
+
+  .sv__gone {
+    fill: none;
+    stroke: var(--rule);
+    stroke-width: 1.2;
+    stroke-dasharray: 5 5;
+  }
+  .sv__goneLbl {
+    font: 500 10px / 1 var(--font-sans);
+    fill: var(--ink-3);
+  }
+
+  .sv__caption {
+    margin-top: var(--s-3);
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+</style>

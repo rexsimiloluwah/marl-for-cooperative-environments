@@ -1,0 +1,193 @@
+---
+/**
+ * ANATOMY OF ONE TIME STEP
+ *
+ * What actually happens between t and t+1 when several agents act at once.
+ *
+ * The convergence is the teaching point. Every agent decides separately, on
+ * its own information, and those separate decisions are then combined into
+ * ONE input to the environment, which transitions ONCE. Drawing the agents on
+ * parallel rows that meet at a single point makes "simultaneous" mean
+ * something specific rather than vague: no agent's choice can depend on
+ * another's choice at the same step, because nothing has been combined yet.
+ *
+ * Note this is a claim about INFORMATION, not statistical independence. Two
+ * agents observing the same state can easily choose correlated actions; what
+ * they cannot do is condition on each other's choice for the current step.
+ */
+
+interface Props {
+  /** How many agent rows to draw. Three is enough to imply "n". */
+  agents?: number;
+}
+const { agents = 3 } = Astro.props;
+
+const W = 660;
+const ROW = 52;
+const TOP = 46;
+const H = TOP + agents * ROW + 46;
+const midY = TOP + (agents * ROW) / 2;
+
+const X_STATE = 30;
+const X_OBS = 150;
+const X_ACT = 300;
+const X_JOINT = 430;
+const X_ENV = 560;
+
+const rows = Array.from({ length: agents }, (_, i) => ({
+  i,
+  y: TOP + i * ROW + ROW / 2,
+  // Middle row of three stands in for "the rest of the agents".
+  elided: agents === 3 && i === 1,
+}));
+---
+
+<figure class="sa not-content">
+  <div class="sa__frame">
+    <svg viewBox={`0 0 ${W} ${H}`} class="sa__svg" role="img" aria-labelledby="sa-t">
+      <title id="sa-t">
+        One time step. From the state, each agent receives its own observation
+        and selects its own component of the joint action, without seeing the
+        other agents' choices for this step. Those components are combined into
+        a single joint action, which the environment consumes once to produce
+        the next state and, in the shared-reward setting used here, one team
+        reward.
+      </title>
+
+      <defs>
+        <marker id="sa-a" viewBox="0 0 10 10" refX="9" refY="5"
+          markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+        </marker>
+      </defs>
+
+      <text class="sa__col" x={X_OBS} y="22" text-anchor="middle">each agent sees</text>
+      <text class="sa__col" x={X_ACT} y="22" text-anchor="middle">each agent chooses</text>
+      <text class="sa__col" x={X_JOINT} y="22" text-anchor="middle">combined</text>
+      <text class="sa__col" x={X_ENV} y="22" text-anchor="middle">environment</text>
+
+      {/* state, fanning out to every agent */}
+      <g class="sa__state">
+        <rect x={X_STATE - 22} y={midY - 20} width="52" height="40" rx="8" />
+        <text x={X_STATE + 4} y={midY + 5} text-anchor="middle">s</text>
+        <text class="sa__sub" x={X_STATE + 14} y={midY + 9}>t</text>
+      </g>
+
+      {
+        rows.map((r) => (
+          <>
+            <path class="sa__wire sa__wire--observe"
+              d={`M ${X_STATE + 34} ${midY} C ${X_OBS - 60} ${midY}, ${X_OBS - 60} ${r.y}, ${X_OBS - 34} ${r.y}`}
+              marker-end="url(#sa-a)" />
+            {r.elided ? (
+              <text class="sa__dots" x={X_OBS} y={r.y + 5} text-anchor="middle">⋮</text>
+            ) : (
+              <text class="sa__term sa__term--observe" x={X_OBS} y={r.y + 5} text-anchor="middle">
+                o{' '}<tspan class="sa__sup">{r.i === 0 ? '1' : 'n'}</tspan>
+              </text>
+            )}
+            {!r.elided && (
+              <>
+                <path class="sa__wire sa__wire--policy"
+                  d={`M ${X_OBS + 22} ${r.y} H ${X_ACT - 28}`} marker-end="url(#sa-a)" />
+                <text class="sa__term sa__term--action" x={X_ACT} y={r.y + 5} text-anchor="middle">
+                  a{' '}<tspan class="sa__sup">{r.i === 0 ? '1' : 'n'}</tspan>
+                </text>
+                <path class="sa__wire sa__wire--action"
+                  d={`M ${X_ACT + 22} ${r.y} C ${X_JOINT - 60} ${r.y}, ${X_JOINT - 60} ${midY}, ${X_JOINT - 40} ${midY}`}
+                  marker-end="url(#sa-a)" />
+              </>
+            )}
+            {r.elided && (
+              <text class="sa__dots" x={X_ACT} y={r.y + 5} text-anchor="middle">⋮</text>
+            )}
+          </>
+        ))
+      }
+
+      {/* the single joint action */}
+      <g class="sa__joint">
+        <rect x={X_JOINT - 34} y={midY - 21} width="68" height="42" rx="8" />
+        <text x={X_JOINT} y={midY + 5} text-anchor="middle">a</text>
+      </g>
+      <text class="sa__jointNote" x={X_JOINT} y={midY + 40} text-anchor="middle">joint action</text>
+
+      <path class="sa__wire sa__wire--action"
+        d={`M ${X_JOINT + 38} ${midY} H ${X_ENV - 44}`} marker-end="url(#sa-a)" />
+
+      {/* environment, and what comes back out */}
+      <g class="sa__env">
+        <rect x={X_ENV - 40} y={midY - 26} width="80" height="52" rx="8" />
+        <text x={X_ENV} y={midY - 3} text-anchor="middle">next</text>
+        <text x={X_ENV} y={midY + 15} text-anchor="middle">state</text>
+      </g>
+      <text class="sa__out" x={X_ENV} y={midY + 46} text-anchor="middle">and one team reward</text>
+    </svg>
+  </div>
+  <figcaption class="sa__caption"><slot /></figcaption>
+</figure>
+
+<style>
+  .sa { margin-block: var(--s-5); }
+
+  .sa__frame {
+    padding: var(--s-4) var(--s-3);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+    overflow-x: auto;
+  }
+
+  .sa__svg {
+    display: block;
+    width: 100%;
+    min-width: 30rem;
+    height: auto;
+  }
+
+  .sa__col {
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    fill: var(--ink-faint);
+  }
+
+  .sa__state rect { fill: var(--surface-sunken); stroke: var(--rule-strong); stroke-width: 1.4; }
+  .sa__state text { font-family: var(--font-mono); font-size: 15px; fill: var(--ink); }
+  .sa__sub { font-size: 10px; }
+  .sa__sup { font-size: 10px; baseline-shift: super; }
+
+  .sa__term {
+    font-family: var(--font-mono);
+    font-size: 15px;
+  }
+  .sa__term--observe { fill: var(--c-observe-ink); }
+  .sa__term--action { fill: var(--c-action-ink); }
+
+  .sa__dots { font-size: 16px; fill: var(--ink-faint); }
+
+  .sa__joint rect { fill: var(--c-action-tint); stroke: var(--c-action); stroke-width: 1.6; }
+  .sa__joint text { font-family: var(--font-mono); font-size: 16px; font-weight: 700; fill: var(--c-action-ink); }
+  .sa__jointNote {
+    font-family: var(--font-sans); font-size: 11px; fill: var(--c-action-ink);
+  }
+
+  .sa__env rect { fill: var(--surface-sunken); stroke: var(--rule-strong); stroke-width: 1.4; }
+  .sa__env text { font-family: var(--font-sans); font-size: 12px; font-weight: 600; fill: var(--ink); }
+  .sa__out { font-family: var(--font-sans); font-size: 11px; fill: var(--c-reward-ink); }
+
+  .sa__wire { fill: none; stroke-width: 1.7; stroke-linecap: round; }
+  .sa__wire--observe { stroke: var(--c-observe); }
+  .sa__wire--policy { stroke: var(--c-policy); }
+  .sa__wire--action { stroke: var(--c-action); }
+
+  .sa__caption {
+    display: block;
+    margin-top: var(--s-3);
+    font-size: var(--t-small);
+    line-height: 1.55;
+    color: var(--ink-muted);
+  }
+  .sa__caption:empty { display: none; }
+</style>

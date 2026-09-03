@@ -1,0 +1,163 @@
+---
+title: "Research Connection: SMACv2"
+description: "How SMACv2 uses environment variation to distinguish responsive coordination from open-loop routines."
+related:
+  - slug: coordinate/worksheet
+    icon: clipboard
+  - slug: adapt/evaluating-generalization
+    icon: chart
+  - slug: resources/references
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+When does a benchmark score stop measuring coordination?
+</Callout>
+
+SMACv2 illustrates why evaluating coordination requires environments that make policies respond to observations rather than replay fixed routines.
+
+<Objectives>
+
+- Describe what the original SMAC benchmark evaluates
+- Explain the open-loop policy problem the SMACv2 authors identified
+- Examine how randomized teams and starting conditions change the test
+- Apply the diagnostic to a benchmark of your own
+
+</Objectives>
+
+## The Original SMAC Benchmark
+
+**SMAC**, the StarCraft Multi-Agent Challenge, became the standard testbed for
+cooperative multi-agent reinforcement learning. Each unit in a battle is an
+agent with its own local view, choosing its own actions, with the team sharing
+one reward. Structurally it is a Dec-POMDP, and it is the environment most
+CTDE methods, QMIX included, were evaluated on.
+
+That much of the StarCraft is all you need. The mechanics are not the point.
+
+## Open-Loop Policies as a Benchmark Diagnostic
+
+The concern is about what a benchmark *requires*, and it has a sharp test.
+
+Suppose an agent ignores its observations entirely and conditions only on the
+timestep, step 1, do this; step 2, do that. Call that an **open-loop** policy:
+it does not react to anything. If such a policy scores well, then the task
+never actually required reacting, and success on it is not evidence of
+coordination.
+
+The SMACv2 authors ran that test. On SMAC scenarios, policies conditioned only
+on the timestep turned out to be competitive, which indicates the benchmark
+carried too little variation from episode to episode. Teams could learn a
+sequence rather than a *strategy* and still win.
+
+<Callout variant="pitfall">
+This is the general trap, and it is not confined to StarCraft.
+
+If a task's episodes are similar enough, a team can memorise one good joint
+sequence. It will look coordinated, the actions do fit together, but nothing
+about it responds to what partners or the environment are doing. Change the
+situation and it has nothing.
+</Callout>
+
+## SMACv2 Environment Variation
+
+The fix is to make episodes genuinely vary, so that a fixed sequence cannot
+work. SMACv2 randomises team compositions and starting positions across
+episodes, and revises the unit sight and attack range mechanics.
+
+The consequence is what matters here: a policy now has to *condition on what
+it observes*, because the situation is not the same one it saw last time. That
+makes the benchmark a test of <Term tone="policy">closed-loop</Term>
+coordination, coordination that reacts, rather than of sequence memorisation.
+
+<Callout tone="observe" title="Read this as a claim about benchmarks" icon="compass">
+The SMACv2 result is not that earlier methods were fraudulent. QMIX and its
+relatives are real methods and their scores were real scores.
+
+The claim is about **measurement**: those scores could not distinguish
+adaptive coordination from exploitation of predictable structure, because the
+benchmark did not require the distinction. Better methods and better
+measurement are separate kinds of progress, and a field needs both.
+</Callout>
+
+## Implications for Coordination Evaluation
+
+Everything you have learned is what the benchmark is testing:
+
+- **joint actions**, outcomes depend on the whole team's choices,
+- **partial observability**, each unit sees locally,
+- **decentralized policies**, each agent acts on its own observation,
+- **CTDE**, training may use the global state; execution may not,
+- **value decomposition**, how QMIX and VDN produce local action selection,
+- **coordination under changing states**, the thing SMACv2 was built to
+  demand.
+
+And the frontier question it leaves you with:
+
+> **Can a benchmark distinguish genuine adaptive coordination from policies
+> that exploit predictable environment structure?**
+
+Hold onto that. the Adapt chapter asks the same question with the partner varying
+instead of the environment, and it turns out to be the harder version.
+
+<KnowledgeCheck
+  id="co-1-10-openloop"
+  type="choice"
+  question="Why is it damaging for a coordination benchmark if an open-loop policy, one conditioned only on the timestep, scores well?"
+  options={[
+    {
+      text: 'It shows the task can be solved without reacting to observations, so a high score is not evidence that the team learned to coordinate.',
+      correct: true,
+      feedback: 'Exactly. The open-loop policy is a probe of the benchmark, not a proposed method. If it succeeds, the task did not require closed-loop behaviour, and scores on it cannot support claims about adaptive coordination.',
+    },
+    {
+      text: 'It shows open-loop policies are a better approach than CTDE methods.',
+      correct: false,
+      feedback: 'Nobody proposes deploying an open-loop policy. It would fail the moment anything differed. Its role is diagnostic: it measures how much the benchmark actually demands.',
+    },
+    {
+      text: 'It shows the agents were not really partially observed.',
+      correct: false,
+      feedback: 'Partial observability is still present in the environment. The issue is that observations did not need to be *used*, because episodes were similar enough for a fixed sequence to work. Available information that need not be consulted is not doing any work.',
+    },
+    {
+      text: 'It shows the shared reward was badly designed.',
+      correct: false,
+      feedback: 'The reward is not the problem. The problem is a lack of episode-to-episode variation, which is why the fix was randomising team compositions and starting positions rather than changing the reward.',
+    },
+  ]}
+>
+"What would a policy that ignores its observations score?" is a question worth
+asking of any environment you build, including the ones in this resource.
+</KnowledgeCheck>
+
+## SMACv2 Evaluation Lessons
+
+- A high benchmark score is evidence about the **benchmark** as much as about
+  the method.
+- An **open-loop** policy conditions only on the timestep. If it scores well,
+  the task did not require reacting to anything.
+- The SMACv2 authors found such policies competitive on SMAC, indicating too
+  little episode-to-episode variation.
+- **SMACv2** randomises team compositions and starting positions and revises
+  sight and attack ranges, so policies must condition on what they observe.
+- Better methods and better measurement are different kinds of progress.
+
+## Further reading
+
+**SMACv2: An Improved Benchmark for Cooperative Multi-Agent Reinforcement
+Learning**, Benjamin Ellis, Jonathan Cook, Skander Moalla, Mikayel
+Samvelyan, Mingfei Sun, Anuj Mahajan, Jakob N. Foerster and Shimon Whiteson
+(NeurIPS 2023 Datasets and Benchmarks Track,
+[arXiv:2212.07489](https://arxiv.org/abs/2212.07489)).
+
+The original benchmark is **The StarCraft Multi-Agent Challenge**, Mikayel
+Samvelyan et al. (2019, [arXiv:1902.04043](https://arxiv.org/abs/1902.04043)).

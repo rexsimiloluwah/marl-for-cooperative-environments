@@ -1,0 +1,128 @@
+---
+/**
+ * PAGE ACTIONS
+ *
+ * Copy a link to this section, and print it.
+ *
+ * Printing matters more here than it looks: instructors hand out sections,
+ * and the print stylesheet drops the chrome so a page prints as an article.
+ * "Save as PDF" is the print dialogue's own option, which is why there is no
+ * separate download.
+ *
+ * An "edit this page" link belongs here too, but it needs a real repository
+ * URL. Rather than ship a guessed link that 404s, the button appears only
+ * once `REPO_EDIT_BASE` is set.
+ */
+import Icon from './Icon.astro';
+
+/** e.g. 'https://github.com/<owner>/<repo>/edit/main/src/content/docs/' */
+const REPO_EDIT_BASE =
+  'https://github.com/rexsimiloluwah/marl-for-cooperative-environments/edit/main/src/content/docs/';
+
+interface Props {
+  /** Source file path relative to the docs collection, for the edit link. */
+  sourceFile?: string;
+}
+const { sourceFile } = Astro.props;
+const editUrl =
+  REPO_EDIT_BASE && sourceFile ? `${REPO_EDIT_BASE}${sourceFile}` : undefined;
+---
+
+<div class="pa print:hidden">
+  {
+    editUrl && (
+      <a class="pa__btn" href={editUrl} target="_blank" rel="noopener">
+        <Icon name="pencil" size={15} label="Edit this page" />
+      </a>
+    )
+  }
+  <button type="button" class="pa__btn" data-copy-link>
+    <Icon name="copy" size={15} label="Copy link to this page" />
+  </button>
+  <button type="button" class="pa__btn" data-print>
+    <Icon name="download" size={15} label="Print or save as PDF" />
+  </button>
+  <span class="pa__toast" data-toast role="status" aria-live="polite"></span>
+</div>
+
+<script>
+  function toast(message: string) {
+    const el = document.querySelector<HTMLElement>('[data-toast]');
+    if (!el) return;
+    el.textContent = message;
+    el.classList.add('is-shown');
+    window.setTimeout(() => el.classList.remove('is-shown'), 1800);
+  }
+
+  document.querySelector('[data-copy-link]')?.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(location.href);
+      toast('Link copied');
+    } catch {
+      // Clipboard access needs a secure context and can be denied outright.
+      toast('Copy failed');
+    }
+  });
+
+  document.querySelector('[data-print]')?.addEventListener('click', () => {
+    window.print();
+  });
+</script>
+
+<style>
+  .pa {
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+    position: relative;
+  }
+
+  .pa__btn {
+    display: grid;
+    place-items: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    border: var(--hairline) solid transparent;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--ink-faint);
+    cursor: pointer;
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease),
+      border-color var(--dur-fast) var(--ease);
+  }
+
+  .pa__btn:hover {
+    background: var(--surface-hover);
+    border-color: var(--rule);
+    color: var(--ink);
+  }
+
+  .pa__toast {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: var(--s-1);
+    padding: 0.2rem 0.45rem;
+    border-radius: var(--r-sm);
+    background: var(--ink);
+    color: var(--ground);
+    font-size: var(--t-micro);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-fast) var(--ease);
+  }
+
+  .pa__toast.is-shown {
+    opacity: 1;
+  }
+
+  @media (pointer: coarse) {
+    .pa__btn {
+      width: 2.4rem;
+      height: 2.4rem;
+    }
+  }
+</style>

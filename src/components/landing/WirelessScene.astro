@@ -1,0 +1,239 @@
+---
+/**
+ * CHALLENGE LAB SCENE: three base stations over a served area.
+ *
+ * Isometric and procedural. Everything is generated from a grid projection,
+ * so the scene is consistent by construction rather than by hand-placement.
+ *
+ * The subject is the OVERLAP. Where two coverage discs meet, two stations on
+ * the same channel interfere, and that is the entire problem the lab poses.
+ * So the discs are deliberately arranged to overlap, the overlaps are left
+ * visible rather than tidied away, and the one place all three meet is marked
+ * as contested.
+ */
+
+/** Isometric projection. One tile is `T` wide on screen. */
+const T = 30;
+const OX = 300;
+const OY = 92;
+const iso = (x: number, y: number, z = 0): [number, number] => [
+  OX + (x - y) * 0.866 * T,
+  OY + (x + y) * 0.5 * T - z * T,
+];
+const pt = (x: number, y: number, z = 0) => iso(x, y, z).join(',');
+
+/** An isometric box: top face lit, left flank mid, right flank dark. */
+function box(x: number, y: number, w: number, d: number, h: number) {
+  return {
+    top: `${pt(x, y, h)} ${pt(x + w, y, h)} ${pt(x + w, y + d, h)} ${pt(x, y + d, h)}`,
+    left: `${pt(x, y + d, h)} ${pt(x + w, y + d, h)} ${pt(x + w, y + d, 0)} ${pt(x, y + d, 0)}`,
+    right: `${pt(x + w, y, h)} ${pt(x + w, y + d, h)} ${pt(x + w, y + d, 0)} ${pt(x + w, y, 0)}`,
+  };
+}
+
+/* Ground plane corners. */
+const GRID = 7;
+const plane = [pt(0, 0), pt(GRID, 0), pt(GRID, GRID), pt(0, GRID)].join(' ');
+
+/* Base stations, each on its own channel colour. */
+const stations = [
+  { x: 1.4, y: 4.6, tone: 'observe', r: 2.5 },
+  { x: 3.5, y: 1.5, tone: 'action', r: 2.4 },
+  { x: 5.6, y: 4.4, tone: 'reward', r: 2.5 },
+];
+
+/* Buildings: context, not decoration. They are what the users are in. */
+const buildings = [
+  { x: 0.4, y: 1.0, w: 0.8, d: 0.8, h: 1.1 },
+  { x: 2.3, y: 3.3, w: 0.7, d: 0.7, h: 0.7 },
+  { x: 4.6, y: 2.4, w: 0.8, d: 0.8, h: 1.4 },
+  { x: 6.0, y: 1.2, w: 0.7, d: 0.7, h: 0.9 },
+  { x: 1.1, y: 6.0, w: 0.8, d: 0.8, h: 0.8 },
+  { x: 4.4, y: 6.0, w: 0.7, d: 0.7, h: 1.2 },
+];
+---
+
+<svg class="wl" viewBox="0 0 600 400" role="img" aria-labelledby="wl-t">
+  <title id="wl-t">
+    An isometric view of a served area with buildings and three wireless base
+    stations, each drawn in a different channel colour. Their circular
+    coverage areas overlap. Where two stations using the same channel overlap,
+    they interfere with one another.
+  </title>
+
+  <!-- ground -->
+  <polygon class="wl__plane" points={plane} />
+  {
+    Array.from({ length: GRID + 1 }, (_, i) => (
+      <>
+        <line class="wl__grid" x1={iso(i, 0)[0]} y1={iso(i, 0)[1]} x2={iso(i, GRID)[0]} y2={iso(i, GRID)[1]} />
+        <line class="wl__grid" x1={iso(0, i)[0]} y1={iso(0, i)[1]} x2={iso(GRID, i)[0]} y2={iso(GRID, i)[1]} />
+      </>
+    ))
+  }
+
+  <!-- coverage discs, under everything so structures sit on top -->
+  {
+    stations.map((s) => {
+      const [cx, cy] = iso(s.x, s.y);
+      return (
+        <ellipse
+          class:list={['wl__cov', `wl__cov--${s.tone}`]}
+          cx={cx}
+          cy={cy}
+          rx={s.r * T * 0.866 * 1.1}
+          ry={s.r * T * 0.5 * 1.1}
+        />
+      );
+    })
+  }
+
+  <!-- buildings, back to front so overlap reads correctly -->
+  {
+    [...buildings]
+      .sort((a, b) => a.x + a.y - (b.x + b.y))
+      .map((b) => {
+        const f = box(b.x, b.y, b.w, b.d, b.h);
+        return (
+          <>
+            <polygon class="wl__bldgRight" points={f.right} />
+            <polygon class="wl__bldgLeft" points={f.left} />
+            <polygon class="wl__bldgTop" points={f.top} />
+          </>
+        );
+      })
+  }
+
+  <!-- base stations -->
+  {
+    stations.map((s) => {
+      const [bx, by] = iso(s.x, s.y);
+      const topZ = 2.9;
+      const [tx, ty] = iso(s.x, s.y, topZ);
+      const legOut = 0.34;
+      const legs = [
+        iso(s.x - legOut, s.y - legOut),
+        iso(s.x + legOut, s.y - legOut),
+        iso(s.x + legOut, s.y + legOut),
+        iso(s.x - legOut, s.y + legOut),
+      ];
+      return (
+        <g class:list={['wl__st', `wl__st--${s.tone}`]}>
+          <ellipse class="wl__stCast" cx={bx} cy={by} rx="20" ry="9" />
+          {/* lattice mast: four legs converging on the head */}
+          {legs.map((l) => (
+            <line class="wl__mast" x1={l[0]} y1={l[1]} x2={tx} y2={ty + 8} />
+          ))}
+          {/* cross braces at two heights */}
+          {[0.9, 1.9].map((z) => {
+            const k = legOut * (1 - z / (topZ + 0.4));
+            const a = iso(s.x - k, s.y - k, z);
+            const b = iso(s.x + k, s.y - k, z);
+            const c = iso(s.x + k, s.y + k, z);
+            const d = iso(s.x - k, s.y + k, z);
+            return (
+              <polygon class="wl__brace" points={`${a.join(',')} ${b.join(',')} ${c.join(',')} ${d.join(',')}`} />
+            );
+          })}
+          {/* head and broadcast arcs */}
+          <circle class="wl__stHub" cx={tx} cy={ty + 4} r="5" />
+          <path class="wl__wave" d={`M ${tx - 13} ${ty - 4} a 12 12 0 0 1 0 -13`} />
+          <path class="wl__wave" d={`M ${tx + 13} ${ty - 4} a 12 12 0 0 0 0 -13`} />
+          <path class="wl__wave wl__wave--far" d={`M ${tx - 20} ${ty - 2} a 19 19 0 0 1 0 -20`} />
+          <path class="wl__wave wl__wave--far" d={`M ${tx + 20} ${ty - 2} a 19 19 0 0 0 0 -20`} />
+        </g>
+      );
+    })
+  }
+</svg>
+
+<style>
+  .wl {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* ---- ground ---- */
+  .wl__plane {
+    fill: color-mix(in srgb, var(--ui) 6%, transparent);
+    stroke: color-mix(in srgb, var(--ui) 22%, transparent);
+    stroke-width: 1.2;
+  }
+
+  .wl__grid {
+    stroke: color-mix(in srgb, var(--ui) 12%, transparent);
+    stroke-width: 0.8;
+  }
+
+  /* ---- coverage ----
+     Translucent and additive, so an overlap is visibly denser than either
+     disc alone. That density is the interference. */
+  .wl__cov {
+    stroke-width: 1.4;
+  }
+  .wl__cov--observe {
+    fill: color-mix(in srgb, var(--c-observe) 20%, transparent);
+    stroke: color-mix(in srgb, var(--c-observe) 55%, transparent);
+  }
+  .wl__cov--action {
+    fill: color-mix(in srgb, var(--c-action) 22%, transparent);
+    stroke: color-mix(in srgb, var(--c-action) 58%, transparent);
+  }
+  .wl__cov--reward {
+    fill: color-mix(in srgb, var(--c-reward) 20%, transparent);
+    stroke: color-mix(in srgb, var(--c-reward) 55%, transparent);
+  }
+
+  /* ---- buildings: three tones, one light source ---- */
+  .wl__bldgTop {
+    fill: var(--iso-body);
+    stroke: var(--iso-shade-1);
+    stroke-width: 1;
+  }
+  .wl__bldgLeft {
+    fill: var(--iso-shade-1);
+  }
+  .wl__bldgRight {
+    fill: var(--iso-shade-2);
+  }
+
+  /* ---- stations ---- */
+  .wl__st--observe { color: var(--c-observe-ink); }
+  .wl__st--action { color: var(--c-action-ink); }
+  .wl__st--reward { color: var(--c-reward-ink); }
+
+  .wl__stCast {
+    fill: var(--iso-cast);
+  }
+
+  .wl__mast {
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  .wl__brace {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.3;
+    opacity: 0.75;
+  }
+
+  .wl__stHub {
+    fill: currentColor;
+  }
+
+  .wl__wave {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  .wl__wave--far {
+    opacity: 0.45;
+    stroke-width: 1.6;
+  }
+</style>

@@ -1,0 +1,275 @@
+---
+/**
+ * RESEARCH CONNECTION
+ *
+ * Frames one real paper at the end of a chapter and says how the teaching
+ * just done connects to it.
+ *
+ * RESEARCH INTEGRITY IS THE WHOLE DESIGN. The resource has to keep three
+ * kinds of statement apart at all times, what a paper reports, what we
+ * measured ourselves, and what is an illustrative example, and must never
+ * let one be read as another. Two consequences shape this component:
+ *
+ * 1. It renders exactly what it is given and nothing else. There is no
+ *    metadata in this file: no paper, no author, no venue, no DOI, no
+ *    finding, no default. A component that carried a citation could ship one
+ *    that is subtly wrong, and a wrong citation in a teaching resource is
+ *    worse than no citation. The author supplies every field per page.
+ *
+ * 2. The paper's own claims go in the `claim` slot, which renders in a
+ *    labelled, tinted block of its own. Our framing goes in the default
+ *    slot, under its own label. A reader can therefore always tell which
+ *    sentences are the paper's and which are ours, without trusting the
+ *    prose to say so.
+ *
+ * The one derived value is the arXiv link, built from the identifier the
+ * author passes. That is a resolver for a supplied id, not an inference
+ * about the work.
+ *
+ * COLOUR. The policy tone, violet, which means learned components and the
+ * research frontier everywhere else in the palette. The card sits on
+ * `--surface` with a violet edge rather than on the violet tint, so it does
+ * not read as a "Definition" callout, which owns the tinted violet box.
+ *
+ *   <ResearchConnection
+ *     title="…" authors="…" venue="…" year={2024}
+ *     url="https://…" arxiv="2405.00000"
+ *   >
+ *     <Fragment slot="claim">What the paper reports.</Fragment>
+ *     How that connects to what this section taught.
+ *   </ResearchConnection>
+ */
+import Icon from './Icon.astro';
+
+interface Props {
+  /** Paper title, exactly as published. */
+  title: string;
+  /** Author list, formatted by the author of the page. */
+  authors: string;
+  /** Publication venue, exactly as published. */
+  venue: string;
+  year: number;
+  /** Canonical link, publisher, proceedings or project page. */
+  url?: string;
+  /** arXiv identifier ("2405.00000") or a full arXiv URL. */
+  arxiv?: string;
+}
+
+const { title, authors, venue, year, url, arxiv } = Astro.props;
+
+/* A partial citation invites the reader to fill the gap by guessing, which
+   is the failure this component exists to prevent. All four or none. */
+const missing = (['title', 'authors', 'venue', 'year'] as const).filter(
+  (k) => !Astro.props[k]
+);
+if (missing.length > 0) {
+  throw new Error(
+    `<ResearchConnection> is missing ${missing.join(', ')}. ` +
+      'A citation is rendered complete or not at all: a partial one leaves the ' +
+      'reader guessing at the rest.'
+  );
+}
+
+const arxivHref = arxiv
+  ? arxiv.startsWith('http')
+    ? arxiv
+    : `https://arxiv.org/abs/${arxiv}`
+  : undefined;
+const arxivLabel = arxiv && !arxiv.startsWith('http') ? `arXiv:${arxiv}` : 'arXiv';
+
+if (!url && !arxivHref) {
+  console.warn(
+    `[ResearchConnection] "${title}" has neither \`url\` nor \`arxiv\`. ` +
+      'A reader who cannot reach the paper cannot check what it actually says.'
+  );
+}
+
+const hasClaim = Astro.slots.has('claim');
+const hasBody = Astro.slots.has('default');
+---
+
+<aside class="rc">
+  <p class="rc__label">
+    <Icon name="book" size={15} />
+    <span>Research connection</span>
+  </p>
+
+  <div class="rc__cite">
+    <cite class="rc__title">
+      {
+        url ? (
+          <a class="rc__title-link" href={url} target="_blank" rel="noopener">
+            <span>{title}</span>
+            <Icon name="external" size={13} />
+          </a>
+        ) : (
+          title
+        )
+      }
+    </cite>
+    <p class="rc__authors">{authors}</p>
+    <p class="rc__venue">
+      <span>{venue}</span>
+      <span aria-hidden="true">·</span>
+      <span>{year}</span>
+      {
+        arxivHref && (
+          <a class="rc__arxiv" href={arxivHref} target="_blank" rel="noopener">
+            {arxivLabel}
+          </a>
+        )
+      }
+    </p>
+  </div>
+
+  {
+    hasClaim && (
+      <div class="rc__zone rc__zone--claim">
+        <p class="rc__zone-label">What the paper reports</p>
+        <div class="rc__zone-body">
+          <slot name="claim" />
+        </div>
+      </div>
+    )
+  }
+
+  {
+    hasBody && (
+      <div class="rc__zone rc__zone--ours">
+        <p class="rc__zone-label">How it connects to this section</p>
+        <div class="rc__zone-body">
+          <slot />
+        </div>
+      </div>
+    )
+  }
+</aside>
+
+<style>
+  /* Astro scopes with :where(), so these sit at single-class specificity
+     while theme.css styles prose at `.sl-markdown-content p` and friends,
+     one class plus one type, which wins. Rules targeting an element type the
+     article stylesheet also targets are written with two classes. */
+
+  .rc {
+    margin-block: var(--s-6);
+    padding: var(--s-4);
+    background: var(--surface);
+    border: var(--hairline) solid var(--c-policy-edge);
+    border-inline-start: 3px solid var(--c-policy);
+    border-radius: var(--r-md);
+  }
+
+  .rc .rc__label {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    margin: 0 0 var(--s-3);
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    letter-spacing: var(--tr-label);
+    text-transform: uppercase;
+    color: var(--c-policy-ink);
+  }
+
+  /* ---- citation ---- */
+
+  .rc__cite {
+    padding-bottom: var(--s-3);
+    border-bottom: var(--hairline) solid var(--rule);
+  }
+
+  .rc .rc__title {
+    display: block;
+    font-style: normal;
+    font-size: var(--t-body);
+    font-weight: var(--w-semibold);
+    line-height: var(--lh-heading);
+    color: var(--ink);
+    text-wrap: pretty;
+  }
+
+  .rc .rc__title-link {
+    display: inline;
+  }
+
+  .rc .rc__title-link :global(.icon) {
+    display: inline-block;
+    margin-inline-start: 0.25em;
+    vertical-align: -0.1em;
+  }
+
+  .rc .rc__authors {
+    margin: var(--s-2) 0 0;
+    font-size: var(--t-small);
+    line-height: 1.5;
+    color: var(--ink-muted);
+  }
+
+  .rc .rc__venue {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-2);
+    margin: var(--s-1) 0 0;
+    font-size: var(--t-small);
+    color: var(--ink-faint);
+  }
+
+  .rc .rc__arxiv {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- zones ----
+     The reason the component exists. The paper's own reported content sits
+     in a tinted, labelled block; our teaching prose sits outside it. Neither
+     zone is ever unlabelled, so the boundary never depends on the wording. */
+
+  .rc__zone {
+    margin-top: var(--s-4);
+  }
+
+  .rc__zone--claim {
+    padding: var(--s-3);
+    background: var(--c-policy-tint);
+    border: var(--hairline) solid var(--c-policy-edge);
+    border-radius: var(--r-sm);
+  }
+
+  .rc .rc__zone-label {
+    margin: 0 0 var(--s-2);
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    letter-spacing: var(--tr-label);
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .rc .rc__zone--claim .rc__zone-label {
+    color: var(--c-policy-ink);
+  }
+
+  .rc__zone-body {
+    font-size: var(--t-small);
+    line-height: var(--lh-loose);
+    color: var(--ink);
+  }
+
+  .rc .rc__zone-body :global(p) {
+    margin-block: var(--s-3);
+  }
+
+  .rc .rc__zone-body :global(> :first-child) {
+    margin-top: 0;
+  }
+
+  .rc .rc__zone-body :global(> :last-child) {
+    margin-bottom: 0;
+  }
+
+  @media print {
+    .rc {
+      break-inside: avoid;
+    }
+  }
+</style>

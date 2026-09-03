@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Cooperative MARL">
+  <!-- Two agents, one shared outcome. Same idea as the diagrams, at 16px:
+       two tokens in the resource's agent colours, joined by a link, with the
+       shared reward between them. -->
+  <style>
+    .plate { fill: #f8f8f7; }
+    .rule  { stroke: #191919; }
+    @media (prefers-color-scheme: dark) {
+      .plate { fill: #1c1c1e; }
+      .rule  { stroke: #f3f3f4; }
+    }
+  </style>
+  <rect class="plate" x="0" y="0" width="32" height="32" rx="7" />
+  <line class="rule" x1="10.5" y1="21" x2="21.5" y2="21" stroke-width="2" stroke-linecap="round" />
+  <circle cx="10.5" cy="21" r="4.2" fill="#5448c8" />
+  <circle cx="21.5" cy="21" r="4.2" fill="#fea82f" />
+  <circle cx="16" cy="9.5" r="4.6" fill="#5da271" />
+</svg>

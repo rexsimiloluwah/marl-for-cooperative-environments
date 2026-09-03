@@ -1,0 +1,163 @@
+---
+title: "Learning Coordinated Behaviour"
+description: "An interactive lab: drive two agents yourself, then train independent learners and value decomposition on the same task and compare what they do."
+related:
+  - slug: coordinate/vdn-qmix
+    icon: cycle
+  - slug: coordinate/worksheet
+    icon: clipboard
+  - slug: communicate/lab
+    icon: message
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Objectives from '../../../components/worksheet/Objectives.astro';
+import SwitchGridPlay from '../../../components/labs/coordinate/SwitchGridPlay.astro';
+import JointActionScale from '../../../components/labs/coordinate/JointActionScale.astro';
+import CoordinateTraining from '../../../components/labs/coordinate/CoordinateTraining.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+Two agents want exactly the same thing and receive exactly the same reward.
+What is left for a learning algorithm to get wrong?
+</Callout>
+
+<Objectives items={[
+  'Drive a joint action by hand and see that neither agent can advance the task alone.',
+  'Watch the joint action space grow as agents are added.',
+  'Train independent learners and value decomposition on the same task.',
+  'Compare them on success rate, steps and behaviour, and say what actually differs.',
+]} />
+
+Everything here runs in your browser. Nothing is installed and nothing is sent
+anywhere.
+
+## Mission
+
+- Two agents must hold **both** switches down on the **same** step.
+- Each agent chooses from five actions: up, down, left, right, stay.
+- The team receives the reward together, or not at all.
+
+A switch held alone earns nothing. That is the whole design.
+
+## Try it yourself
+
+Pick an action for each agent, then take the joint action. The environment
+cannot advance on one agent's decision.
+
+<SwitchGridPlay />
+
+Try to reach both switches on the same step. Then try arriving early with one
+agent and see what the reward does while you wait.
+
+## Joint actions
+
+Each agent chooses privately from its own five actions, and the environment
+responds to the combination.
+
+> ### Key Equation: Joint Action Space
+>
+> $$
+> |\mathcal{A}| = \prod_{i=1}^{n} |\mathcal{A}_i|
+> $$
+>
+> **Idea:** Adding agents quickly increases the number of possible joint
+> decisions.
+
+Drag the slider. Five actions per agent throughout.
+
+<JointActionScale />
+
+The bars are on a linear scale on purpose. A log axis would turn exponential
+growth into a straight line, which is the opposite of the point.
+
+<Callout variant="pitfall">
+Notice what the count does **not** say. At six agents there are 15,625 joint
+actions and no agent ever chooses among them. Each one still picks from five,
+on its own information.
+</Callout>
+
+## How the agents learn
+
+Two methods, and the difference between them is one line of arithmetic.
+
+> ### Key Equation: Independent Q-Learning
+>
+> $$
+> Q_i(o_i,a_i)
+> \leftarrow
+> Q_i(o_i,a_i)
+> +
+> \alpha
+> \left[
+> r
+> +
+> \gamma \max_{a_i'}Q_i(o_i',a_i')
+> -
+> Q_i(o_i,a_i)
+> \right]
+> $$
+>
+> **Idea:** Each agent credits itself with the whole team reward and has no
+> representation of the other agent.
+
+> ### Key Equation: Value Decomposition
+>
+> $$
+> Q_{\mathrm{tot}} = Q_1 + Q_2
+> $$
+>
+> **Idea:** Individual action-values are combined into a team-level value
+> during learning, so one shared error is applied to both agents.
+
+Under both methods each agent acts on its own observation: its own cell, plus
+one bit saying whether the other agent is already in position.
+
+## Train and compare
+
+Train each method, then replay what it learned on the same grid you just
+played on.
+
+<CoordinateTraining />
+
+What you should see at the default settings:
+
+- Both methods reach a **100% success rate** and solve the task in **4 steps**,
+  which is optimal.
+- Independent learning gets there **sooner**.
+- The replays are indistinguishable: both walk straight to the switches and
+  hold.
+
+<Callout variant="takeaway">
+That is a real result and worth sitting with rather than explaining away.
+
+Nothing in this task punishes miscoordination, so "walk to your switch and
+stay" is a dominant strategy. Value decomposition exists to fix **credit
+assignment**, and a task with no credit assignment problem gives it nothing to
+fix. Its split error signal is simply slower here.
+
+The same thing happens in the Challenge Lab, where coordination machinery
+gains almost nothing and communication gains everything. Matching a mechanism
+to the bottleneck you actually have is most of the skill.
+</Callout>
+
+### Make the comparison bite
+
+The penalty control changes that. Set **Penalty for holding a switch alone**
+to $-1$ or $-2$, reset training, and train both again.
+
+Now standing on a switch while your partner is still walking costs something,
+so arriving early is no longer free and a fixed plan stops being safe. Watch
+what happens to the success rate and to how reliably each method converges
+across the run.
+
+## One question to take away
+
+> **What changed during training under VDN, and what remained decentralized
+> when the agents acted?**
+
+Answer it before moving on. There is no solution section for this lab, because
+the answer is visible in what you just ran rather than in code you were asked
+to write.

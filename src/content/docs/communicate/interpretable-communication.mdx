@@ -1,0 +1,185 @@
+---
+title: "Interpretable Communication"
+description: "Why effective emergent protocols may remain opaque and how interpretability supports inspection and transfer."
+related:
+  - slug: communicate/research-langground
+    icon: book
+  - slug: communicate/communication-failures
+    icon: cycle
+  - slug: adapt/partner-dependence
+    icon: users-round
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+Why does an effective protocol still need to be legible?
+</Callout>
+
+Interpretable communication uses messages whose meaning can be understood outside the particular agents that learned them.
+
+<Objectives>
+
+- Recognize a protocol that works and cannot be read
+- State what interpretability buys for inspection, safety and transfer
+- Separate a message symbol from the convention that gives it meaning
+- Describe what it means to ground a protocol externally
+
+</Objectives>
+
+## Effective but Opaque Protocols
+
+Suppose agents 1 and 2 have converged. Whenever an ingredient is needed,
+agent 1 sends `2`, and agent 2 fetches one. The team serves every order. By
+any task metric, the communication is a success.
+
+Now watch them work. What you see is:
+
+> `2`
+
+That is all. The symbol is an integer with no intrinsic content, and the
+semantics live in the pair of policies rather than anywhere you can read.
+
+<Equation
+  label="Figure 1"
+  wide
+  tex={String.raw`\cbox{reward}{\text{effective communication}} \;\;\tone{conflict}{\nRightarrow}\;\; \cbox{comm}{\text{interpretable communication}}`}
+  terms={[
+    { tex: String.raw`\text{effective}`, is: 'improves the shared task return', tone: 'reward' },
+    { tex: String.raw`\text{interpretable}`, is: 'has semantics recoverable outside the co-trained pair', tone: 'comm' },
+  ]}
+  caption="Task effectiveness does not imply that a protocol\u2019s semantics are interpretable."
+/>
+
+With continuous messages it is worse. A 16-dimensional real vector that
+reliably conveys the right thing is not inspectable at all, and its structure
+need not correspond to anything a person would name.
+
+<Callout variant="pitfall">
+The temptation here is to look at a learned protocol, notice that symbol `2`
+correlates with situations where an ingredient is needed, and report that the
+agents learned to say "bring an ingredient".
+
+That is a claim about the protocol's semantics, and correlation over a set of
+episodes is not enough to support it. *Communication Failures* lists what would be, and the
+worksheet asks you to say what evidence you would want.
+</Callout>
+
+## Benefits of Interpretability
+
+Three reasons, and only the third is about coordination.
+
+**Debugging.** When a team fails, an unreadable protocol gives you nothing to
+inspect. You can see that coordination broke and not why.
+
+**Trust and oversight.** A deployed system whose agents exchange unreadable
+signals cannot be audited. In a safety-relevant setting this alone can rule
+the design out.
+
+**Interoperability.** This is the one that turns out to matter most, and it
+takes the rest of the section.
+
+## Symbols and Protocol Conventions
+
+*Learning Communication Protocols* established that symbol labels are
+arbitrary: any permutation works, provided both agents permute together.
+
+Now take that seriously. Two teams, trained separately, on the same task.
+
+<div class="table-scroll">
+
+| | Team A+B learned | Team C+D learned |
+| --- | --- | --- |
+| `2` | bring an ingredient | serve the dish |
+| `3` | serve the dish | bring an ingredient |
+</div>
+
+Both protocols work. Both teams serve every order. Neither is wrong, and there
+is no fact about the task that makes one correct: the assignment was settled
+by whichever accident happened first during training.
+
+Now pair agent A with agent D.
+
+A sends `2`, meaning *bring an ingredient*. D receives `2`, and serves an
+empty plate.
+
+<Callout variant="takeaway">
+Two individually excellent agents, each with a proven protocol, can fail
+completely together, because **a protocol is a convention rather than a
+property of the task.**
+
+Nothing is broken in either agent. What is missing is the agreement, and the
+agreement was never stored anywhere except in the pairing that produced it.
+</Callout>
+
+This is worth comparing with the equivalent problem in the Coordinate chapter. There, the
+difficulty was that agents choosing separately might not choose compatibly on
+a given step. Here the difficulty is that agents might not even share the
+*vocabulary* in which compatibility could be expressed.
+
+## External Semantic Grounding
+
+A <Term tone="comm">grounded</Term> protocol is one whose symbols are tied to
+something outside the pair that invented them: a natural-language meaning,
+a task-level referent, a shared prior. Grounding costs something, since it
+constrains what the agents may learn. What it buys is a protocol that another
+agent has some chance of reading.
+
+That trade is exactly what the next section's research connection studies, and
+the failure above is exactly the problem the Adapt chapter opens with. The bridge
+between the two chapters is this sentence: **a protocol learned with one
+partner may not survive a different one.**
+
+<KnowledgeCheck
+  id="cm-2-7-conventions"
+  type="choice"
+  question="Two separately trained teams each achieve 95% success. Paired across teams, they achieve 30%. What is the most accurate diagnosis?"
+  options={[
+    {
+      text: 'Each team learned a working convention, and the conventions differ. Neither agent is faulty; the shared agreement is what is missing.',
+      correct: true,
+      feedback: 'Exactly. Symbol assignments are arbitrary, so separate training runs settle on different ones. Both protocols are internally valid and mutually unintelligible, which is why cross-team performance collapses while within-team performance is high.',
+    },
+    {
+      text: 'One of the two protocols must be worse, and the cross-play result reveals which.',
+      correct: false,
+      feedback: 'Both scored 95% with their own partners, so neither is worse at the task. Cross-play measures compatibility, not quality, and the two can be completely independent.',
+    },
+    {
+      text: 'The agents overfitted to the environment and need more training data.',
+      correct: false,
+      feedback: 'The environment is the same in both cases; only the partner changed. More training with the same partner would strengthen the convention rather than loosen it, making the problem worse.',
+    },
+    {
+      text: 'The message space is too small to express what both teams need.',
+      correct: false,
+      feedback: 'Capacity is not the issue: each team expressed everything it needed within the same space. The issue is that they assigned the available symbols differently.',
+    },
+  ]}
+>
+"Both work, and they disagree" is a failure mode with no single-agent
+analogue, and it is why the Adapt chapter exists.
+</KnowledgeCheck>
+
+## Interpretable Communication Summary
+
+- **Effective communication does not imply interpretable communication.** A
+  protocol can be perfect on the task and unreadable to anyone.
+- Continuous messages are worse in this respect than small discrete ones,
+  which at least can be tabulated.
+- Noticing that a symbol correlates with a situation is not sufficient
+  evidence that the symbol *means* that situation.
+- Interpretability buys debugging, oversight, and above all
+  **interoperability**.
+- Symbol assignments are arbitrary, so **separately trained teams learn
+  incompatible conventions**. Two individually excellent agents can fail
+  together with nothing wrong in either.
+- A protocol is a convention held by a pair, not a property of the task. That
+  is the bridge to the Adapt chapter.

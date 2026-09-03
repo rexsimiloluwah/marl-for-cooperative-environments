@@ -1,0 +1,149 @@
+---
+title: "Scaling Coordination"
+description: "Joint-action growth, scaling pressures, and the structural role of decentralized execution and factorization."
+related:
+  - slug: coordinate/vdn-qmix
+    icon: cycle
+  - slug: coordinate/research-smacv2
+    icon: book
+  - slug: coordinate/independent-learning
+    icon: chart
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+What actually gets harder as a cooperative team grows?
+</Callout>
+
+Scaling coordination changes the size and difficulty of a cooperative problem even when each agent's local action set remains fixed.
+
+<Objectives>
+
+- Derive the growth of the joint-action space
+- Identify the pressures scale puts on exploration and credit assignment
+- Explain what decentralized execution keeps manageable
+
+</Objectives>
+
+## Joint-Action Space Growth
+
+The arithmetic is the same as ever.
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\bigl|\mathcal{A}\bigr| = \bigl|\mathcal{A}_1\bigr| \times \cdots \times \bigl|\mathcal{A}_\nag\bigr|`}
+  terms={[
+    { tex: String.raw`|\mathcal{A}|`, is: 'the number of joint actions', tone: 'action' },
+    { tex: String.raw`|\mathcal{A}_i|`, is: 'the size of agent i\u2019s local action space', tone: 'action' },
+    { tex: String.raw`\nag`, is: 'the number of agents' },
+  ]}
+  caption="Each added agent multiplies the number of action combinations."
+/>
+
+<div class="table-scroll">
+
+| Agents | Actions each | Joint actions |
+| --- | --- | --- |
+| 2 | 6 | 36 |
+| 4 | 6 | 1,296 |
+| 8 | 6 | 1,679,616 |
+| 16 | 6 | ≈ 2.8 × 10¹² |
+</div>
+
+Nothing subtle is happening. But the consequences reach further than the size
+of one table, and they compound.
+
+## Scaling Pressures
+
+**Joint-action spaces grow rapidly.** A method that must enumerate, search or
+represent joint actions is finished early. This rules out centralized action
+selection long before you reach an interesting number of agents.
+
+**Centralized value representations become harder.** $Q_{\text{tot}}$ has to
+generalise over a space growing exponentially, from a number of samples
+growing nowhere near that fast. It is not only storage. It is that most of
+the space is never visited, so the value must be inferred rather than
+observed.
+
+**Non-stationarity increases.** With two agents, each faces one moving
+partner. With $\nag$ agents, each faces $\nag - 1$ of them, all updating
+simultaneously. The environment any one agent perceives drifts faster the more
+company it has.
+
+**Credit assignment becomes harder.** One shared reward is consistent with
+more and more stories as the team grows. With two agents, a poor return has a
+handful of explanations; with sixteen, the same number is consistent with
+almost anything, and any individual agent's share of it approaches noise.
+
+<Callout variant="takeaway">
+This is why decentralized methods and factorisation are not stylistic
+preferences.
+
+Local action selection is what keeps decision-making tractable, and a factored
+value is what keeps a shared reward informative. At two agents you could do
+without either; at sixteen you cannot.
+</Callout>
+
+## Benefits of Decentralized Execution
+
+Worth noting for balance, because it is the source of independent learning's
+resilience.
+
+An individual agent's own problem does not grow. Agent $\ag$ still chooses
+among its own $m$ actions, from its own observation, updating its own
+function. That cost is flat in $\nag$.
+
+This is exactly why independent learning scales gracefully while centralized
+control does not, and why, on large teams, the comparison is often between
+independent learning and a factored CTDE method, with fully centralized
+approaches not in the running at all.
+
+<KnowledgeCheck
+  id="co-1-9-scaling"
+  type="choice"
+  question="A team grows from 3 agents to 12. Which effect is NOT a direct consequence of the joint action space growing?"
+  options={[
+    {
+      text: 'Each agent’s own action selection becomes more expensive.',
+      correct: true,
+      feedback: 'Correct. This is the thing that does not happen. Each agent still chooses among its own m actions from its own observation, so per-agent decision cost is flat in the number of agents. That is the property decentralized methods rely on.',
+    },
+    {
+      text: 'A centralized value must generalise over exponentially more joint actions.',
+      correct: false,
+      feedback: 'This is a direct consequence. The space grows exponentially while the sample count does not, so most of it must be inferred rather than observed.',
+    },
+    {
+      text: 'A shared reward becomes consistent with far more explanations.',
+      correct: false,
+      feedback: 'This is a direct consequence, and it is the credit assignment problem worsening. More agents means more combinations that could have produced the same team return.',
+    },
+    {
+      text: 'Enumerating joint actions to check a policy becomes infeasible.',
+      correct: false,
+      feedback: 'This is a direct consequence. Exhaustive enumeration is available only for small joint-action spaces, so larger problems require structured values or sampling.',
+    },
+  ]}
+>
+Knowing which costs grow and which stay flat is what tells you where a method
+will break.
+</KnowledgeCheck>
+
+## Scaling Coordination Summary
+
+- The joint action space is a **product**, so it grows exponentially in the
+  number of agents.
+- Four things worsen together: joint-action size, the difficulty of
+  representing a centralized value, non-stationarity (each agent now faces
+  $\nag - 1$ moving partners), and credit assignment.
+- **Per-agent** cost stays flat: each agent still chooses among its own
+  actions from its own observation.
+- Decentralized action selection and factored values are therefore
+  requirements at scale, not architectural taste.

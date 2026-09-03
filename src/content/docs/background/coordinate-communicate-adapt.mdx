@@ -1,0 +1,115 @@
+---
+title: "Coordinate, Communicate, Adapt"
+description: "The three capabilities the rest of the resource develops, and the question each one answers."
+related:
+  - slug: coordinate/introduction
+    icon: chart
+  - slug: communicate/introduction
+    icon: message
+  - slug: adapt/introduction
+    icon: users-round
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import Progression from '../../../components/ui/Progression.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+Which of the three capabilities does a given cooperative failure call for?
+</Callout>
+
+Everything so far has been description: what a cooperative multi-agent problem
+is, and what each agent can know when it acts. The rest of the resource is
+about what to do with it.
+
+<Objectives>
+
+- Name the three capabilities the remaining chapters develop
+- State the question each capability answers
+- Match a cooperative failure to the capability that addresses it
+- Say what the Dec-POMDP already gives you before any of them is added
+
+</Objectives>
+
+## What the Model Leaves Open
+
+A Dec-POMDP states the problem exactly. Agents act from local observations,
+the environment responds to the joint action, and one reward comes back for
+the team. It says nothing about how any agent should choose.
+
+Three gaps are left open, and each one is a chapter.
+
+## Coordinate
+
+**The question.** If every agent wants the same thing, why can they still fail
+to work together?
+
+Aligned objectives do not produce compatible actions. Two agents can both
+pursue the team's reward and still duplicate each other's work, or both wait
+for the other to move. The reward that comes back is one number for the whole
+team, so it does not say which agent's choice was the problem.
+
+Chapter 1 is about learning individual actions whose *combination* is good,
+and about the training-time information that makes that possible.
+
+## Communicate
+
+**The question.** What should agents tell each other when they know different
+things?
+
+Partial observability puts useful information in the wrong place. One agent
+can see what another needs. Communication is the option to move it, and it
+comes with its own decisions: what to send, when, to whom, and what to do when
+the channel is limited or the message is lost.
+
+Chapter 2 treats a message as an action, then works through content,
+constraints, learned protocols, and the failures that look alike from the
+outside.
+
+## Adapt
+
+**The question.** Did the agent learn how to cooperate, or did it learn one
+particular partner?
+
+A team trained together develops conventions. Replace one member and the
+conventions no longer hold, even though the task, the environment and the
+reward are unchanged. High performance with a familiar partner is weak
+evidence of an ability to cooperate.
+
+Chapter 3 separates task competence from co-adaptation, and builds the
+evaluation needed to tell them apart.
+
+## How the Three Fit Together
+
+<Progression steps={[
+  'A cooperative problem',
+  'Coordinate',
+  'Communicate',
+  'Adapt',
+]} />
+
+They are cumulative rather than alternative. Coordination is needed before
+communication has anything to improve, and both are what an agent has to carry
+into a team it has not met.
+
+<Callout variant="takeaway">
+The three capabilities are diagnostic as well as instructional. A team that
+fails while every agent is well informed has a coordination problem. A team
+that fails because one agent lacks what another can see has a communication
+problem. A team that succeeds in training and fails on a new partner has an
+adaptation problem.
+</Callout>
+
+## Coordinate, Communicate, Adapt Summary
+
+- A **Dec-POMDP** states the cooperative problem but does not say how to act
+  in it. The three chapters that follow do.
+- **Coordinate**: make individual actions combine well, under a shared reward
+  that does not identify individual contributions.
+- **Communicate**: move information to the agent whose decision it would
+  change, subject to what the channel allows.
+- **Adapt**: cooperate with partners that were not part of training, and
+  evaluate that claim honestly.

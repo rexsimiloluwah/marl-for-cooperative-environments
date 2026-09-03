@@ -1,0 +1,112 @@
+---
+title: "Tutorial Structure"
+description: "Explore the Background, three main chapters, Challenge Lab, and Final Project."
+---
+
+import Accordion from '../../components/ui/Accordion.astro';
+import AccordionGroup from '../../components/ui/AccordionGroup.astro';
+
+The tutorial follows one connected progression:
+
+**Background → Chapter 1: Coordinate → Chapter 2: Communicate → Chapter 3: Adapt → Challenge Lab → Final Project**
+
+Expand each section to see the question it addresses and the main ideas
+covered.
+
+<AccordionGroup>
+
+  <Accordion title="Background: Cooperative MARL Foundations" open>
+
+  **Question:** what changes when reinforcement learning moves from one agent
+  to many?
+
+  - Reinforcement learning fundamentals
+  - Multi-agent environments
+  - States, observations, and actions
+  - Joint actions and policies
+  - Cooperative rewards and partial observability
+  - The Dec-POMDP framework
+
+  [Start the Background](/background/reinforcement-learning/)
+
+  </Accordion>
+
+  <Accordion title="Chapter 1: Coordinate">
+
+  **Question:** how can agents learn actions that work well together?
+
+  - Coordination and action interdependence
+  - Independent learning and non-stationarity
+  - Centralized and decentralized learning
+  - Centralized training with decentralized execution
+  - Credit assignment and centralized critics
+  - Value decomposition with VDN and QMIX
+
+  [Start Chapter 1](/coordinate/introduction/)
+
+  </Accordion>
+
+  <Accordion title="Chapter 2: Communicate">
+
+  **Question:** what information should agents share when they know different
+  things?
+
+  - Messages and communication actions
+  - Message content and communication policies
+  - Capacity, range, noise, loss, and cost
+  - Learned communication protocols
+  - Interpretable communication
+  - Communication failures and LangGround
+
+  [Start Chapter 2](/communicate/introduction/)
+
+  </Accordion>
+
+  <Accordion title="Chapter 3: Adapt">
+
+  **Question:** can an agent still cooperate when the other agents change?
+
+  - Partner dependence and partner generalization
+  - Training with diverse partners
+  - Agent modelling
+  - Partner representations
+  - Ad hoc teamwork and zero-shot coordination
+  - Cross-play and unseen-partner evaluation
+
+  [Start Chapter 3](/adapt/introduction/)
+
+  </Accordion>
+
+  <Accordion title="Challenge Lab: Wireless Network Resource Allocation using MARL">
+
+  **Question:** how can coordination, communication, and adaptation be applied
+  to a new technical problem?
+
+  - Model wireless access points as cooperative agents
+  - Coordinate channel-selection decisions
+  - Reduce interference and improve throughput
+  - Add communication between access points
+  - Test changing traffic conditions
+  - Evaluate behaviour with an unfamiliar access point
+
+  [Start the Challenge Lab](/lab/overview/)
+
+  </Accordion>
+
+  <Accordion title="Final Project: Design a MARL-Based Disaster-Response System">
+
+  **Question:** how would you design and evaluate a complete cooperative MARL
+  system?
+
+  - Define agent roles, observations, and actions
+  - Specify a shared objective
+  - Design a coordination approach
+  - Design a communication strategy
+  - Plan for unfamiliar agents and changing conditions
+  - Build an evaluation plan
+
+  [Start the Final Project](/project/brief/)
+
+  </Accordion>
+
+</AccordionGroup>

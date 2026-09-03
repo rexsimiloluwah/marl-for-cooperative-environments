@@ -1,0 +1,241 @@
+---
+/**
+ * CENTRALIZED TRAINING, DECENTRALIZED EXECUTION
+ *
+ * Two panels, because CTDE is a claim about two different MOMENTS rather than
+ * about an architecture. The top panel may use anything; the bottom panel may
+ * use only what each agent can see.
+ *
+ * The centralized box is drawn ONLY in the training panel, and the execution
+ * panel leaves its space visibly empty rather than omitting it. A learner's
+ * most common misreading of CTDE is that the extra information is somehow
+ * still there at deployment, and an empty gap where it used to be argues
+ * against that better than its absence would.
+ */
+interface Props {
+  /** Label for the shared training-time information. */
+  zLabel?: string;
+  /**
+   * What consumes the centralized information. Defaults to the generic
+   * "learning signal"; section 1.5 passes "critic" so the same picture makes
+   * the point that a centralized critic is one way of using z rather than a
+   * different arrangement.
+   */
+  signalLabel?: string;
+}
+const { zLabel = 'z', signalLabel = 'learning signal' } = Astro.props;
+
+const W = 640;
+const H = 430;
+
+/* Two agent columns, used by both panels so they line up vertically. */
+const COL = [176, 464];
+---
+
+<figure class="ct not-content">
+  <div class="ct__frame">
+    <svg viewBox={`0 0 ${W} ${H}`} class="ct__svg" role="img" aria-labelledby="ct-t">
+      <title id="ct-t">
+        Two panels. In the training panel, centralized information, the global
+        state, all observations and all actions, feeds {signalLabel}, which
+        updates both agents' policies. In the execution panel, each agent
+        receives only its own observation, passes it to its own policy and
+        produces its own action; the space where the centralized information
+        was is empty.
+      </title>
+
+      <defs>
+        <marker id="ct-a" viewBox="0 0 10 10" refX="9" refY="5"
+          markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+        </marker>
+      </defs>
+
+      <!-- ══ TRAINING ══ -->
+      <text class="ct__panel" x="20" y="22">TRAINING</text>
+      <text class="ct__panelNote" x="104" y="22">anything may be used</text>
+
+      <g class="ct__z">
+        <rect x="140" y="38" width="360" height="46" rx="8" />
+        <text class="ct__zSym" x="164" y="67">{zLabel}</text>
+        <text class="ct__zList" x="188" y="60">global state · all observations</text>
+        <text class="ct__zList" x="188" y="74">all actions · team reward</text>
+      </g>
+
+      <path class="ct__wire ct__wire--comm" d="M 320 88 V 108" marker-end="url(#ct-a)" />
+
+      <g class="ct__signal">
+        <rect x="242" y="112" width="156" height="34" rx="8" />
+        <text x="320" y="134" text-anchor="middle">{signalLabel}</text>
+      </g>
+
+      {
+        COL.map((x) => (
+          <path
+            class="ct__wire ct__wire--comm"
+            d={`M 320 150 C 320 172, ${x} 168, ${x} 190`}
+            marker-end="url(#ct-a)"
+          />
+        ))
+      }
+
+      {
+        COL.map((x, i) => (
+          <>
+            <g class="ct__agent">
+              <rect x={x - 62} y={194} width="124" height="38" rx="8" />
+              <text x={x} y={218} text-anchor="middle">
+                Agent {i + 1} policy
+              </text>
+            </g>
+          </>
+        ))
+      }
+      <text class="ct__updated" x="320" y="252" text-anchor="middle">both policies updated</text>
+
+      <path class="ct__rule" d="M 20 274 H 620" />
+
+      <!-- ══ EXECUTION ══ -->
+      <text class="ct__panel" x="20" y="300">EXECUTION</text>
+      <text class="ct__panelNote" x="112" y="300">only what each agent sees</text>
+
+      {/* the deliberate gap: where z was, nothing is */}
+      <rect class="ct__gone" x="140" y="312" width="360" height="30" rx="8" />
+      <text class="ct__goneLbl" x="320" y="331" text-anchor="middle">
+        no centralized information
+      </text>
+
+      {
+        COL.map((x, i) => (
+          <>
+            <text class="ct__term ct__term--observe" x={x} y={366} text-anchor="middle">
+              o
+              <tspan class="ct__sup">{i + 1}</tspan>
+            </text>
+            <path class="ct__wire ct__wire--observe" d={`M ${x} 374 V 388`} marker-end="url(#ct-a)" />
+            <g class="ct__agent">
+              <rect x={x - 62} y={392} width="124" height="30" rx="8" />
+              <text x={x} y={412} text-anchor="middle">
+                Agent {i + 1} policy
+              </text>
+            </g>
+            <path
+              class="ct__wire ct__wire--action"
+              d={`M ${x + 66} 407 H ${x + 104}`}
+              marker-end="url(#ct-a)"
+            />
+            <text class="ct__term ct__term--action" x={x + 120} y={412} text-anchor="middle">
+              a
+              <tspan class="ct__sup">{i + 1}</tspan>
+            </text>
+          </>
+        ))
+      }
+    </svg>
+  </div>
+  <figcaption class="ct__caption"><slot /></figcaption>
+</figure>
+
+<style>
+  .ct { margin-block: var(--s-5); }
+
+  .ct__frame {
+    padding: var(--s-4) var(--s-3);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+    overflow-x: auto;
+  }
+  .ct__svg {
+    display: block;
+    width: 100%;
+    min-width: 30rem;
+    max-width: 38rem;
+    margin-inline: auto;
+    height: auto;
+  }
+
+  .ct__panel {
+    font: 600 11px / 1 var(--font-sans);
+    letter-spacing: 0.08em;
+    fill: var(--ink);
+  }
+  .ct__panelNote {
+    font: 400 10.5px / 1 var(--font-sans);
+    fill: var(--ink-3);
+  }
+
+  .ct__z rect {
+    fill: var(--c-comm-tint);
+    stroke: var(--c-comm-edge);
+    stroke-width: 1.2;
+  }
+  .ct__zSym {
+    font: italic 600 15px / 1 var(--font-mono);
+    fill: var(--c-comm-ink);
+  }
+  .ct__zList {
+    font: 400 10.5px / 1 var(--font-sans);
+    fill: var(--ink-2);
+  }
+
+  .ct__signal rect {
+    fill: color-mix(in srgb, var(--c-comm) 10%, var(--surface));
+    stroke: var(--c-comm-edge);
+    stroke-width: 1.2;
+  }
+  .ct__signal text {
+    font: 500 11px / 1 var(--font-sans);
+    fill: var(--ink);
+  }
+
+  .ct__agent rect {
+    fill: var(--c-policy-tint);
+    stroke: var(--c-policy-edge);
+    stroke-width: 1.2;
+  }
+  .ct__agent text {
+    font: 500 11px / 1 var(--font-sans);
+    fill: var(--ink);
+  }
+  .ct__updated {
+    font: 400 10.5px / 1 var(--font-sans);
+    fill: var(--ink-3);
+  }
+
+  .ct__rule {
+    stroke: var(--rule);
+    stroke-width: 1;
+    stroke-dasharray: 3 4;
+  }
+
+  .ct__gone {
+    fill: none;
+    stroke: var(--rule);
+    stroke-width: 1.2;
+    stroke-dasharray: 5 5;
+  }
+  .ct__goneLbl {
+    font: 400 10.5px / 1 var(--font-sans);
+    fill: var(--ink-3);
+  }
+
+  .ct__term {
+    font: italic 600 14px / 1 var(--font-mono);
+  }
+  .ct__term--observe { fill: var(--c-observe-ink); }
+  .ct__term--action { fill: var(--c-action-ink); }
+  .ct__sup { font-size: 9px; baseline-shift: super; }
+
+  .ct__wire { fill: none; stroke-width: 1.5; }
+  .ct__wire--comm { stroke: var(--c-comm); }
+  .ct__wire--observe { stroke: var(--c-observe); }
+  .ct__wire--action { stroke: var(--c-action); }
+
+  .ct__caption {
+    margin-top: var(--s-3);
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+</style>

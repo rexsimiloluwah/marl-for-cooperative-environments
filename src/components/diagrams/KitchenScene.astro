@@ -1,0 +1,242 @@
+---
+/**
+ * THE COOPERATIVE KITCHEN
+ *
+ * The resource's running example for intuition. Two agents prepare one order
+ * and are paid once, together, when it goes out.
+ *
+ * It reuses IsoRobot deliberately: these are the same agents that appear in
+ * the interaction-loop diagrams and in the hero. A learner should not have to
+ * work out whether the "agent" in the kitchen is the same kind of thing as
+ * the "agent" in the equations.
+ *
+ * The kitchen carries INTUITION only. Formal statements go in equations, and
+ * the wireless network is where the ideas get applied. Keeping those three
+ * separate is what stops the reader having to hold three worlds at once.
+ */
+import IsoRobot from '../landing/IsoRobot.astro';
+
+interface Props {
+  /**
+   * One agent or two. The single-agent kitchen opens the chapter, so that
+   * adding the second agent later is visibly the SAME kitchen with one thing
+   * added rather than a new picture.
+   */
+  agents?: 1 | 2;
+  /** Mark the shared reward, for the section where that is the point. */
+  showReward?: boolean;
+  /** Show the two stations as separated, for the partial-observability point. */
+  divided?: boolean;
+}
+const { agents = 2, showReward = false, divided = false } = Astro.props;
+
+const W = 640;
+const H = 372;
+
+---
+
+<figure class="kt not-content">
+  <div class="kt__frame">
+    <svg viewBox={`0 0 ${W} ${H}`} class="kt__svg" role="img" aria-labelledby="kt-t">
+      <title id="kt-t">
+        {agents === 1
+          ? 'One robot agent alone in a kitchen, standing at a counter with a chopping board on one side and a stove with a pot on the other. It must work both stations itself.'
+          : 'Two robot agents working in one kitchen. The left agent is at a chopping board, the right agent at a stove with a pot.'}
+        {agents === 2 &&
+          (divided
+            ? ' A partition stands between them, so neither can see what the other is doing.'
+            : ' They share one counter.')}
+        {showReward
+          ? ' A single order ticket above the serving hatch is the reward, and it is paid to both of them together only when the order is complete.'
+          : ''}
+      </title>
+
+      <!-- Draw order matters: the agents stand BEHIND the counter, so they
+           are drawn first and the counter is laid over their lower bodies.
+           The counter is a straight-edged slab rather than an ellipse: an
+           oval top reads as a podium, not as a worktop. -->
+
+      <ellipse class="kt__floor" cx="320" cy="322" rx="300" ry="42" />
+
+      {
+        agents === 1 ? (
+          <IsoRobot x={320} y={310} scale={0.9} tone="observe" piece="cube" noShadow />
+        ) : (
+          <>
+            <IsoRobot x={214} y={310} scale={0.9} tone="observe" piece="cube" noShadow />
+            <IsoRobot x={428} y={310} scale={0.9} tone="action" piece="sphere" flip noShadow />
+          </>
+        )
+      }
+
+      <!-- counter: lit top face, shaded front -->
+      <path class="kt__counterFront" d="M 84 306 H 556 V 334 H 84 Z" />
+      <path class="kt__counterTop" d="M 112 278 H 528 L 556 306 H 84 Z" />
+
+      <!-- chopping board, left of agent 1 -->
+      <path class="kt__board" d="M 128 286 h 68 l 9 12 h -68 Z" />
+      <circle class="kt__veg kt__veg--a" cx="146" cy="292" r="5" />
+      <circle class="kt__veg kt__veg--a" cx="162" cy="294" r="4" />
+      <circle class="kt__veg kt__veg--b" cx="177" cy="291" r="4" />
+
+      <!-- stove and pot, right of agent 2 -->
+      <path class="kt__hob" d="M 470 286 h 62 l 9 12 h -62 Z" />
+      <ellipse class="kt__hobRing" cx="500" cy="292" rx="20" ry="6" />
+      <path class="kt__pot" d="M 484 278 h 34 v 12 a 17 6 0 0 1 -34 0 Z" />
+      <ellipse class="kt__potRim" cx="501" cy="278" rx="17" ry="6" />
+      <path class="kt__steam" d="M 494 268 c 3 -6 -3 -8 0 -14" />
+      <path class="kt__steam" d="M 508 268 c 3 -6 -3 -8 0 -14" />
+
+      {
+        agents === 1 ? (
+          <text class="kt__name kt__name--a" x="320" y="196" text-anchor="middle">
+            Agent
+          </text>
+        ) : (
+          <>
+            <text class="kt__name kt__name--a" x="214" y="196" text-anchor="middle">
+              Agent 1
+            </text>
+            <text class="kt__name kt__name--b" x="428" y="196" text-anchor="middle">
+              Agent 2
+            </text>
+          </>
+        )
+      }
+
+      {
+        agents === 2 && divided && (
+          <>
+            <path class="kt__wall" d="M 314 202 H 328 V 306 H 314 Z" />
+            <text class="kt__wallNote" x="321" y="192" text-anchor="middle">
+              neither can see past this
+            </text>
+          </>
+        )
+      }
+
+      {
+        showReward && (
+          <>
+            <g class="kt__ticket">
+              <rect x="256" y="26" width="128" height="56" rx="8" />
+              <text x="320" y="50" text-anchor="middle">ONE ORDER</text>
+              <text class="kt__ticketSub" x="320" y="68" text-anchor="middle">
+                one shared reward
+              </text>
+            </g>
+            {/* both arrows run to the single ticket: that is the whole point */}
+            <path class="kt__pay" d="M 234 212 C 266 168, 296 118, 304 90" />
+            <path class="kt__pay" d="M 408 212 C 376 168, 346 118, 338 90" />
+            <text class="kt__payNote" x="320" y="356" text-anchor="middle">
+              neither is paid alone
+            </text>
+          </>
+        )
+      }
+    </svg>
+  </div>
+  <figcaption class="kt__caption"><slot /></figcaption>
+</figure>
+
+<style>
+  .kt { margin-block: var(--s-5); }
+
+  .kt__frame {
+    padding: var(--s-4) var(--s-3);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+
+  .kt__svg {
+    display: block;
+    width: 100%;
+    max-width: 36rem;
+    margin-inline: auto;
+    height: auto;
+  }
+
+  .kt__floor { fill: color-mix(in srgb, var(--ui) 7%, transparent); }
+
+  .kt__counterTop {
+    fill: var(--iso-body);
+    stroke: color-mix(in srgb, var(--ink) 16%, transparent);
+    stroke-width: 1.2;
+  }
+  .kt__counterFront { fill: var(--iso-shade-2); }
+  .kt__board { fill: var(--iso-shade-1); }
+  .kt__hob { fill: var(--iso-shade-3); }
+
+  .kt__veg--a { fill: var(--c-reward); }
+  .kt__veg--b { fill: var(--c-conflict); }
+
+  .kt__hobRing { fill: none; stroke: var(--c-action); stroke-width: 2.4; }
+  .kt__pot { fill: var(--iso-visor); }
+  .kt__potRim { fill: var(--iso-shade-1); }
+  .kt__steam {
+    fill: none;
+    stroke: var(--ink-faint);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+  }
+
+  .kt__wall { fill: var(--iso-shade-3); }
+  .kt__wallNote {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    fill: var(--c-conflict-ink);
+  }
+
+  .kt__name {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .kt__name--a { fill: var(--c-observe-ink); }
+  .kt__name--b { fill: var(--c-action-ink); }
+
+  /* the shared reward */
+  .kt__pay,
+  .kt__payUp {
+    fill: none;
+    stroke: var(--c-reward);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-dasharray: 5 8;
+  }
+
+  .kt__ticket rect {
+    fill: var(--c-reward-tint);
+    stroke: var(--c-reward);
+    stroke-width: 1.8;
+  }
+  .kt__ticket text {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    fill: var(--c-reward-ink);
+  }
+  .kt__ticketSub {
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0 !important;
+  }
+  .kt__payNote {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    fill: var(--c-reward-ink);
+  }
+
+  .kt__caption {
+    display: block;
+    margin-top: var(--s-3);
+    font-size: var(--t-small);
+    line-height: 1.55;
+    color: var(--ink-muted);
+  }
+  .kt__caption:empty { display: none; }
+</style>

@@ -1,0 +1,210 @@
+---
+title: "Independent Learning"
+description: "Independent policies, non-stationary environment dynamics, practical advantages, and limitations as a coordination baseline."
+related:
+  - slug: coordinate/centralized-vs-decentralized
+    icon: lightbulb
+  - slug: background/one-agent-to-many
+    icon: cycle
+  - slug: coordinate/ctde
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+How far can a team get if every agent simply learns on its own?
+</Callout>
+
+Independent learning gives every agent its own single-agent learning process, using local observations and actions without an explicit model of the other agents.
+
+<Objectives>
+
+- Define the independent policies each agent learns
+- Explain why a learning partner appears as changing environment dynamics
+- Identify the costs of non-stationarity and a weak credit signal
+- State the conditions under which independent learning is a strong baseline
+
+</Objectives>
+
+## Independent Policies
+
+<Term tone="policy">Independent learning</Term> means each agent runs a
+standard single-agent algorithm on its own stream of experience. Agent $\ag$
+sees its own observations, takes its own actions, receives the team reward,
+and updates its own function, as if the other agents were not there.
+
+<Equation
+  label="Figure 1"
+  wide
+  tex={String.raw`\tone{policy}{Q_\ag\bigl(\tone{observe}{\obs{\ag}},\ \tone{action}{\act{\ag}}\bigr)} \qquad\text{or}\qquad \tone{policy}{\pol{\ag}\bigl(\tone{action}{\act{\ag}} \given \tone{observe}{\obs{\ag}}\bigr)}`}
+  terms={[
+    { tex: String.raw`Q_\ag`, is: 'agent i’s own value function, over its own actions only', tone: 'policy' },
+    { tex: String.raw`\pol{\ag}`, is: 'or its own policy, if the method is policy-based', tone: 'policy' },
+    { tex: String.raw`\obs{\ag}, \act{\ag}`, is: 'its own observation and its own action, no partner appears anywhere', tone: 'observe' },
+  ]}
+  caption="Every function an independent learner holds is defined on its own observation and its own action."
+/>
+
+Look at what is *absent*. No $\act{j}$ for any other agent, no joint action, no
+model of a partner, no shared parameters unless you choose to share them.
+That absence is the definition: an independent learner does not explicitly
+model the other agents at all.
+
+<Callout variant="definition" title="The usual names">
+Wrapping a single-agent algorithm per agent gives you the independent family.
+**Independent Q-learning (IQL)** does it with Q-learning; **independent PPO
+(IPPO)** does it with PPO. They are not exotic methods. They are the
+single-agent algorithm you already know, instantiated $\nag$ times.
+</Callout>
+
+## Other Agents as Environment Dynamics
+
+Now the central problem, and it follows directly from that absence.
+
+If an agent does not model its partners, its partners do not disappear. They
+become part of what it calls "the environment", and unlike a stove, they
+learn.
+
+The textbook states this precisely: under independent learning, the other
+agents are effectively treated as a non-stationary part of the environment,
+and changes in their policies alter the transition, observation and reward
+functions *as perceived by* another agent.
+
+Read that list again, because it is worse than it first sounds. It is not just
+that outcomes get noisier. All three of the things an agent is trying to learn
+about shift underneath it.
+
+<div class="table-scroll">
+
+| From agent 1's point of view | Because |
+| --- | --- |
+| the **transition** rule changed | the same action now leads somewhere else, since agent 2 contributes to every transition |
+| the **observations** changed | agent 2 is in the kitchen, so where it stands and what it carries is part of what agent 1 sees |
+| the **reward** rule changed | the reward is a function of the joint action, and agent 2 supplies half of it |
+</div>
+
+Concretely:
+
+<div class="table-scroll">
+
+| | Agent 2's behaviour | What agent 1 learned |
+| --- | --- | --- |
+| **Episode 100** | usually collects ingredients | prepare the stove and wait for delivery |
+| **Episode 500** | often prepares the stove itself | the same policy now produces two prepared stoves and no ingredient |
+</div>
+
+Agent 1 did not get worse. It did not change at all. The behaviour it had
+learned was a good response to a partner that no longer exists.
+
+<Callout variant="pitfall">
+This also breaks a diagnostic habit. When an independent learner's returns
+fall, the natural question is "what did *I* do wrong?", and the answer may be
+nothing. An agent cannot tell environmental randomness apart from a partner
+changing its policy, because both arrive as the same thing: the same action
+producing a different outcome than last time.
+</Callout>
+
+## Limitations of Independent Learning
+
+Three limitations, and they are worth stating separately because they have
+different fixes.
+
+**No explicit use of information about the other agents.** Even when a
+partner's actions or observations *are* available during training,
+independent learning has no mechanism to use them. Sections 1.4 to 1.8 are
+largely about that gap.
+
+**Concurrent learning introduces non-stationarity.** Every agent is
+simultaneously adapting to a target that other agents are moving. Old
+experience describes a team that has since changed, so replay buffers age
+badly and convergence guarantees from single-agent theory do not carry over.
+
+**Environmental randomness and partner change are indistinguishable.** An
+agent has no way to attribute a surprising outcome to the world rather than to
+its team, so it cannot know whether to keep exploring or to re-learn.
+
+## Practical Advantages
+
+Now the correction, because independent learning is routinely dismissed too
+quickly.
+
+**It is simple.** No new algorithm. If you can run PPO, you can run IPPO
+today.
+
+**It scales in the way that matters.** Each agent learns over its own action
+set, so nothing here grows exponentially with the number of agents, which is
+exactly the wall that centralized joint-action control runs into in the next
+section.
+
+**It is decentralized by construction.** There is no training-time
+infrastructure to dismantle before deployment, and no question about whether
+the learned policies will run locally. They already do.
+
+<Callout variant="takeaway">
+**Independent learning can still work well.**
+
+The textbook is explicit that independent methods sometimes perform
+competitively with substantially more sophisticated multi-agent algorithms.
+They remain important baselines, and a new method that cannot beat IPPO on
+your problem has not yet earned its complexity.
+
+The honest framing is not "independent learning fails". It is: independent
+learning gives up information about the other agents, and accepts
+non-stationarity in exchange for simplicity and scale. Sometimes that is a
+good trade.
+</Callout>
+
+<KnowledgeCheck
+  id="co-1-2-nonstationary"
+  type="choice"
+  question="Which statement best describes why non-stationarity is a problem specifically for a learning algorithm?"
+  options={[
+    {
+      text: 'Experience collected earlier describes a team that has since changed, so learning from it can point the agent in the wrong direction.',
+      correct: true,
+      feedback: 'Right. Single-agent methods assume samples describe a fixed environment. Here the environment includes learners, so stored experience decays in validity, which is why replay buffers and old on-policy data are more dangerous in multi-agent settings.',
+    },
+    {
+      text: 'The environment becomes random, so the agent cannot predict outcomes.',
+      correct: false,
+      feedback: 'Single-agent RL handles randomness perfectly well, a stochastic transition function is standard. The problem is not randomness but drift: the distribution itself moves, so past samples describe a different problem rather than a noisy version of the same one.',
+    },
+    {
+      text: 'Each agent’s action space grows as other agents learn.',
+      correct: false,
+      feedback: 'Action spaces are fixed. What changes is the outcome of choosing from them, because partners supply the rest of the joint action.',
+    },
+    {
+      text: 'It makes the reward function impossible to learn.',
+      correct: false,
+      feedback: 'Too strong. The reward function R(s, a) is fixed; what shifts is the reward an agent sees for its own action, since the other half of the joint action keeps changing. Difficult, not impossible, independent learners often do converge to something good.',
+    },
+  ]}
+>
+The distinction between "noisy" and "drifting" is what separates a hard
+single-agent problem from a multi-agent one.
+</KnowledgeCheck>
+
+## Independent Learning Summary
+
+- **Independent learning** runs a single-agent algorithm per agent, on local
+  observations and local actions, with no explicit model of partners.
+- Partners therefore become part of each agent's environment, a part that
+  **learns**, making the perceived transition, observation and reward
+  functions all non-stationary.
+- An agent cannot distinguish environmental randomness from a partner
+  changing policy.
+- Its costs: no use of information about other agents, non-stationarity from
+  concurrent learning, and unattributable surprise.
+- Its strengths: simplicity, scalability in the number of agents, and
+  decentralization by construction.
+- It remains a **serious baseline**, sometimes competitive with far more
+  sophisticated methods. Treat it as the bar to clear, not the strawman.

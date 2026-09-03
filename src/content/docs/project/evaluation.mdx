@@ -1,0 +1,179 @@
+---
+title: "Part 5: Evaluation"
+description: "Define metrics, comparison conditions, and a falsification test for robust cooperative performance."
+related:
+  - slug: project/deliverables
+    icon: package
+  - slug: adapt/evaluating-generalization
+    icon: chart
+  - slug: coordinate/research-smacv2
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+An evaluation plan turns the disaster-response design into testable claims.
+This section asks you to select four to six metrics spanning task performance,
+coordination, communication, and adaptation, then arrange them across baseline,
+ablation, stress, and unseen-partner conditions. A final falsification test must
+state what result would count against the design. The objective is evidence
+that distinguishes robust cooperation from success under familiar or unusually
+favourable conditions.
+
+## Evaluation Metrics
+
+Not twenty. At least one from each category.
+
+### Task performance
+
+What the system exists to do. Survivors reached, missions completed, response
+time.
+
+### Coordination
+
+Whether the agents actually work together, rather than the task merely getting
+done. Duplicated search coverage, idle time, conflicting actions, uncovered
+regions.
+
+<Callout variant="takeaway">
+Coordination metrics are the ones people forget, and they carry information
+task performance does not.
+
+Two systems can complete the same number of missions while one duplicates half
+its search effort. The Challenge Lab's collision count did this job: it
+distinguished systems whose reward was similar.
+</Callout>
+
+### Communication
+
+What the channel is costing and whether the system depends on it. Messages
+sent, bandwidth used, performance under message loss.
+
+The most informative of these is the last. A system that degrades gracefully
+as messages drop is different from one that falls off a cliff, and only a
+sweep tells you which you have.
+
+### Adaptation
+
+Performance with familiar agents, performance with held-out agents, cross-play
+performance, performance after an agent joins or leaves.
+
+<Callout variant="pitfall">
+If you propose a **gap** between familiar and unseen performance, you must
+report both halves alongside it.
+
+Both labs in this resource produced the same trap. In the Adapt Lab the worst
+agent had the smallest gap, because its familiar-partner score was dragged down
+by a failure. In the Challenge Lab the smallest drop under a traffic shift
+belonged to independent learning, which was 0.37 from the new regime's ceiling
+while the system with the larger drop sat 0.10 from it.
+
+A difference of two numbers can be improved by making the larger one smaller.
+And in the Challenge Lab the ordering reversed on the next test, so a single
+shift says nothing about robustness in general.
+</Callout>
+
+## Evaluation Matrix
+
+One compact table. Each row is a test condition and what it is there to
+establish.
+
+<div class="table-scroll">
+
+| Test condition | Purpose |
+| --- | --- |
+| Familiar agents | baseline |
+| Unseen agent | partner generalization |
+| Message loss | communication robustness |
+| Agent failure | adaptation |
+| Higher task load | environment robustness |
+</div>
+
+That is the shape. Yours should reflect the design you actually made: if you
+chose range as your communication constraint rather than loss, test range.
+
+Two disciplines from the Adapt chapter to apply here.
+
+**Hold one thing fixed at a time.** Vary the partner with the environment
+fixed, then the environment with the partner fixed. Change both at once and a
+performance drop tells you something broke, not what.
+
+**Say how your held-out agents differ.** Held out is a claim about provenance;
+behaviourally different is a claim about content. A held-out agent generated
+by re-running your own training with a new seed may behave almost identically,
+in which case the test measures very little.
+
+## Falsification Test
+
+The strongest thing you can add, and it is what the Coordinate chapter research
+connection was for.
+
+> **What result would convince you that your system learned to coordinate,
+> rather than learned a fixed sequence that happens to work?**
+
+The concrete version: train a policy conditioned **only on the timestep**,
+ignoring observations entirely, and see how it scores. If it does well, your
+environment never required coordination and your headline number establishes
+nothing about it.
+
+Other forms of the same discipline:
+
+- randomise start positions and task locations so no fixed plan works,
+- hold out scenario layouts entirely,
+- perturb one agent mid-episode and check the others' behaviour **changes**,
+- remove an agent and check the team degrades rather than continuing unaffected.
+
+<Callout tone="observe" title="Why this earns marks" icon="compass">
+A proposal that only describes tests it expects to pass is not an evaluation
+plan, it is a demonstration plan.
+
+The rubric criterion is explicit about this: could your proposed experiments
+**distinguish** a robust cooperative system from one that merely performs well
+under familiar conditions? A falsification test is the clearest evidence that
+they could.
+</Callout>
+
+<KnowledgeCheck
+  id="proj-eval-falsify"
+  type="choice"
+  question="A submission proposes measuring survivors reached, response time, and messages sent, all with the agents it trained. What is the most important thing missing?"
+  options={[
+    {
+      text: 'Any condition that could fail. Every metric is measured under the training setup, so the plan cannot distinguish a robust system from one that fits its familiar conditions.',
+      correct: true,
+      feedback: 'Exactly. The three metrics are reasonable and they all describe the same, favourable condition. Without a held-out agent, a loss sweep, or a falsification probe, the plan can only confirm.',
+    },
+    {
+      text: 'More metrics. Three is too few to characterise a system.',
+      correct: false,
+      feedback: 'Three to six is the requested range, and adding a fourth measured under the same condition would not help. The problem is the conditions, not the count.',
+    },
+    {
+      text: 'A coordination metric such as duplicated coverage.',
+      correct: false,
+      feedback: 'Worth adding, and secondary. Even with a coordination metric, measuring everything under familiar conditions leaves the central claim untested.',
+    },
+    {
+      text: 'Statistical significance testing across seeds.',
+      correct: false,
+      feedback: 'Good practice and not the gap here. Establishing that a number is reliable does not establish that it is measuring the right thing.',
+    },
+  ]}
+>
+"Which of my tests could come out badly?" is the question that turns a
+demonstration into an evaluation.
+</KnowledgeCheck>
+
+## Evaluation Plan Checklist
+
+- Four to six metrics, at least one per category
+- An evaluation matrix: condition, and what each condition establishes
+- Held-out agents described **behaviourally**, not just as held out
+- One variable at a time, partner and environment separated
+- One falsification test, and what result would worry you
+
+Next: [Deliverables](/project/deliverables/).

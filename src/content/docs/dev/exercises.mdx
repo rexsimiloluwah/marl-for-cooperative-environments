@@ -1,0 +1,91 @@
+---
+title: Code exercise gallery
+description: Reference fixture for the in-browser Python exercise runtime. Not part of the course.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
+head:
+  - tag: meta
+    attrs:
+      name: robots
+      content: noindex
+---
+
+import CodeExercise from '../../../components/code/CodeExercise.astro';
+
+A fixture, not a lesson. Every exercise state is exercised here so a
+regression in the Python runtime shows up in one place.
+
+Python runs entirely in your browser through Pyodide. The runtime is about
+10 MB and downloads once, on the first Run or Check, never on page load.
+
+## 1. Complete the function
+
+<CodeExercise
+  id="fixture-team-reward"
+  title="Cooperative reward"
+  starter={`def team_reward(a, b):\n    """Return +1 when the channels differ, -1 when they collide."""\n    # TODO: replace this with the reward rule\n    return 0\n`}
+  tests={`
+expect("different channels earn +1", team_reward(0, 1), 1,
+       "The agents picked different channels, so nothing collides and the team is rewarded.")
+expect("the other different pair also earns +1", team_reward(1, 0), 1,
+       "The reward depends on whether the channels match, not on which agent chose which.")
+expect("channel 0 twice is penalised", team_reward(0, 0), -1,
+       "Both agents transmitting on channel 0 is exactly the collision case.")
+expect("channel 1 twice is penalised", team_reward(1, 1), -1,
+       "Any repeated channel collides, not just channel 0.")
+`}
+  hints={[
+    'There are only two cases: the channels are equal, or they are not.',
+    'A conditional expression works in one line: `return 1 if a != b else -1`.',
+  ]}
+  solution={`def team_reward(a, b):\n    return 1 if a != b else -1\n`}
+>
+Implement the reward from the Coordinate chapter, then use Check to test it
+against all four joint actions.
+</CodeExercise>
+
+## 2. Implement the equation
+
+<CodeExercise
+  id="fixture-jain"
+  title="Jain's fairness index"
+  starter={`def jain(rates):\n    """J = (sum x)^2 / (n * sum x^2)"""\n    # TODO\n    return 0.0\n`}
+  tests={`
+expect_close("equal rates give 1", jain([1.0, 1.0, 1.0]), 1.0, hint=
+    "When every user gets the same rate the allocation is perfectly fair, so J is exactly 1.")
+expect_close("one user served gives 1/n", jain([3.0, 0.0, 0.0]), 1/3, hint=
+    "If one of three users gets everything, J falls to its lower bound of 1/n.")
+expect_close("two of four served", jain([2.0, 2.0, 0.0, 0.0]), 0.5, hint=
+    "Two equally served users out of four gives J = 1/2.")
+expect_true("never exceeds 1", jain([5.0, 1.0, 1.0]) <= 1.0,
+    "J is bounded above by 1. A value above 1 usually means the denominator is missing its factor of n.")
+`}
+  hints={[
+    'Sum the rates once, and sum their squares once.',
+    'n is the number of rates. Watch the denominator: it is n times the sum of squares.',
+  ]}
+  solution={`def jain(rates):\n    total = sum(rates)\n    squares = sum(x * x for x in rates)\n    n = len(rates)\n    if squares == 0:\n        return 1.0\n    return (total * total) / (n * squares)\n`}
+>
+The fairness metric used throughout the wireless lab.
+</CodeExercise>
+
+## 3. Failure states
+
+An exercise whose starter code raises, so the error path is visible: the
+checks should not run at all, and the traceback should mention only the
+learner's own code.
+
+<CodeExercise
+  id="fixture-raises"
+  title="Deliberately broken starter"
+  starter={`def add(a, b):\n    return a + undefined_name\n`}
+  tests={`
+expect("adds two numbers", add(2, 3), 5,
+       "This check never runs while the function raises.")
+`}
+  solution={`def add(a, b):\n    return a + b\n`}
+>
+Press Check. The runtime should report that the code raised before the
+checks could run, rather than listing failed assertions.
+</CodeExercise>

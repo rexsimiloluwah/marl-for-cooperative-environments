@@ -1,0 +1,282 @@
+---
+title: "Wireless Environment"
+description: "The access points, channel actions, interference-based rates, demand regimes, local observations, and shared reward."
+related:
+  - slug: lab/challenge
+    icon: beaker
+  - slug: lab/marl-for-resource-allocation
+    icon: antenna
+  - slug: background/dec-pomdp
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+The Challenge Lab supplies a lightweight wireless environment so that the
+experiments can focus on cooperative decisions rather than simulator
+implementation. It ships in the
+[Python package](/resources/python-package/) as
+`WirelessResourceAllocationEnv`. This section defines the access-point agents,
+channel-selection actions, the geometry that decides who interferes with whom,
+the rate function, demand regimes, local observations, and shared reward in
+that order. It concludes with an enumerated performance ceiling.
+
+## Agents, Actions, and Channels
+
+<Equation
+  label="Figure 1"
+  wide
+  tex={String.raw`\tone{policy}{\nag = 4} \text{ access points} \qquad K = 3 \text{ channels} \qquad \tone{action}{\act{\ag}} \in \{1, 2, 3\}`}
+  terms={[
+    { tex: String.raw`\nag`, is: 'access points, each choosing for itself', tone: 'policy' },
+    { tex: String.raw`K`, is: 'channels available, fewer than there are access points' },
+    { tex: String.raw`\act{\ag}`, is: 'the channel access point i selects this step', tone: 'action' },
+  ]}
+  caption="Four deciders, three channels. Somebody has to share."
+/>
+
+Note $\nag > K$ immediately. This is not incidental: it is what makes the
+problem an allocation rather than a colouring.
+
+## Who Interferes With Whom
+
+The access points sit at fixed positions and never move. Two of them interfere
+only if they choose the same channel, and how much they interfere depends on
+how far apart they are.
+
+<Equation
+  label="Figure 2"
+  wide
+  tex={String.raw`\tone{conflict}{I_\ag} = \sum_{j \neq \ag} \ubrace{action}{\mathbb{1}[\act{j} = \act{\ag}]}{same channel} \cdot \ubrace{conflict}{\frac{1}{1 + (d_{\ag j} / d_0)^{2}}}{coupling}`}
+  terms={[
+    { tex: String.raw`I_\ag`, is: 'the interference access point i receives on the channel it chose', tone: 'conflict' },
+    { tex: String.raw`d_{\ag j}`, is: 'the distance between access points i and j' },
+    { tex: String.raw`d_0`, is: 'the distance at which two access points couple at half strength, 1.0 here' },
+  ]}
+  caption="Only same-channel neighbours interfere, and only nearby ones interfere much."
+/>
+
+For the four positions the lab ships with, that gives:
+
+<div class="table-scroll">
+
+| Pair | Coupling | Rate if they share a channel |
+| --- | --- | --- |
+| **AP0 + AP1** | **0.671** | **1.20** |
+| AP2 + AP3 | 0.328 | 1.74 |
+| AP1 + AP2 | 0.206 | 2.09 |
+| AP0 + AP2 | 0.125 | 2.45 |
+| AP1 + AP3 | 0.084 | 2.69 |
+| **AP0 + AP3** | **0.059** | **2.87** |
+</div>
+
+Alone on a channel an access point achieves **3.46**. So sharing with AP0's
+closest neighbour costs 2.26, and sharing with its most distant one costs only
+0.59. Nearly a factor of four, from geometry alone.
+
+## Interference-Based Rate Function
+
+<Equation
+  label="Figure 3"
+  wide
+  tex={String.raw`\text{rate}_\ag = \log_2\!\left(1 + \frac{\ubrace{reward}{q_\ag P}{signal}}{\ubrace{observe}{\sigma^{2}}{noise} + \ubrace{conflict}{I_\ag}{interference}}\right)`}
+  terms={[
+    { tex: String.raw`P`, is: 'transmit power, fixed at 1 in this lab', tone: 'reward' },
+    { tex: String.raw`q_\ag`, is: 'quality of the channel this access point chose, 1.0 unless an experiment degrades it', tone: 'reward' },
+    { tex: String.raw`\sigma^{2}`, is: 'noise floor, 0.1', tone: 'observe' },
+    { tex: String.raw`I_\ag`, is: 'interference from Figure 2, a continuous quantity rather than a count', tone: 'conflict' },
+  ]}
+  caption="Interference sits in the denominator, so the first close neighbour costs the most."
+/>
+
+## Demand Regimes
+
+Each access point has its own traffic demand, and throughput is capped by it.
+Delivering more capacity than an access point wants earns nothing.
+
+<Equation
+  label="Figure 3"
+  wide
+  tex={String.raw`\text{throughput}_\ag = \min\bigl(\ubrace{observe}{d_\ag}{what it wants},\ \ubrace{reward}{\text{rate}(c_\ag)}{what it can get}\bigr)`}
+  terms={[
+    { tex: String.raw`d_i`, is: 'the traffic demand at access point i', tone: 'observe' },
+    { tex: String.raw`c_i`, is: 'the channel selected by access point i', tone: 'action' },
+    { tex: String.raw`\mathrm{rate}(c_i)`, is: 'the achievable rate after interference', tone: 'reward' },
+  ]}
+  caption="Useful throughput is capped by the smaller of demand and achievable rate."
+/>
+
+Three regimes, all in the notebook, selected with `traffic=`:
+
+<div class="table-scroll">
+
+| Regime | Demands | Character | Ceiling |
+| --- | --- | --- | --- |
+| **skewed** | two want 3.2, two want 0.8 | asymmetric; about **who** yields | 7.90 |
+| **hotspot** | one wants 3.4, three want 1.2 | one saturated access point | 6.98 |
+| **uniform** | each wants 1.6 or 2.4 | symmetric; mostly about avoiding collisions | 8.20 |
+</div>
+
+The ceilings differ, so a reward from one regime cannot be compared with a
+reward from another. Quote the ceiling or the comparison means nothing.
+
+<Callout variant="takeaway">
+Work through the skewed case by hand, because it is the whole lab.
+
+The two low-demand access points want 0.8 each. Even the worst pairing in the
+network, AP0 with AP1 at coupling 0.671, still delivers 1.20 to each of them.
+That is **more than they need**, so pairing the two light access points costs
+the network nothing at all.
+
+Pairing a high-demand access point instead caps it well below the 3.2 it
+wanted, and *how far* below depends on which neighbour it shares with: 2.87
+from the most distant one, 1.20 from the closest.
+
+Averaged over the notebook's 150 evaluation episodes, the best allocation
+scores **7.90** and the worst allocation that still uses all three channels
+scores **5.35**. Crowding everyone onto one channel scores **3.37**.
+
+**Demand decides which pair shares. Distance decides what it costs when a busy
+access point has to.**
+</Callout>
+
+## Local Access-Point Observations
+
+Local only, and this is the constraint that makes the lab interesting.
+
+<div class="table-scroll">
+
+| In the observation | Not in the observation |
+| --- | --- |
+| its own traffic demand | any other access point's demand |
+| its own last channel | the full network state |
+| how busy each channel was last step | what anyone will choose this step |
+</div>
+
+<Callout variant="pitfall">
+Comparing the observation and action columns makes the coordination difficulty
+plain.
+
+The optimal allocation depends on **who has high demand**. That is in the
+right-hand column.
+
+Every access point holds one piece of the information the network needs, and
+no access point holds enough to act on. This is not a limitation the lab
+imposed for flavour; it is what local measurement means.
+</Callout>
+
+When communication is switched on, each access point broadcasts **one bit**,
+which in this lab carries its demand level. The team therefore sends four
+messages per step, and the reward charges $\lambda_C$ for each.
+
+<Callout tone="observe" title="The message meanings are a design choice" icon="compass">
+Nothing in the environment makes that bit mean "demand level". We chose the
+mapping, and the Communicate chapter spent a section on the fact that learned
+symbols mean whatever their listeners do about them.
+
+Treat the protocol as part of the experiment rather than as a property of the
+problem, and ask what a different two bits might have carried.
+</Callout>
+
+## Shared Network Reward
+
+<Equation
+  label="Figure 5"
+  wide
+  tex={String.raw`\tone{reward}{r_t} = \ubrace{reward}{\textstyle\sum_\ag \text{throughput}_\ag}{delivered} - \ubrace{conflict}{\lambda_I \textstyle\sum_\ag I_\ag}{interference} - \ubrace{comm}{\lambda_C \cdot C_t}{talking}`}
+  terms={[
+    { tex: String.raw`\lambda_I`, is: 'interference weight, 0.2', tone: 'conflict' },
+    { tex: String.raw`\lambda_C`, is: 'price per message, 0.05 by default and a slider in the notebook', tone: 'comm' },
+    { tex: String.raw`C_t`, is: 'messages sent this step: four when communication is on, otherwise zero', tone: 'comm' },
+  ]}
+  caption="One number, to every access point. Three terms, deliberately."
+/>
+
+Interference is summed over access points rather than counted as collisions, so
+it is a continuous quantity: two distant access points sharing a channel
+contribute far less than two close ones.
+
+<Callout tone="observe" title="Counting collisions honestly" icon="compass">
+The environment also reports a `collision_rate`, the fraction of access points
+sitting in interference above 0.15. That threshold exists because with four
+access points on three channels **one pair always shares**. Counting every
+shared channel as a collision would put every policy at 100% and measure
+nothing.
+
+`avoidable_interference` does the same job for the continuous quantity: it
+subtracts the floor no allocation can beat, which is 0.117 for this layout.
+</Callout>
+
+## Enumerated Performance Ceiling
+
+`env.best_possible()` computes the best achievable reward by exhaustive search
+over all $3^4 = 81$ joint actions at each step. Averaged over the 150
+evaluation episodes it is **7.90** under skewed demand, **6.98** under hotspot
+and **8.20** under uniform.
+
+<Callout variant="lab">
+Being able to enumerate the optimum is a luxury and the reason this
+environment is small. It means every result has a reference point, so
+"reasonable" and "near-optimal" can be told apart.
+
+At eight access points the joint action space is $3^8 = 6{,}561$, and at
+sixteen it is over 43 million. The Coordinate chapter section on scaling applies here
+directly.
+</Callout>
+
+<KnowledgeCheck
+  id="lab-env-demand"
+  type="choice"
+  question="Under skewed demand, two access points want 3.2 and two want 0.8. Which pair should share a channel, and why?"
+  options={[
+    {
+      text: 'The two low-demand ones. Even the worst pairing in the network delivers 1.20, which already exceeds the 0.8 they want, so the network loses nothing.',
+      correct: true,
+      feedback: 'Exactly. Their throughput is capped by demand rather than by capacity, so the capacity they give up was never going to be used. This holds even when the two light access points are the closest pair in the network, which is what makes demand the deciding factor rather than distance. Measured over 150 episodes: 7.90 for the best allocation against 5.35 for the worst that still uses all three channels.',
+    },
+    {
+      text: 'The two high-demand ones, since they can make better use of a busy channel.',
+      correct: false,
+      feedback: 'The opposite. Sharing caps a busy access point somewhere between 1.20 and 2.87 depending on which neighbour it shares with, when it wanted 3.2, so a large part of its demand goes unserved.',
+    },
+    {
+      text: 'One high and one low, to balance the load across channels.',
+      correct: false,
+      feedback: 'Intuitive and wrong here. Balancing wastes a clean channel on an access point that cannot use it while a high-demand one is constrained. The reward depends on delivered throughput, not on even loading.',
+    },
+    {
+      text: 'It does not matter, since the same number of collisions occurs either way.',
+      correct: false,
+      feedback: 'The number of sharing pairs is indeed the same, which is precisely why counting them is not a sufficient objective. What differs is throughput, because throughput is capped by each access point’s own demand, and how much interference that sharing actually causes, which depends on the distance between the pair.',
+    },
+  ]}
+>
+If you can explain this without the table, you have the environment.
+</KnowledgeCheck>
+
+## Wireless Environment Summary
+
+- Four access points, three channels: $\nag > K$, so somebody must share, and
+  the question is which pair.
+- Access points sit at **fixed positions**. Two on the same channel interfere by
+  $1/(1 + (d/d_0)^2)$, which ranges from 0.671 for the closest pair to 0.059
+  for the most distant.
+- $\text{rate}_\ag = \log_2(1 + q_\ag P / (\sigma^2 + I_\ag))$, so a close
+  neighbour costs nearly four times what a distant one does.
+- Throughput is $\min(\text{demand}, \text{rate})$, so capacity beyond demand
+  is wasted.
+- **Demand decides which pair shares; distance decides what it costs.** The two
+  light access points should share even when they are the closest pair.
+- Observations are **local**: own demand, own channel qualities, per-channel
+  interference measured last step, own last channel. Not other access points'
+  demands.
+- Communication is one message per access point, four per team, priced at
+  $\lambda_C = 0.05$ by default.
+- The **ceiling** is computable by enumerating all 81 joint actions: 7.90 under
+  skewed demand, 6.98 under hotspot, 8.20 under uniform.

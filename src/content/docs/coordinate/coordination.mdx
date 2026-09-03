@@ -1,0 +1,200 @@
+---
+title: "Coordination"
+description: "The action interdependence and joint-action values that make cooperative coordination a distinct learning problem."
+related:
+  - slug: coordinate/independent-learning
+    icon: lightbulb
+  - slug: coordinate/credit-assignment
+    icon: chart
+  - slug: background/joint-actions-policies
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KitchenScene from '../../../components/diagrams/KitchenScene.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+Why is a shared objective not enough to produce coordinated actions?
+</Callout>
+
+Coordination is the problem of learning individual actions whose combination advances a shared objective.
+
+<Objectives>
+
+- Explain why aligned objectives do not imply compatible actions
+- Read joint-action dependence off a small payoff table
+- Define a joint-action value and say what it is a function of
+
+</Objectives>
+
+## Aligned Objectives and Interdependent Actions
+
+Two agents in a kitchen. When an order is served, both receive the same
+payment. Neither can earn anything alone.
+
+<KitchenScene showReward>
+The simplest coordination problem there is. Same reward, same goal, separate
+decisions.
+</KitchenScene>
+
+Formally, this is a <Term tone="reward">common-reward game</Term>: every agent
+has the same reward function, so the team's interests are identical by
+construction.
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\tone{reward}{R_1} = \tone{reward}{R_2} = \cdots = \tone{reward}{R_\nag} = \tone{reward}{R}`}
+  terms={[
+    { tex: String.raw`R_\ag`, is: 'agent i’s reward function', tone: 'reward' },
+    { tex: String.raw`R`, is: 'the single function they all share', tone: 'reward' },
+  ]}
+  caption="Identical reward functions. There is nothing left for the agents to disagree about."
+/>
+
+You would think that settles it. If everybody wants the same thing, and
+nothing anybody does can help themselves at another's expense, what is left to
+go wrong?
+
+Almost everything.
+
+<Callout variant="takeaway">
+**Having the same objective does not tell the agents which actions they should
+take together.**
+
+The reward says *what counts as success*. It says nothing about who does
+which part.
+</Callout>
+
+The textbook version of this makes it unmissable. Albrecht, Christianos and
+Schäfer use a coordination game in which two agents receive a positive reward
+only when their actions **agree**, and nothing tells either agent which of
+the matching options to pick. Both agents want to agree. Wanting it does not
+make it happen.
+
+## Joint-Action Dependence
+
+Back to the kitchen, and to what actually arrives at the environment.
+
+<Equation
+  label="Figure 2"
+  tex={String.raw`\tone{action}{\jointact} = \bigl(\tone{policy}{\act{1}},\ \dots,\ \tone{policy}{\act{\nag}}\bigr)`}
+  terms={[
+    { tex: String.raw`\jointact`, is: 'the joint action: what the team did this step', tone: 'action' },
+    { tex: String.raw`\act{i}`, is: 'one agent’s contribution to it, chosen from local information', tone: 'policy' },
+  ]}
+  caption="The environment sees the combination, never the parts."
+/>
+
+Four possibilities at one step, with the same two agents and the same shared
+reward:
+
+<div class="table-scroll">
+
+| Agent 1 | Agent 2 | Team outcome |
+| --- | --- | --- |
+| get ingredient | prepare station | both halves of the next step are ready |
+| get ingredient | get ingredient | two trips for one ingredient |
+| prepare station | prepare station | the station is prepared twice |
+| wait | wait | nothing happens |
+</div>
+
+Every one of those rows involves two agents who want an order served. Rows two
+and three are agents doing genuinely useful things, preparing a station is
+not a mistake, that happen to be the *same* useful thing at the same moment.
+Row four is two agents each sensibly waiting for the other to commit.
+
+None of this is bad behaviour. It is uncoordinated behaviour, which is a
+different thing and the whole subject of this chapter.
+
+## Joint-Action Values
+
+Now the formal consequence, and it is the piece worth carrying forward.
+
+In single-agent reinforcement learning you can ask how good an action is in a
+state, and write the answer down as $Q(s, a)$. Try that here.
+
+<Equation
+  label="Figure 3"
+  wide
+  tex={String.raw`\dbox{conflict}{Q(\tone{observe}{s}, \tone{action}{a^{1}})} \qquad\text{versus}\qquad \cbox{action}{Q(\tone{observe}{s}, \tone{action}{a^{1}}, \tone{action}{a^{2}})}`}
+  terms={[
+    { tex: String.raw`Q(s, a^{1})`, is: 'an individual action value: how good agent 1’s action is, with agent 2’s action left out', tone: 'conflict' },
+    { tex: String.raw`Q(s, a^{1}, a^{2})`, is: 'a joint-action value: how good this combination is', tone: 'action' },
+  ]}
+  caption="The dashed form has to average away the very thing that decides the outcome. The solid form can tell the combinations apart."
+/>
+
+The left-hand form cannot represent the kitchen table above. "Get ingredient"
+appears in row one, where it is excellent, and row two, where it is wasted.
+Any single number attached to "get ingredient" has to be some average across
+what agent 2 might do, and that average is not the value of anything the
+agent can actually bring about.
+
+The right-hand form has room for the distinction. Give it both actions and it
+can say that (get, prepare) is worth a lot and (get, get) is worth little.
+
+<Callout variant="takeaway">
+**An individual action value can hide the effect of another agent's action. A
+joint-action value can represent different outcomes for different
+combinations.**
+
+That is the sentence the rest of the chapter is built on. Everything from
+centralized critics to value decomposition is a way of getting some of the
+right-hand form's information without paying its full cost.
+</Callout>
+
+And the cost is real: $Q(s, \jointact)$ has an entry for every joint action,
+so it grows exponentially in the number of agents, and, worse for our
+purposes, an agent choosing from it would need to know what everybody else
+is about to do. *Centralized and Decentralized Learning* takes that problem seriously.
+
+<KnowledgeCheck
+  id="co-1-1-depends"
+  type="choice"
+  question="An order has just arrived and the ingredient store is full. Is 'get ingredient' a good action for agent 1?"
+  options={[
+    {
+      text: 'There is not enough information. It depends on what agent 2 does at the same step.',
+      correct: true,
+      feedback: 'Correct, and getting comfortable with this answer is the point of the section. The action is excellent if agent 2 prepares the station and wasteful if agent 2 also goes for the ingredient. Nothing in the state, the reward, or the action itself settles it.',
+    },
+    {
+      text: 'Yes. The order needs an ingredient and none has been collected.',
+      correct: false,
+      feedback: 'Tempting, and it is the reasoning that works in single-agent RL. But the same reasoning is available to agent 2, and if both act on it the team makes two trips for one ingredient. An action that is obviously right for everyone is exactly how duplication happens.',
+    },
+    {
+      text: 'No. Agent 1 should wait to see what agent 2 does first.',
+      correct: false,
+      feedback: 'They act simultaneously, so there is no "first", waiting to see is not an available strategy. And if both agents wait, nothing happens at all, which is row four of the table.',
+    },
+    {
+      text: 'Yes, as long as agent 1’s policy is well trained.',
+      correct: false,
+      feedback: 'Training quality is not what is missing. Even an optimal agent 1 cannot make "get ingredient" good in isolation, because its value is a property of the combination rather than of the action.',
+    },
+  ]}
+>
+"It depends on what the other agent does" is the correct answer far more often
+than it feels like it should be.
+</KnowledgeCheck>
+
+## Coordination Summary
+
+- A **common-reward game** gives every agent the same reward function. Their
+  objectives are identical by construction.
+- Identical objectives do not produce coordinated actions. Agents can want the
+  same outcome and still duplicate work, interfere, or both wait.
+- Poor coordination is usually not bad behaviour. It is two sensible choices
+  that do not fit together.
+- An **individual action value** $Q(s, a^\ag)$ must average over what
+  partners do, hiding the effect that decides the outcome.
+- A **joint-action value** $Q(s, \jointact)$ can distinguish combinations,
+  at a cost in size, and in information no single agent has.

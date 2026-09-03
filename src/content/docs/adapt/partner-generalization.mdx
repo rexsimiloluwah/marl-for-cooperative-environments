@@ -1,0 +1,198 @@
+---
+title: "Partner Generalization"
+description: "Generalization to unseen partner behaviour and its distinction from ordinary environment shift."
+related:
+  - slug: adapt/partner-diversity
+    icon: lightbulb
+  - slug: adapt/evaluating-generalization
+    icon: chart
+  - slug: adapt/zero-shot-coordination
+    icon: users-round
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+How do you measure cooperation with a behaviour that was never in training?
+</Callout>
+
+Partner generalization is the ability to cooperate with behaviours that were absent from training.
+
+<Objectives>
+
+- Separate the training partner set from the evaluation partner set
+- Define the familiar-to-unseen performance gap
+- Connect that gap to partner dependence
+- Distinguish partner shift from environment shift
+
+</Objectives>
+
+## Training and Evaluation Partners
+
+Borrow the framing from supervised learning, where it is second nature, and
+apply it to partners rather than to data.
+
+<Equation
+  label="Figure 1"
+  wide
+  tex={String.raw`\text{trained with } \tone{policy}{\Pi_{\text{train}}} \qquad\qquad \text{evaluated with } \tone{conflict}{\Pi_{\text{test}}} \qquad\qquad \tone{conflict}{\Pi_{\text{test}}} \not\subseteq \tone{policy}{\Pi_{\text{train}}}`}
+  terms={[
+    { tex: String.raw`\Pi_{\text{train}}`, is: 'the set of partners the agent trained with', tone: 'policy' },
+    { tex: String.raw`\Pi_{\text{test}}`, is: 'the partners it is evaluated against, containing behaviour it never met', tone: 'conflict' },
+  ]}
+  caption="Held-out partners rather than held-out data. Everything else about the setup can stay identical."
+/>
+
+The question becomes precise:
+
+> **How well does this agent cooperate with behaviour that was not present
+> during training?**
+
+Note what happens to the usual practice under this framing. Reporting
+$J(\pi_A, \pi_B)$ where $\pi_B \in \Pi_{\text{train}}$ is reporting training
+performance. Nobody would accept that as a generalization result about a
+classifier, and it is the standard cooperative MARL number.
+
+## The Partner Generalization Gap
+
+A simple diagnostic, useful for building intuition.
+
+<Equation
+  label="Figure 2"
+  wide
+  tex={String.raw`\tone{conflict}{\Delta_{\text{gen}}} = \ubrace{policy}{J_{\text{familiar}}}{with training partners} - \ubrace{conflict}{J_{\text{unseen}}}{with held-out partners}`}
+  terms={[
+    { tex: String.raw`\Delta_{\text{gen}}`, is: 'how much performance is lost by changing partner', tone: 'conflict' },
+  ]}
+  caption="One number for the distance between looking good and being general."
+/>
+
+<Callout tone="observe" title="A teaching measure, not a standard metric" icon="compass">
+$\Delta_{\text{gen}}$ is defined here for clarity, not quoted from the
+literature. It is a convenient way to talk about the gap, and it has real
+limitations: it says nothing about *which* partners, it rewards being
+uniformly mediocre, and a small gap on a weak agent means very little.
+
+Use it to reason with. Do not report it as though it were an established
+benchmark statistic. *Evaluating Partner Generalization* covers what a defensible evaluation actually
+requires, and *Partner Dependence*0 covers the metrics the field has proposed.
+</Callout>
+
+An example of what it looks like in practice:
+
+<div class="table-scroll">
+
+| Partner | Success |
+| --- | --- |
+| Training partner B | 94% |
+| Training partner C | 91% |
+| **Unseen partner D** | **62%** |
+| **Unseen partner E** | **48%** |
+</div>
+
+Strong in distribution, brittle across partners. Note that averaging all four
+into "74%" would hide the entire finding, which is the argument for reporting
+the spread rather than the mean.
+
+## Generalization Gap and Partner Dependence
+
+The phenomenon needs a name, and it is worth being careful about how firm to
+make it.
+
+<Callout variant="definition" title="Partner dependence">
+A policy is **partner-dependent** when behaviour that works with its training
+partners does not transfer well to different partners.
+</Callout>
+
+That is a description rather than a quantity. There is no single agreed
+measurement of "how partner-dependent" a policy is, and treating one as
+canonical would be misleading. What the field does agree on is the
+*diagnostic procedure*: pair agents that did not train together and look at
+what happens.
+
+## Partner Shift and Environment Shift
+
+Now a distinction that is easy to blur and matters a great deal.
+
+<div class="table-scroll">
+
+| | What changes | What stays the same |
+| --- | --- | --- |
+| **Environment generalization** | the kitchen: layout, timings, order mix | the kind of partner |
+| **Partner generalization** | the partner's behaviour and conventions | the kitchen |
+</div>
+
+An agent can be robust to one and poor at the other, and they call for
+different fixes.
+
+**Environment shift** is familiar from single-agent reinforcement learning.
+The usual remedies are domain randomisation and varied training levels, and
+the failure mode is a policy that memorised one layout.
+
+**Partner shift** has no single-agent analogue at all. There is no such thing
+as a convention held by one agent, so a policy can be perfectly robust to
+every layout you can generate and still fail the moment its partner is
+replaced.
+
+<Callout variant="takeaway">
+Hold the environment fixed when you first test partner generalization.
+
+If you vary the kitchen and the partner at once and performance drops, you
+have learned that something broke and not what. the Coordinate chapter's research
+connection made the equivalent point about environments; this is the same
+discipline applied to partners.
+</Callout>
+
+<KnowledgeCheck
+  id="ad-3-2-shift"
+  type="choice"
+  question="An agent is trained with domain randomisation across hundreds of kitchen layouts, always with the same partner. What does this buy?"
+  options={[
+    {
+      text: 'Environment generalization, and nothing about partner generalization. The partner never varied, so no pressure was ever applied to it.',
+      correct: true,
+      feedback: 'Exactly. Randomising the environment produces robustness to environments. Partner conventions were held fixed across all of that training, so the agent had every opportunity to co-adapt to one partner and no reason not to.',
+    },
+    {
+      text: 'Both, since a policy robust to environment variation is robust in general.',
+      correct: false,
+      feedback: 'Robustness does not generalise across kinds of shift. The two require different variation during training, and there is no reason varying one would cover the other.',
+    },
+    {
+      text: 'Partner generalization, because varied layouts force the agents to renegotiate roles.',
+      correct: false,
+      feedback: 'Appealing, and usually false. The pair can carry the same convention across every layout, and if the convention works everywhere then varied layouts reinforce it rather than loosening it.',
+    },
+    {
+      text: 'Neither, since domain randomisation only helps in simulation.',
+      correct: false,
+      feedback: 'Too dismissive. Domain randomisation genuinely produces environment robustness that transfers. The limitation here is narrower: it is the wrong axis of variation for this problem.',
+    },
+  ]}
+>
+"Which axis did you actually vary?" is the question that predicts which
+generalization you get.
+</KnowledgeCheck>
+
+## Partner Generalization Summary
+
+- Partner generalization is held-out **partners**, not held-out data:
+  $\Pi_{\text{test}} \not\subseteq \Pi_{\text{train}}$.
+- Under that framing, the usual reported number is **training performance**.
+- $\Delta_{\text{gen}} = J_{\text{familiar}} - J_{\text{unseen}}$ is a useful
+  teaching diagnostic, not a standard metric. It ignores which partners were
+  used and rewards uniform mediocrity.
+- Report the **spread** across partners, not the mean. An average hides the
+  finding.
+- **Partner dependence** is a description of a phenomenon rather than a
+  measured quantity. What is agreed is the procedure: pair agents that did not
+  train together.
+- **Environment shift** and **partner shift** are different axes needing
+  different variation. Hold the environment fixed when testing the partner.

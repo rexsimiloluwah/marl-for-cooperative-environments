@@ -1,0 +1,453 @@
+---
+/**
+ * MATCHING EXERCISE
+ *
+ * Drag each block into the slot beside the description it belongs to. One
+ * block per slot, one slot per block.
+ *
+ * Two things are load-bearing here.
+ *
+ * The labels are rendered through `renderInlineMath` rather than passed
+ * through as text, because a matching exercise over formal notation needs to
+ * show the notation. A `<select>` cannot do that at all, which is why this is
+ * drag-and-drop rather than a dropdown per row.
+ *
+ * And every drag interaction has a click equivalent: the chips and slots are
+ * real buttons, so the whole exercise works by tapping on a phone and by
+ * keyboard with no pointer at all. Drag is the nice path, not the only one.
+ */
+import { renderInlineMath } from '../../lib/equations/inline-math';
+
+interface Item {
+  /** The description shown to the learner. May contain `$...$`. */
+  text: string;
+  /** Index into `blocks` of the correct answer. */
+  block: number;
+}
+interface Props {
+  /** Stable id. Storage key, so renaming loses saved work. */
+  id: string;
+  /** The draggable blocks. May contain `$...$`. */
+  blocks: string[];
+  items: Item[];
+  /** Overrides the instruction line. */
+  prompt?: string;
+}
+const { id, blocks, items, prompt } = Astro.props;
+
+if (!/^[a-z0-9-]+$/.test(id)) {
+  throw new Error(`<Match> needs a kebab-case id, got "${id}".`);
+}
+for (const it of items) {
+  if (it.block < 0 || it.block >= blocks.length) {
+    throw new Error(`<Match> "${it.text}" has block ${it.block}, out of range.`);
+  }
+}
+if (blocks.length !== items.length) {
+  throw new Error(
+    `<Match id="${id}">: ${blocks.length} blocks and ${items.length} items. ` +
+      `This component pairs them one to one.`,
+  );
+}
+
+const blockHtml = blocks.map(renderInlineMath);
+const itemHtml = items.map((it) => renderInlineMath(it.text));
+const instruction =
+  prompt ?? 'Drag each block into a slot, or tap one and then tap a slot.';
+---
+
+<worksheet-match class="mt not-content" data-match={id} data-count={blocks.length}>
+  <p class="mt__instr">{instruction}</p>
+
+  <ul class="mt__tray" data-tray aria-label="Blocks to place">
+    {
+      blockHtml.map((html, c) => (
+        <li class="mt__slotWrap">
+          <button class="mt__chip" type="button" draggable="true" data-block={c}>
+            <span set:html={html} />
+          </button>
+        </li>
+      ))
+    }
+  </ul>
+
+  <ol class="mt__items">
+    {
+      items.map((it, r) => (
+        <li class="mt__item" data-row={r} data-answer={it.block}>
+          <p class="mt__text" set:html={itemHtml[r]} />
+          <div class="mt__drop">
+            <button
+              class="mt__slot"
+              type="button"
+              data-slot={r}
+              aria-label={`Slot ${r + 1}. Empty.`}
+            >
+              <span class="mt__slotHint">drop here</span>
+            </button>
+            <span class="mt__mark" data-mark aria-live="polite" />
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+
+  <div class="mt__foot">
+    <button class="mt__btn" type="button" data-check>Check</button>
+    <button class="mt__btn mt__btn--quiet" type="button" data-reset>Clear</button>
+    <p class="mt__state" data-state aria-live="polite"></p>
+  </div>
+</worksheet-match>
+
+<script>
+  class WorksheetMatch extends HTMLElement {
+    /** slot index -> block index, or -1 */
+    private placed: number[] = [];
+    private picked: number | null = null;
+
+    connectedCallback() {
+      const id = this.dataset.match;
+      if (!id) return;
+      const n = Number(this.dataset.count ?? 0);
+      this.placed = new Array(n).fill(-1);
+      const key = `marl:worksheet:v1:match-${id}`;
+
+      const tray = this.querySelector<HTMLElement>('[data-tray]');
+      const state = this.querySelector('[data-state]');
+      const chips = [...this.querySelectorAll<HTMLButtonElement>('.mt__chip')];
+      const slots = [...this.querySelectorAll<HTMLButtonElement>('.mt__slot')];
+      const rows = [...this.querySelectorAll<HTMLElement>('[data-row]')];
+
+      /* ---------- placement ---------- */
+
+      const chipFor = (b: number) => chips.find((c) => Number(c.dataset.block) === b);
+
+      const render = () => {
+        // Every chip lives either in the tray or in exactly one slot, so the
+        // DOM is rebuilt from `placed` rather than mutated in place. Fewer
+        // states to get wrong than moving nodes around ad hoc.
+        this.placed.forEach((b, s) => {
+          const slot = slots[s];
+          const hint = slot.querySelector('.mt__slotHint');
+          if (b < 0) {
+            if (hint) hint.removeAttribute('hidden');
+            slot.setAttribute('aria-label', `Slot ${s + 1}. Empty.`);
+          } else {
+            const chip = chipFor(b);
+            if (chip && chip.parentElement !== slot) slot.appendChild(chip);
+            if (hint) hint.setAttribute('hidden', '');
+            slot.setAttribute('aria-label', `Slot ${s + 1}. Filled.`);
+          }
+          slot.classList.toggle('is-filled', b >= 0);
+        });
+
+        // anything not placed goes back to the tray
+        chips.forEach((chip) => {
+          const b = Number(chip.dataset.block);
+          if (!this.placed.includes(b) && chip.parentElement !== tray) {
+            const li = document.createElement('li');
+            li.className = 'mt__slotWrap';
+            li.appendChild(chip);
+            tray?.appendChild(li);
+          }
+        });
+
+        // tidy away the empty <li> wrappers a moved chip left behind
+        tray?.querySelectorAll('.mt__slotWrap').forEach((li) => {
+          if (!li.querySelector('.mt__chip')) li.remove();
+        });
+
+        chips.forEach((c) =>
+          c.classList.toggle('is-picked', this.picked === Number(c.dataset.block)),
+        );
+      };
+
+      const save = () => {
+        try {
+          localStorage.setItem(key, JSON.stringify(this.placed));
+        } catch {
+          /* localStorage throws in private windows; the exercise still works */
+        }
+      };
+
+      const clearMarks = () => {
+        rows.forEach((r) => {
+          r.classList.remove('is-right', 'is-wrong');
+          const m = r.querySelector('[data-mark]');
+          if (m) m.textContent = '';
+        });
+        if (state) state.textContent = '';
+      };
+
+      const place = (slot: number, block: number) => {
+        // a block sits in one slot only, so vacate wherever it was
+        const from = this.placed.indexOf(block);
+        if (from >= 0) this.placed[from] = -1;
+        this.placed[slot] = block;
+        this.picked = null;
+        clearMarks();
+        render();
+        save();
+      };
+
+      const unplace = (slot: number) => {
+        if (this.placed[slot] < 0) return;
+        this.placed[slot] = -1;
+        clearMarks();
+        render();
+        save();
+      };
+
+      /* ---------- click and keyboard ---------- */
+
+      chips.forEach((chip) => {
+        chip.addEventListener('click', () => {
+          const b = Number(chip.dataset.block);
+          const inSlot = this.placed.indexOf(b);
+          if (inSlot >= 0) {
+            unplace(inSlot); // clicking a placed chip returns it
+            return;
+          }
+          this.picked = this.picked === b ? null : b;
+          render();
+        });
+
+        chip.addEventListener('dragstart', (e) => {
+          const dt = (e as DragEvent).dataTransfer;
+          dt?.setData('text/plain', String(chip.dataset.block));
+          if (dt) dt.effectAllowed = 'move';
+          chip.classList.add('is-dragging');
+        });
+        chip.addEventListener('dragend', () => chip.classList.remove('is-dragging'));
+      });
+
+      slots.forEach((slot) => {
+        const s = Number(slot.dataset.slot);
+
+        slot.addEventListener('click', () => {
+          if (this.picked !== null) place(s, this.picked);
+          else if (this.placed[s] >= 0) unplace(s);
+        });
+
+        slot.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          slot.classList.add('is-over');
+        });
+        slot.addEventListener('dragleave', () => slot.classList.remove('is-over'));
+        slot.addEventListener('drop', (e) => {
+          e.preventDefault();
+          slot.classList.remove('is-over');
+          const raw = (e as DragEvent).dataTransfer?.getData('text/plain');
+          if (raw !== undefined && raw !== '') place(s, Number(raw));
+        });
+      });
+
+      // dropping back on the tray clears a placement
+      tray?.addEventListener('dragover', (e) => e.preventDefault());
+      tray?.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const raw = (e as DragEvent).dataTransfer?.getData('text/plain');
+        if (raw === undefined || raw === '') return;
+        const from = this.placed.indexOf(Number(raw));
+        if (from >= 0) unplace(from);
+      });
+
+      /* ---------- check and reset ---------- */
+
+      this.querySelector('[data-check]')?.addEventListener('click', () => {
+        let right = 0;
+        let filled = 0;
+        rows.forEach((row, s) => {
+          const got = this.placed[s];
+          if (got < 0) return;
+          filled += 1;
+          const ok = got === Number(row.dataset.answer);
+          if (ok) right += 1;
+          row.classList.add(ok ? 'is-right' : 'is-wrong');
+          const m = row.querySelector('[data-mark]');
+          if (m) m.textContent = ok ? 'Correct' : 'Not this one';
+        });
+        if (!state) return;
+        state.textContent = filled
+          ? `${right} of ${rows.length} correct.`
+          : 'Place at least one block first.';
+      });
+
+      this.querySelector('[data-reset]')?.addEventListener('click', () => {
+        this.placed.fill(-1);
+        this.picked = null;
+        clearMarks();
+        render();
+        save();
+      });
+
+      /* ---------- restore ---------- */
+
+      try {
+        const saved = localStorage.getItem(key);
+        if (saved) {
+          const arr = JSON.parse(saved) as number[];
+          if (Array.isArray(arr) && arr.length === n) this.placed = arr;
+        }
+      } catch {
+        /* no persistence available */
+      }
+      render();
+    }
+  }
+  if (!customElements.get('worksheet-match')) {
+    customElements.define('worksheet-match', WorksheetMatch);
+  }
+</script>
+
+<style>
+  .mt { display: block; margin-block: var(--s-4); }
+
+  .mt__instr {
+    margin: 0 0 var(--s-3);
+    font-size: var(--t-small);
+    color: var(--ink-muted);
+  }
+
+  /* ---- tray ---- */
+  .mt__tray {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    min-height: 2.9rem;
+    margin: 0 0 var(--s-4);
+    padding: var(--s-2);
+    list-style: none;
+    background: var(--surface-sunken);
+    border: var(--hairline) dashed var(--rule-strong, var(--rule));
+    border-radius: var(--r-sm);
+  }
+  .mt__slotWrap { display: contents; }
+
+  /* ---- chips ---- */
+  .mt__chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 12px;
+    font: inherit;
+    font-size: var(--t-small);
+    color: var(--ink);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule-strong, var(--rule));
+    border-radius: var(--r-sm);
+    cursor: grab;
+    box-shadow: 0 1px 0 color-mix(in srgb, var(--ink) 8%, transparent);
+  }
+  .mt__chip:hover { border-color: var(--ui); }
+  .mt__chip:focus-visible { outline: 2px solid var(--ui); outline-offset: 2px; }
+  .mt__chip.is-picked {
+    border-color: var(--ui);
+    box-shadow: 0 0 0 2px var(--c-observe-tint);
+  }
+  .mt__chip.is-dragging { opacity: 0.4; cursor: grabbing; }
+
+  /* KaTeX inside a chip should sit on the text baseline, not add leading */
+  .mt__chip :global(.katex) { font-size: 1.02em; line-height: 1; }
+
+  /* ---- items ---- */
+  .mt__items {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: var(--s-3);
+  }
+  .mt__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-4);
+    padding: var(--s-3);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-left: 2px solid var(--rule);
+    border-radius: var(--r-sm);
+    flex-wrap: wrap;
+  }
+  .mt__item.is-right { border-left-color: var(--c-reward-ink); }
+  .mt__item.is-wrong { border-left-color: var(--c-conflict-ink); }
+
+  .mt__text {
+    flex: 1 1 16rem;
+    margin: 0;
+    font-size: var(--t-small);
+    line-height: 1.5;
+    color: var(--ink);
+  }
+
+  .mt__drop {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+  }
+
+  .mt__slot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 8.5rem;
+    min-height: 2.4rem;
+    padding: 3px;
+    font: inherit;
+    background: var(--surface-sunken);
+    border: var(--hairline) dashed var(--rule-strong, var(--rule));
+    border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+  .mt__slot.is-over { border-color: var(--ui); background: var(--c-observe-tint); }
+  .mt__slot.is-filled {
+    border-style: solid;
+    background: transparent;
+  }
+  .mt__slot:focus-visible { outline: 2px solid var(--ui); outline-offset: 2px; }
+
+  .mt__slotHint {
+    font-size: var(--t-micro);
+    color: var(--ink-faint);
+  }
+  .mt__slotHint[hidden] { display: none; }
+
+  .mt__mark {
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    min-width: 4.5rem;
+  }
+  .is-right .mt__mark { color: var(--c-reward-ink); }
+  .is-wrong .mt__mark { color: var(--c-conflict-ink); }
+
+  /* ---- footer ---- */
+  .mt__foot {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    margin-top: var(--s-4);
+    flex-wrap: wrap;
+  }
+  .mt__btn {
+    padding: 6px 14px;
+    font: inherit;
+    font-size: var(--t-small);
+    color: var(--surface);
+    background: var(--ink);
+    border: var(--hairline) solid var(--ink);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+  .mt__btn:hover { opacity: 0.88; }
+  .mt__btn--quiet {
+    color: var(--ink-muted);
+    background: transparent;
+    border-color: var(--rule);
+  }
+  .mt__btn--quiet:hover { opacity: 1; border-color: var(--ui); }
+  .mt__state {
+    margin: 0 0 0 var(--s-2);
+    font-size: var(--t-meta);
+    color: var(--ink-muted);
+  }
+</style>

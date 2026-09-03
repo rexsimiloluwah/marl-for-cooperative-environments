@@ -1,0 +1,209 @@
+---
+/**
+ * PROGRESSIVE FORMALIZATION
+ *
+ * A hard equation is introduced in stages, so the formal version arrives as a
+ * compact restatement of something the learner already understands rather
+ * than as a new object to decode:
+ *
+ *   1.  Action  <-  Policy(Observation)
+ *   2.  a_t^i   <-  pi_i(o_t^i)
+ *   3.  a_t^i   ~   pi_i(a_t^i | o_t^i)
+ *
+ * Rendered as a stacked sequence rather than a click-through stepper, on
+ * purpose: all three stages stay visible so a learner can look back at stage
+ * one while reading stage three, and the figure prints intact for handouts.
+ *
+ * ```mdx
+ * <EquationSequence
+ *   label="Figure 1.3"
+ *   steps={[
+ *     { tex: String.raw`\text{Action} \leftarrow \text{Policy}(\text{Observation})`,
+ *       note: 'In words: what the agent does follows from what it sees.' },
+ *     { tex: String.raw`\act{i} \leftarrow \pol{i}(\obs{i})`,
+ *       note: 'The same sentence, in symbols. Agent i, at time t.' },
+ *     { tex: String.raw`\act{i} \sim \pol{i}(\act{i} \given \obs{i})`,
+ *       note: 'The policy gives a distribution, and the action is sampled from it.' },
+ *   ]}
+ *   caption="Each line says the same thing with less English and more notation."
+ * />
+ * ```
+ */
+import katex from 'katex';
+import { ANNOTATED_MACROS } from '../../lib/equations/notation.mjs';
+
+interface Step {
+  /** LaTeX for this stage. */
+  tex: string;
+  /** One sentence on what changed from the previous stage. */
+  note?: string;
+}
+
+interface Props {
+  steps: Step[];
+  label?: string;
+  caption?: string;
+  wide?: boolean;
+}
+
+const { steps, label, caption, wide = false } = Astro.props;
+
+const rendered = steps.map((step, i) => {
+  try {
+    return {
+      ...step,
+      html: katex.renderToString(step.tex, {
+        displayMode: true,
+        trust: true,
+        strict: false,
+        throwOnError: true,
+        macros: ANNOTATED_MACROS,
+      }),
+    };
+  } catch (error) {
+    throw new Error(
+      `EquationSequence step ${i + 1} failed to render.\n` +
+        `  LaTeX: ${step.tex}\n` +
+        `  KaTeX: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+});
+---
+
+<figure class:list={['seq', wide && 'breakout']}>
+  {label && <span class="label seq__label">{label}</span>}
+
+  <ol class="seq__list">
+    {
+      rendered.map((step, i) => (
+        <li class="seq__step">
+          <div class="seq__rail" aria-hidden="true">
+            <span class="seq__num">{i + 1}</span>
+            {i < rendered.length - 1 && <span class="seq__line" />}
+          </div>
+          <div class="seq__content">
+            <div class="seq__math" set:html={step.html} />
+            {step.note && <p class="seq__note">{step.note}</p>}
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+
+  {caption && <figcaption class="seq__caption">{caption}</figcaption>}
+</figure>
+
+<style>
+  .seq {
+    margin-block: var(--s-6);
+  }
+
+  .seq__label {
+    display: block;
+    margin-bottom: var(--s-2);
+  }
+
+  .seq__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+
+  .seq__step {
+    display: grid;
+    grid-template-columns: 2.5rem 1fr;
+    gap: var(--s-3);
+    padding: var(--s-4);
+    margin: 0;
+  }
+
+  .seq__step + .seq__step {
+    border-top: var(--hairline) solid var(--rule);
+  }
+
+  /* ---- rail ----
+     The numbered rail carries the eye down the sequence, which is the whole
+     point of the figure: these are the same statement, not three statements. */
+  .seq__rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--s-2);
+  }
+
+  .seq__num {
+    display: grid;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    flex: none;
+    border-radius: 50%;
+    background: var(--c-policy-tint);
+    border: var(--hairline) solid var(--c-policy-edge);
+    color: var(--c-policy-ink);
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .seq__line {
+    flex: 1;
+    width: var(--hairline);
+    min-height: var(--s-4);
+    background: var(--rule);
+  }
+
+  .seq__content {
+    min-width: 0;
+  }
+
+  .seq__math {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .seq__math :global(.katex-display) {
+    margin: 0;
+    /* Each stage is set at the same size, so the growth in formality reads as
+       a change in notation rather than a change in emphasis. */
+    font-size: 1.2em;
+    text-align: left;
+  }
+
+  .seq__math :global(.katex-display > .katex) {
+    text-align: left;
+  }
+
+  /* Two classes, for the same reason as Callout: `.sl-markdown-content p`
+     would otherwise win and add paragraph margins to the step note. */
+  .seq .seq__note {
+    margin: var(--s-3) 0 0;
+    font-size: var(--t-small);
+    line-height: 1.55;
+    color: var(--ink-muted);
+  }
+
+  .seq__caption {
+    display: block;
+    margin-top: var(--s-3);
+    font-size: var(--t-small);
+    line-height: 1.55;
+    color: var(--ink-muted);
+    max-width: var(--measure);
+  }
+
+  @media (max-width: 50rem) {
+    .seq__step {
+      grid-template-columns: 1.75rem 1fr;
+      gap: var(--s-2);
+      padding: var(--s-3);
+    }
+    .seq__math :global(.katex-display) {
+      font-size: 1.05em;
+    }
+  }
+</style>

@@ -1,0 +1,134 @@
+---
+title: "Challenge Lab Overview"
+description: "A cooperative wireless allocation challenge integrating coordination, communication, and adaptation."
+related:
+  - slug: lab/environment
+    icon: box
+  - slug: lab/challenge
+    icon: beaker
+  - slug: adapt/worksheet
+    icon: cycle
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Figure from '../../../components/ui/Figure.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+The Challenge Lab asks four wireless access points to share three channels
+using local observations, optional communication, and one network-wide reward.
+You will formulate the allocation as a cooperative MARL problem, compare
+independent and coordinated policies, measure whether messages justify their
+cost, and test behaviour under changed traffic and an unfamiliar access point.
+By the end, you should be able to transfer coordination, communication, and
+adaptation concepts from the kitchen to a new domain without relying on a
+provided concept-to-mechanism mapping.
+
+## Wireless Allocation Scenario
+
+Four wireless access points share three channels.
+
+<Figure
+  src="images/wireless_network_resource_allocation_illustration.png"
+  alt="Four access points share three channels. Access points 1 and 2 have both selected channel 1 and interfere with each other; access points 3 and 4 hold channels 2 and 3 alone. Each access point serves its own laptops and phones, and a legend gives the goal as allocating channels to minimize interference while serving users well."
+  width={1672}
+  height={941}
+  eager
+>
+The problem before any learning. Two of the four access points have made the
+same choice, and neither of them chose the combination.
+</Figure>
+
+Each access point:
+
+- observes its **local** network conditions,
+- selects one channel each step,
+- receives a **common** network reward.
+
+Your task is to work out a system that can
+
+1. **coordinate** channel selection,
+2. use **communication** effectively,
+3. remain useful when the network **changes**.
+
+<Callout variant="takeaway">
+There is no kitchen from here on.
+
+Everything you need you already have. The work is recognising which idea
+applies where, which is a different skill from following an explanation.
+</Callout>
+
+## Coordination Requirements
+
+All three chapters appear in it without being invited.
+
+**Coordinate.** Access points that choose the same channel interfere with one
+another. A channel that is excellent when you are alone on it is poor when a
+neighbour joins you, and neither of you chose the combination.
+
+**Communicate.** Each access point knows its own traffic demand and nobody
+else's. Sharing that may improve the allocation, and a real channel has
+limited capacity and a real cost.
+
+**Adapt.** Traffic patterns change, and so do the access points: equipment
+from another operator may join the network, trained by someone else, with
+policies you cannot inspect.
+
+## Experimental Questions
+
+- How much does coordination improve network performance?
+- Does communication **pay for itself**?
+- Where is the break-even price for a message?
+- What happens when the traffic changes, or an unfamiliar access point joins?
+
+The second one is the interesting question, and the lab's answer is no. The
+messages improve throughput every time and still lower the team reward,
+because the reward is what charges for the bandwidth.
+
+## Shared Network Reward
+
+Kept deliberately small. Three terms, not six.
+
+<Equation
+  label="Figure 1"
+  wide
+  tex={String.raw`\tone{reward}{r_t} = \ubrace{reward}{\text{network throughput}}{what the network delivers} - \ubrace{conflict}{\lambda_{\text{int}} \cdot \text{interference}}{what agents do to each other} - \ubrace{comm}{\lambda_{\text{comm}} \cdot \text{communication}}{what talking costs}`}
+  terms={[
+    { tex: String.raw`r_t`, is: 'the shared network reward at step t', tone: 'reward' },
+    { tex: String.raw`\lambda_{\mathrm{int}}`, is: 'the weight on interference cost', tone: 'conflict' },
+    { tex: String.raw`\lambda_{\mathrm{comm}}`, is: 'the weight on communication cost', tone: 'comm' },
+  ]}
+  caption="The reward balances delivered throughput against interference and communication cost."
+/>
+
+Every agent receives this same number. It is a common-reward game, exactly as
+defined in the Background.
+
+## Completion Criteria
+
+There is no report to write. Completion means a **saved notebook** containing
+
+- the executed experiments,
+- the generated plots,
+- the comparison table you assembled,
+- and your final design choice, in three or four sentences.
+
+The single substantial piece of writing is that last one:
+
+> **Which system would you deploy if communication bandwidth is limited and
+> neighbouring access points may change?**
+
+## Required Preparation
+
+Three habits from earlier chapters that this lab will reward:
+
+**Check what each agent can see.** Every claim you make about an access
+point's behaviour has to rely on information in its own observation.
+
+**Ask what a message changes.** A protocol that transmits a great deal and
+changes no decision has cost bandwidth and bought nothing.
+
+**Distrust a single number.** Ask which partner, which traffic regime, and
+what an agent that ignored its observations would have scored.

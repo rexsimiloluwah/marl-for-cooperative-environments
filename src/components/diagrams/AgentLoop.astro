@@ -1,0 +1,215 @@
+---
+/**
+ * THE INTERACTION LOOP
+ *
+ * One agent, or two. Drawn from the same primitives so that switching
+ * between them is visibly the SAME picture with one thing added, which is
+ * the entire argument of the opening section: multi-agent RL is not a new
+ * diagram, it is this diagram with a second learner in it.
+ *
+ * In the two-agent version the environment sits between the agents on
+ * purpose. Neither agent has an arrow pointing at the other, because they
+ * never touch each other directly: everything one agent does reaches the
+ * other only by changing the environment they share. The highlighted route
+ * traces exactly that path.
+ */
+
+interface Props {
+  /** One agent, or two. */
+  agents?: 1 | 2;
+  /** Highlight the route by which one agent's action reaches the other. */
+  showInfluence?: boolean;
+}
+
+const { agents = 1, showInfluence = false } = Astro.props;
+
+const W = 640;
+const H = agents === 1 ? 240 : 340;
+
+/* Box geometry, shared by both layouts. */
+const BW = 150;
+const BH = 66;
+
+const single = {
+  agent: { x: 90, y: 60 },
+  env: { x: W - 90 - BW, y: 60 },
+};
+
+const dual = {
+  a: { x: 40, y: 44 },
+  b: { x: W - 40 - BW, y: 44 },
+  env: { x: (W - BW) / 2, y: 208 },
+};
+
+const describe =
+  agents === 1
+    ? 'A single agent acts on the environment, and the environment returns an observation and a reward. The two form a closed loop.'
+    : 'Two agents each act on the same environment, and each receives its own observation and reward from it. Neither agent is connected directly to the other: one agent influences the other only by changing the environment they share.';
+---
+
+<figure class="lp not-content">
+  <div class="lp__frame">
+    <svg viewBox={`0 0 ${W} ${H}`} class="lp__svg" role="img" aria-labelledby="lp-t">
+      <title id="lp-t">{describe}</title>
+
+      <defs>
+        <marker id="lp-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+          markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+        </marker>
+      </defs>
+
+      {
+        agents === 1 ? (
+          <>
+            {/* action, left to right along the top */}
+            <path class="lp__wire lp__wire--action"
+              d={`M ${single.agent.x + BW} ${single.agent.y + 22} H ${single.env.x}`}
+              marker-end="url(#lp-arrow)" />
+            <text class="lp__wireLabel lp__wireLabel--action"
+              x={(single.agent.x + BW + single.env.x) / 2} y={single.agent.y + 12}
+              text-anchor="middle">action</text>
+
+            {/* observation and reward, right to left underneath */}
+            <path class="lp__wire lp__wire--back"
+              d={`M ${single.env.x} ${single.env.y + 46} H ${single.agent.x + BW}`}
+              marker-end="url(#lp-arrow)" />
+            <text class="lp__wireLabel lp__wireLabel--back"
+              x={(single.agent.x + BW + single.env.x) / 2} y={single.agent.y + 80}
+              text-anchor="middle">observation, reward</text>
+
+            <g class="lp__box lp__box--agent">
+              <rect x={single.agent.x} y={single.agent.y} width={BW} height={BH} rx="10" />
+              <text x={single.agent.x + BW / 2} y={single.agent.y + BH / 2 + 5}
+                text-anchor="middle">Agent</text>
+            </g>
+            <g class="lp__box lp__box--env">
+              <rect x={single.env.x} y={single.env.y} width={BW} height={BH} rx="10" />
+              <text x={single.env.x + BW / 2} y={single.env.y + BH / 2 + 5}
+                text-anchor="middle">Environment</text>
+            </g>
+          </>
+        ) : (
+          <>
+            {/* agent A down to the environment, and back up */}
+            <path class:list={['lp__wire', showInfluence ? 'lp__wire--hot' : 'lp__wire--action']}
+              d={`M ${dual.a.x + 46} ${dual.a.y + BH} V ${dual.env.y - 6}`}
+              marker-end="url(#lp-arrow)" />
+            <path class="lp__wire lp__wire--back"
+              d={`M ${dual.env.x} ${dual.env.y + 20} H ${dual.a.x + 108} V ${dual.a.y + BH + 6}`}
+              marker-end="url(#lp-arrow)" />
+
+            {/* agent B down to the environment, and back up */}
+            <path class="lp__wire lp__wire--action"
+              d={`M ${dual.b.x + BW - 46} ${dual.b.y + BH} V ${dual.env.y - 6}`}
+              marker-end="url(#lp-arrow)" />
+            <path class:list={['lp__wire', showInfluence ? 'lp__wire--hot' : 'lp__wire--back']}
+              d={`M ${dual.env.x + BW} ${dual.env.y + 20} H ${dual.b.x + BW - 108} V ${dual.b.y + BH + 6}`}
+              marker-end="url(#lp-arrow)" />
+
+            <text class="lp__wireLabel lp__wireLabel--action" x={dual.a.x + 40}
+              y={dual.a.y + BH + 34} text-anchor="end">action</text>
+            <text class="lp__wireLabel lp__wireLabel--back" x={dual.a.x + 116}
+              y={dual.a.y + BH + 34} text-anchor="start">observation, reward</text>
+            <text class="lp__wireLabel lp__wireLabel--action" x={dual.b.x + BW - 40}
+              y={dual.b.y + BH + 34} text-anchor="start">action</text>
+            <text class="lp__wireLabel lp__wireLabel--back" x={dual.b.x + BW - 116}
+              y={dual.b.y + BH + 34} text-anchor="end">observation, reward</text>
+
+            <g class="lp__box lp__box--agent">
+              <rect x={dual.a.x} y={dual.a.y} width={BW} height={BH} rx="10" />
+              <text x={dual.a.x + BW / 2} y={dual.a.y + BH / 2 + 5} text-anchor="middle">Agent 1</text>
+            </g>
+            <g class="lp__box lp__box--agent">
+              <rect x={dual.b.x} y={dual.b.y} width={BW} height={BH} rx="10" />
+              <text x={dual.b.x + BW / 2} y={dual.b.y + BH / 2 + 5} text-anchor="middle">Agent 2</text>
+            </g>
+            <g class="lp__box lp__box--env">
+              <rect x={dual.env.x} y={dual.env.y} width={BW} height={BH} rx="10" />
+              <text x={dual.env.x + BW / 2} y={dual.env.y + BH / 2 + 5} text-anchor="middle">Environment</text>
+            </g>
+
+            {showInfluence && (
+              <text class="lp__note" x={W / 2} y={H - 10} text-anchor="middle">
+                agent 1 reaches agent 2 only through the environment
+              </text>
+            )}
+          </>
+        )
+      }
+    </svg>
+  </div>
+  <figcaption class="lp__caption"><slot /></figcaption>
+</figure>
+
+<style>
+  .lp { margin-block: var(--s-5); }
+
+  .lp__frame {
+    padding: var(--s-4);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+
+  .lp__svg {
+    display: block;
+    width: 100%;
+    max-width: 34rem;
+    margin-inline: auto;
+    height: auto;
+  }
+
+  /* ---- boxes ---- */
+  .lp__box rect {
+    fill: var(--surface);
+    stroke-width: 1.8;
+  }
+  .lp__box text {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    fill: var(--ink);
+  }
+
+  /* Violet marks a learned component, matching its meaning everywhere else.
+     The environment is not learned, so it stays neutral. */
+  .lp__box--agent rect { stroke: var(--c-policy); }
+  .lp__box--agent text { fill: var(--c-policy-ink); }
+  .lp__box--env rect { stroke: var(--rule-strong); fill: var(--surface-sunken); }
+
+  /* ---- wires ---- */
+  .lp__wire {
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .lp__wire--action { stroke: var(--c-action); }
+  .lp__wire--back { stroke: var(--c-observe); }
+  /* The traced route: one agent's action arriving as the other's observation. */
+  .lp__wire--hot { stroke: var(--c-conflict); stroke-width: 2.6; }
+
+  .lp__wireLabel {
+    font-family: var(--font-sans);
+    font-size: 12px;
+  }
+  .lp__wireLabel--action { fill: var(--c-action-ink); }
+  .lp__wireLabel--back { fill: var(--c-observe-ink); }
+
+  .lp__note {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    fill: var(--c-conflict-ink);
+  }
+
+  .lp__caption {
+    display: block;
+    margin-top: var(--s-3);
+    font-size: var(--t-small);
+    line-height: 1.55;
+    color: var(--ink-muted);
+  }
+  .lp__caption:empty { display: none; }
+</style>

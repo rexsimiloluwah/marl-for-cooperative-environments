@@ -1,0 +1,192 @@
+---
+title: "Research Connection: ZSC-Eval"
+description: "How ZSC-Eval generates, selects, and measures partners for rigorous zero-shot coordination evaluation."
+related:
+  - slug: adapt/evaluating-generalization
+    icon: chart
+  - slug: adapt/zero-shot-coordination
+    icon: users-round
+  - slug: resources/references
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+Who chooses the partners an agent is evaluated against?
+</Callout>
+
+ZSC-Eval treats the selection of unseen partners as part of the evaluation method rather than an incidental benchmark choice.
+
+<Objectives>
+
+- Distinguish training, evaluation and deployment partner distributions
+- Describe how candidate partners are generated and selected
+- Read the benchmark results and the human study alongside each other
+- State when a held-out partner result supports a generalization claim
+
+</Objectives>
+
+## Training, Evaluation, and Deployment Distributions
+
+*Training Partner Diversity* framed partner generalization as distribution shift between
+training and deployment. **ZSC-Eval** sharpens it, and the sharpening is the
+part worth learning.
+
+The authors note that the significant difference between the
+**deployment-time** partners' distribution and the **training** partners'
+distribution, which is determined by the training algorithm, makes zero-shot
+coordination a distinctive out-of-distribution generalization challenge. Then
+they add the observation that does the real work: the potential distribution
+gap between **evaluation** partners and **deployment-time** partners leads to
+inadequate evaluation, made worse by a lack of appropriate metrics.
+
+<Equation
+  label="Figure 1"
+  wide
+  tex={String.raw`\tone{policy}{p_{\text{train}}} \qquad \tone{observe}{p_{\text{eval}}} \qquad \tone{conflict}{p_{\text{deploy}}}`}
+  terms={[
+    { tex: String.raw`p_{\text{train}}`, is: 'partners the agent trained with', tone: 'policy' },
+    { tex: String.raw`p_{\text{eval}}`, is: 'partners you happened to test with', tone: 'observe' },
+    { tex: String.raw`p_{\text{deploy}}`, is: 'partners it will actually meet', tone: 'conflict' },
+  ]}
+  caption="Three distributions. Held-out evaluation partners close the first gap and say nothing about the second."
+/>
+
+<Callout variant="takeaway">
+This is the point to take from the paper even if you read nothing else.
+
+Making $p_{\text{eval}}$ disjoint from $p_{\text{train}}$ is necessary and
+does **not** make $p_{\text{eval}}$ resemble $p_{\text{deploy}}$.
+
+Your held-out partners were still produced by you, usually by the same
+algorithms you had to hand. Deployment partners were produced by somebody
+else.
+</Callout>
+
+*Evaluating Partner Generalization* put this as a question about behavioural diversity. ZSC-Eval puts
+it as a question about *approximating the deployment distribution*, which is
+stronger and harder.
+
+## Partner Generation, Selection, and Measurement
+
+Three components, and the ordering is the argument.
+
+**Generate candidate partners** using behaviour-preferring rewards, in order
+to approximate the distribution of deployment-time partners. Note the
+mechanism: rather than training more partners the ordinary way and hoping they
+differ, partners are produced deliberately with rewards that prefer particular
+behaviours.
+
+**Select the evaluation partners** by <Term tone="observe">Best-Response
+Diversity</Term> (BR-Div). Generating candidates is not enough, because a
+large set can still be behaviourally narrow. Selection is where diversity is
+enforced rather than assumed.
+
+**Measure generalization** with the <Term tone="reward">Best-Response
+Proximity</Term> (BR-Prox) metric, across the selected partners.
+
+<Callout tone="observe" title="Named, not derived" icon="compass">
+BR-Div and BR-Prox are named here so you recognise them in a paper and know
+what job each does. This resource does not derive either, and the
+$\Delta_{\text{gen}}$ from *Partner Generalization* remains a teaching diagnostic rather
+than a substitute for them.
+
+The transferable lesson is structural: a defensible evaluation needs a
+principled way to **generate** partners, a principled way to **select** among
+them, and a metric suited to what is being claimed. Most evaluations supply
+none of the three.
+</Callout>
+
+## Benchmarks and Human Validation
+
+The authors benchmark ZSC algorithms in **Overcooked** and **Google Research
+Football**, and report novel empirical findings. They also conduct a human
+experiment with current ZSC algorithms to verify that ZSC-Eval's judgements
+are consistent with human evaluation.
+
+That last step is worth noticing as methodology. A new evaluation instrument
+needs validating against something outside itself, and pairing agents with
+people is about the strongest available check that the instrument measures
+cooperation rather than an artefact of the partner set.
+
+<Callout tone="observe" title="Where the kitchen has been going" icon="compass">
+Overcooked is a cooperative cooking game, and the running example of this
+resource has used the kitchen since *Reinforcement Learning*.
+
+That is not a coincidence, and it is also not a claim that our kitchen is
+Overcooked. The intuition transfers because the structure is the same: two
+agents, partial views, one shared reward, and a task that requires a division
+of labour nobody assigned.
+</Callout>
+
+## Implications for Zero-Shot Evaluation
+
+> **How do you choose evaluation partners that resemble the ones your system
+> will actually meet?**
+
+This is a harder question than it sounds, because the honest answer for most
+projects is that you do not know what $p_{\text{deploy}}$ looks like. What you
+can do is stop pretending that partners you generated are a sample from it.
+
+<KnowledgeCheck
+  id="ad-3-10-three"
+  type="choice"
+  question="A team holds out five partners from training, evaluates on them, and reports strong zero-shot coordination. According to this paper's framing, what has still not been established?"
+  options={[
+    {
+      text: 'That the five held-out partners resemble the partners the system will meet at deployment.',
+      correct: true,
+      feedback: 'Exactly the paper’s point. Holding out closes the training-to-evaluation gap. It says nothing about the evaluation-to-deployment gap, because the held-out partners were still produced by the same team with the same tools.',
+    },
+    {
+      text: 'That the agent was trained for long enough.',
+      correct: false,
+      feedback: 'Training length is not the issue. The result may be perfectly real about the partners tested; the question is whether those partners are the right ones.',
+    },
+    {
+      text: 'That the five partners were never seen during training.',
+      correct: false,
+      feedback: 'That is exactly what holding them out establishes. The paper’s contribution is noticing that this necessary step is not sufficient.',
+    },
+    {
+      text: 'That the environment was held fixed.',
+      correct: false,
+      feedback: 'Good practice from *Evaluating Partner Generalization*, and a different axis. Here the concern is which partners, not which environment.',
+    },
+  ]}
+>
+Three distributions rather than two is the upgrade this paper makes to how you
+should read any ZSC result, including your own.
+</KnowledgeCheck>
+
+## ZSC-Eval Lessons
+
+- Zero-shot coordination is an **out-of-distribution** problem: the deployment
+  partner distribution differs from the training one, which the training
+  algorithm determines.
+- There are **three** distributions, not two. Held-out evaluation partners
+  close the train-to-eval gap and leave the **eval-to-deploy** gap open.
+- **ZSC-Eval** generates candidate partners with behaviour-preferring rewards,
+  selects them by **BR-Div**, and measures generalization with **BR-Prox**.
+- Generation, selection and metric are three separate requirements. Most
+  evaluations supply none.
+- Benchmarked in **Overcooked** and **Google Research Football**, with a
+  **human experiment** to check the instrument against human judgement.
+
+## Further reading
+
+**ZSC-Eval: An Evaluation Toolkit and Benchmark for Multi-agent Zero-shot
+Coordination**, Xihuai Wang, Shao Zhang, Wenhao Zhang, Wentao Dong, Jingxiao
+Chen, Ying Wen and Weinan Zhang. *Advances in Neural Information Processing
+Systems 37* (NeurIPS 2024), Datasets and Benchmarks Track.
+[Proceedings page](https://proceedings.neurips.cc/paper_files/paper/2024/hash/54a7139c548c88e288aa0fcd2bcbeceb-Abstract-Datasets_and_Benchmarks_Track.html).
+The toolkit is released at
+[github.com/sjtu-marl/ZSC-Eval](https://github.com/sjtu-marl/ZSC-Eval).

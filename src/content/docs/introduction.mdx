@@ -1,0 +1,110 @@
+---
+title: "Introduction"
+description: "Why cooperative multi-agent reinforcement learning matters and how this tutorial develops coordination, communication, and adaptation."
+---
+
+import CooperativeOverview from '../../components/diagrams/CooperativeOverview.astro';
+
+Many real-world problems involve **more than one decision-maker**.
+
+- robots may need to work together;
+- autonomous vehicles share roads with other vehicles;
+- wireless access points share limited communication channels;
+- disaster-response agents may need to divide tasks and exchange information;
+- AI agents may need to cooperate with systems they have never encountered
+  before.
+
+In these settings, being individually intelligent is not enough.
+
+An agent's success can depend on:
+
+- what the other agents do;
+- what information they know;
+- how their actions interact;
+- whether the agents around them behave as expected.
+
+This is the focus of **Multi-Agent Reinforcement Learning (MARL)**.
+
+<CooperativeOverview>
+The three capabilities this tutorial develops: agents coordinating actions,
+communicating information, and adapting to a partner they did not train with.
+</CooperativeOverview>
+
+## Why This Matters
+
+Two individually capable agents can still fail when working together.
+
+For example:
+
+- both agents may choose the same task when different tasks are needed;
+- one agent may know something the other needs;
+- a strategy that works with one partner may fail with another;
+- individually reasonable actions may combine into a poor team outcome.
+
+Cooperative MARL therefore asks a broader question than single-agent
+reinforcement learning:
+
+> **How can multiple agents learn to work together toward a shared goal?**
+
+We will approach this through three connected chapters.
+
+## Chapter 1: Coordinate
+
+**How can agents learn actions that work well together?**
+
+You will explore:
+
+- joint decisions;
+- independent learning;
+- centralized training;
+- credit assignment;
+- value decomposition.
+
+## Chapter 2: Communicate
+
+**What information should agents share when they know different things?**
+
+You will explore:
+
+- messages;
+- communication constraints;
+- communication policies;
+- learned protocols;
+- interpretable communication.
+
+## Chapter 3: Adapt
+
+**Can agents still cooperate when the other agents change?**
+
+You will explore:
+
+- partner dependence;
+- partner diversity;
+- agent modelling;
+- ad hoc teamwork;
+- zero-shot coordination.
+
+## The Learning Journey
+
+**Coordinate → Communicate → Adapt**
+
+The chapters build toward increasingly difficult forms of cooperation:
+
+1. **Coordinate** actions with other agents.
+2. **Communicate** when useful information is distributed.
+3. **Adapt** when the agents around you are unfamiliar or changing.
+
+You will then apply these ideas in:
+
+- [**Challenge Lab: Wireless Network Resource Allocation using MARL**](/lab/overview/)
+- [**Final Project: Design a MARL-Based Disaster-Response System**](/project/brief/)
+
+## By the End
+
+You should be able to:
+
+- formulate a cooperative multi-agent problem;
+- reason about coordination, communication, and adaptation;
+- compare different MARL approaches and their assumptions;
+- evaluate cooperation under familiar and unfamiliar conditions;
+- design and justify a cooperative MARL system.

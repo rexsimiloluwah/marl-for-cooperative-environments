@@ -1,0 +1,73 @@
+---
+/**
+ * RASTER FIGURE
+ *
+ * For the few illustrations that are not inline SVG. Everything else in this
+ * resource is drawn as a component, so this exists to make the exceptions
+ * behave: correct under a configured `base`, no layout shift, and a WebP
+ * source ahead of the PNG.
+ *
+ * WHY THE FILE LIVES IN public/
+ * The same image is also embedded in the challenge lab notebook, which Colab
+ * loads from GitHub without the repository around it. A path under `public/`
+ * is the one location that serves both: `/images/...` here, and a raw GitHub
+ * URL to `public/images/...` there. That rules out `src/assets/` and
+ * astro:assets, whose output is hashed and only addressable after a build.
+ */
+interface Props {
+  /** Repository path under public/, e.g. 'images/network.png'. */
+  src: string;
+  /** Required. Describe what the image shows, not that it is an image. */
+  alt: string;
+  /** Intrinsic pixel size, so the box is reserved before the file arrives. */
+  width: number;
+  height: number;
+  /** Set on an above-the-fold figure to skip lazy loading. */
+  eager?: boolean;
+}
+const { src, alt, width, height, eager = false } = Astro.props;
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const url = (p: string) => `${base}/${p.replace(/^\//, '')}`;
+const webp = src.replace(/\.(png|jpe?g)$/, '.webp');
+---
+
+<figure class="fig not-content">
+  <picture>
+    {webp !== src && <source srcset={url(webp)} type="image/webp" />}
+    <img
+      src={url(src)}
+      alt={alt}
+      width={width}
+      height={height}
+      loading={eager ? 'eager' : 'lazy'}
+      decoding="async"
+    />
+  </picture>
+  <figcaption class="fig__caption"><slot /></figcaption>
+</figure>
+
+<style>
+  .fig { margin-block: var(--s-6); }
+
+  .fig picture { display: block; }
+
+  .fig img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+    background: var(--surface);
+  }
+
+  .fig__caption {
+    margin-top: var(--s-3);
+    font-family: var(--font-sans);
+    font-size: var(--t-meta);
+    line-height: var(--lh-tight, 1.45);
+    color: var(--ink-muted);
+    text-align: center;
+  }
+  .fig__caption:empty { display: none; }
+</style>

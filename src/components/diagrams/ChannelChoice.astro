@@ -1,0 +1,287 @@
+---
+/**
+ * CHANNEL CHOICE DIAGRAM
+ *
+ * Two base stations, K channels, and the consequence of their joint choice.
+ * The point of the picture is that neither agent's action is wrong on its
+ * own: the outcome is a property of the pair.
+ *
+ * Composition: agents on top, channels as labelled lanes below, a connector
+ * from each agent into the lane it selected. A lane that receives both
+ * connectors is marked as a collision. Reading it requires no legend, because
+ * every lane states its own outcome in words.
+ *
+ * Driven by props, so one component renders every case in the chapter and can
+ * later be made interactive without redrawing anything.
+ *
+ * Colour follows the semantic palette (green for successful cooperation, red
+ * for interference) and is never the only signal: a contested lane is also
+ * dashed, cross-marked, and labelled. The figure carries a text equivalent.
+ */
+
+interface Props {
+  /** Channel index chosen by agent A, 0-based. */
+  a: number;
+  /** Channel index chosen by agent B, 0-based. */
+  b: number;
+  channels?: number;
+  labelA?: string;
+  labelB?: string;
+}
+
+const { a, b, channels = 2, labelA = 'Agent A', labelB = 'Agent B' } = Astro.props;
+
+if (!Number.isInteger(a) || !Number.isInteger(b)) {
+  throw new Error(`<ChannelChoice> a and b must be integers, got a=${a}, b=${b}`);
+}
+if (a < 0 || a >= channels || b < 0 || b >= channels) {
+  throw new Error(
+    `<ChannelChoice> channel out of range: a=${a}, b=${b}, channels=${channels}`
+  );
+}
+
+const collision = a === b;
+
+/* --- geometry ---------------------------------------------------------- */
+const W = 600;
+const TOWER_Y = 46;
+const LANE_TOP = 104;
+const LANE_H = 42;
+const LANE_GAP = 12;
+const LANE_X1 = 54;
+const LANE_X2 = W - 54;
+const H = LANE_TOP + channels * (LANE_H + LANE_GAP) + 4;
+
+const TOWER_A_X = 150;
+const TOWER_B_X = W - 150;
+
+const lanes = Array.from({ length: channels }, (_, i) => {
+  const y = LANE_TOP + i * (LANE_H + LANE_GAP);
+  const byA = a === i;
+  const byB = b === i;
+  const clash = byA && byB;
+  return {
+    i,
+    y,
+    mid: y + LANE_H / 2,
+    byA,
+    byB,
+    clash,
+    used: byA || byB,
+    state: clash ? 'clash' : byA || byB ? 'ok' : 'idle',
+    note: clash ? 'collision' : byA || byB ? 'clear' : 'unused',
+  };
+});
+
+/** Connector from a tower down into the lane it chose. */
+function connector(fromX: number, toX: number, toY: number) {
+  const y0 = TOWER_Y + 26;
+  const midY = (y0 + toY) / 2;
+  return `M ${fromX} ${y0} C ${fromX} ${midY}, ${toX} ${midY}, ${toX} ${toY}`;
+}
+
+const description = collision
+  ? `${labelA} and ${labelB} both selected channel ${a + 1} of ${channels}. ` +
+    `Because they transmit on the same channel they interfere, and both are served badly. ` +
+    `The remaining channels are unused.`
+  : `${labelA} selected channel ${a + 1} and ${labelB} selected channel ${b + 1}, ` +
+    `of ${channels}. Because the channels differ there is no interference and both succeed.`;
+---
+
+<figure class="cc">
+  <div class="cc__frame">
+    <svg viewBox={`0 0 ${W} ${H}`} class="cc__svg" role="img" aria-labelledby="cc-t">
+      <title id="cc-t">{description}</title>
+
+      {/* ---- connectors, drawn first so lanes and towers sit above ---- */}
+      {
+        lanes.map((lane) => (
+          <>
+            {lane.byA && (
+              <path
+                class:list={['cc__wire', `cc__wire--${lane.state}`]}
+                d={connector(TOWER_A_X, LANE_X1 + 96, lane.mid)}
+              />
+            )}
+            {lane.byB && (
+              <path
+                class:list={['cc__wire', `cc__wire--${lane.state}`]}
+                d={connector(TOWER_B_X, LANE_X2 - 96, lane.mid)}
+              />
+            )}
+          </>
+        ))
+      }
+
+      {/* ---- channel lanes ---- */}
+      {
+        lanes.map((lane) => (
+          <>
+            <rect
+              class:list={['cc__lane', `cc__lane--${lane.state}`]}
+              x={LANE_X1}
+              y={lane.y}
+              width={LANE_X2 - LANE_X1}
+              height={LANE_H}
+              rx="6"
+            />
+            <text class="cc__lane-name" x={LANE_X1 + 14} y={lane.mid + 4}>
+              Channel {lane.i + 1}
+            </text>
+            <text
+              class:list={['cc__lane-note', `cc__lane-note--${lane.state}`]}
+              x={LANE_X2 - 14}
+              y={lane.mid + 4}
+              text-anchor="end"
+            >
+              {lane.note}
+            </text>
+            {lane.clash && (
+              <g class="cc__x">
+                <line x1={W / 2 - 7} y1={lane.mid - 7} x2={W / 2 + 7} y2={lane.mid + 7} />
+                <line x1={W / 2 + 7} y1={lane.mid - 7} x2={W / 2 - 7} y2={lane.mid + 7} />
+              </g>
+            )}
+          </>
+        ))
+      }
+
+      {/* ---- base stations ---- */}
+      {
+        [
+          { x: TOWER_A_X, label: labelA },
+          { x: TOWER_B_X, label: labelB },
+        ].map((t) => (
+          <>
+            <g class="cc__tower">
+              {/* mast */}
+              <line x1={t.x - 8} y1={TOWER_Y + 22} x2={t.x} y2={TOWER_Y - 4} />
+              <line x1={t.x + 8} y1={TOWER_Y + 22} x2={t.x} y2={TOWER_Y - 4} />
+              <line x1={t.x - 4.5} y1={TOWER_Y + 10} x2={t.x + 4.5} y2={TOWER_Y + 10} />
+              {/* radiating arcs */}
+              <path d={`M ${t.x - 11} ${TOWER_Y - 16} a 8 8 0 0 1 0 -9`} />
+              <path d={`M ${t.x + 11} ${TOWER_Y - 16} a 8 8 0 0 0 0 -9`} />
+            </g>
+            <circle class="cc__hub" cx={t.x} cy={TOWER_Y - 9} r="3" />
+            <text class="cc__name" x={t.x} y={TOWER_Y + 38} text-anchor="middle">
+              {t.label}
+            </text>
+          </>
+        ))
+      }
+    </svg>
+  </div>
+
+  <figcaption class="cc__caption">
+    <slot />
+  </figcaption>
+</figure>
+
+<style>
+  .cc {
+    margin-block: var(--s-5);
+  }
+
+  .cc__frame {
+    padding: var(--s-4);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+
+  .cc__svg {
+    display: block;
+    width: 100%;
+    max-width: 34rem;
+    margin-inline: auto;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* ---- towers ---- */
+
+  .cc__tower {
+    fill: none;
+    stroke: var(--c-observe);
+    stroke-width: 1.7;
+    stroke-linecap: round;
+  }
+
+  .cc__hub {
+    fill: var(--c-observe);
+  }
+
+  .cc__name {
+    fill: var(--c-observe-ink);
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+
+  /* ---- lanes ---- */
+
+  .cc__lane {
+    fill: var(--surface-sunken);
+    stroke: var(--rule);
+    stroke-width: 1;
+  }
+
+  .cc__lane--ok {
+    fill: var(--c-reward-tint);
+    stroke: var(--c-reward-edge);
+  }
+
+  /* Dashed as well as red, so a contested lane is still marked when colour
+     is unavailable. */
+  .cc__lane--clash {
+    fill: var(--c-conflict-tint);
+    stroke: var(--c-conflict);
+    stroke-width: 1.6;
+    stroke-dasharray: 6 4;
+  }
+
+  .cc__lane-name {
+    fill: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .cc__lane-note {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    fill: var(--ink-faint);
+  }
+
+  .cc__lane-note--ok { fill: var(--c-reward-ink); }
+  .cc__lane-note--clash { fill: var(--c-conflict-ink); font-weight: 600; }
+
+  /* ---- connectors ---- */
+
+  .cc__wire {
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+  }
+
+  .cc__wire--ok { stroke: var(--c-reward); }
+  .cc__wire--clash { stroke: var(--c-conflict); }
+
+  .cc__x {
+    stroke: var(--c-conflict);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+  }
+
+  .cc__caption {
+    display: block;
+    margin-top: var(--s-3);
+    font-size: var(--t-small);
+    line-height: 1.55;
+    color: var(--ink-muted);
+  }
+
+  .cc__caption:empty {
+    display: none;
+  }
+</style>

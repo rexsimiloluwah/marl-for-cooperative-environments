@@ -1,0 +1,60 @@
+---
+/**
+ * LEARNING OBJECTIVES
+ *
+ * What a learner should be able to DO after the worksheet, stated as verbs.
+ *
+ * Deliberately concrete: "identify the agents, states and rewards in a
+ * cooperative problem" is checkable, whereas "understand MARL" is not, and a
+ * learner cannot tell whether they have achieved it.
+ */
+interface Props {
+  items: string[];
+}
+const { items } = Astro.props;
+if (!items?.length) throw new Error('<Objectives> needs at least one item.');
+---
+
+<section class="obj not-content" aria-labelledby="obj-h">
+  <h2 class="obj__h" id="obj-h">What you will be able to do</h2>
+  <ul class="obj__list">
+    {items.map((t) => <li set:html={t} />)}
+  </ul>
+</section>
+
+<style>
+  .obj {
+    margin-block: var(--s-5);
+    padding: var(--s-4) var(--s-5);
+    background: var(--ui-tint);
+    border: var(--hairline) solid var(--ui-edge);
+    border-radius: var(--r-lg);
+  }
+
+  .obj__h {
+    margin: 0 0 var(--s-3);
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    letter-spacing: var(--tr-label);
+    text-transform: uppercase;
+    color: var(--ui);
+  }
+
+  .obj__list {
+    margin: 0;
+    padding-inline-start: var(--s-5);
+    display: grid;
+    gap: var(--s-2);
+  }
+
+  .obj__list li {
+    margin: 0;
+    font-size: var(--t-meta);
+    line-height: 1.55;
+    color: var(--ink);
+  }
+
+  .obj__list :global(strong) {
+    color: var(--ink);
+  }
+</style>

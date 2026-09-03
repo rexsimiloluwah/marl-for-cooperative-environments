@@ -1,0 +1,195 @@
+---
+title: "Centralized and Decentralized Learning"
+description: "Centralized and decentralized information and control during the training and execution phases."
+related:
+  - slug: coordinate/ctde
+    icon: lightbulb
+  - slug: coordinate/independent-learning
+    icon: cycle
+  - slug: coordinate/scaling-coordination
+    icon: chart
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+Which information is available while learning, and which while acting?
+</Callout>
+
+Centralized and decentralized learning differ in where decisions are made and which information supports them.
+
+<Objectives>
+
+- Describe centralized training with centralized execution
+- Describe decentralized training with decentralized execution
+- Treat training and execution as two separate axes
+- Place a method in the resulting design space
+
+</Objectives>
+
+## Centralized Training and Execution
+
+Suppose one learner controls everything. It sees the global state, every
+agent's observation, every action taken, and the shared reward. And rather
+than each agent choosing for itself, this single controller selects the whole
+joint action.
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\tone{action}{\jointact} = \tone{policy}{\pi_c}\bigl(\tone{observe}{\st}\bigr)`}
+  terms={[
+    { tex: String.raw`\pi_c`, is: 'a single central policy, the only decision-maker in the system', tone: 'policy' },
+    { tex: String.raw`\jointact`, is: 'the entire joint action, chosen at once by that one policy', tone: 'action' },
+    { tex: String.raw`\st`, is: 'the global state, which the controller is assumed to see', tone: 'observe' },
+  ]}
+  caption="One decider, everything visible, choosing for the whole team."
+/>
+
+This dissolves the coordination problem. There is no non-stationarity, because
+nothing else is learning. There is no credit assignment problem, because
+nothing needs crediting. There is one policy and one reward. And nothing has
+to be inferred about a partner, because there are no partners.
+
+<Callout tone="observe" title="Why this is genuinely useful" icon="compass">
+Do not dismiss the centralized view. Global information is most valuable
+exactly where the problem is hardest: when coordination is difficult, or when
+the individual agents are severely partially observed. A central learner is
+also the natural reference point, if you want to know how much your
+decentralized method gave up, this is what it gave it up against.
+</Callout>
+
+So why is the rest of this chapter necessary?
+
+**The joint action space.** With $\nag$ agents and $m$ actions each, the
+controller chooses from
+
+<Equation
+  label="Figure 2"
+  tex={String.raw`\bigl|\mathcal{A}\bigr| = m^{\nag}`}
+  terms={[
+    { tex: String.raw`|\mathcal{A}|`, is: 'the number of possible joint actions', tone: 'action' },
+    { tex: String.raw`m`, is: 'the number of actions available to each agent' },
+    { tex: String.raw`\nag`, is: 'the number of agents' },
+  ]}
+  caption="A centralized controller chooses from a joint-action space that grows exponentially."
+/>
+
+Ten agents with five actions each is nearly ten million options at every
+single step. The textbook identifies this exponential growth in the joint
+action space as a central limitation of centralized learning, and it is not a
+limitation you engineer around. It is the size of the thing being learned.
+
+**Physical distribution.** Even where the space is small enough, centralized
+control may simply be unavailable. A central controller needs every
+observation, in time, every step, and it needs to broadcast every action back.
+Robots on a warehouse floor, vehicles from different manufacturers, and agents
+owned by different organizations may not support that assumption before the
+algorithm is even considered.
+
+## Decentralized Training and Execution
+
+The opposite corner. Each agent learns from its own experience and acts on its
+own observation, with no shared information at any point. This is the fully
+decentralized form of independent learning.
+
+<Equation
+  label="Figure 3"
+  tex={String.raw`\tone{action}{\act{\ag}} \sim \tone{policy}{\pol{\ag}}\bigl(\act{\ag} \given \tone{observe}{\obs{\ag}}\bigr) \quad \text{for each } \ag \in \mathcal{N}`}
+  terms={[
+    { tex: String.raw`\pol{\ag}`, is: 'one policy per agent, trained on that agent’s own experience only', tone: 'policy' },
+    { tex: String.raw`\obs{\ag}`, is: 'its own observation, the only input available', tone: 'observe' },
+  ]}
+  caption="Nothing shared, at training or at execution. Scalable, deployable, and blind to partners."
+/>
+
+The practical advantages of independent learning still apply: it scales, it deploys, it
+needs no infrastructure. So does every cost: non-stationarity, and no use of
+information about the other agents even when that information exists.
+
+## Training and Execution as Separate Axes
+
+Laying the modes out side by side makes the opening visible.
+
+<div class="table-scroll">
+
+| Mode | Information while learning | Information while acting |
+| --- | --- | --- |
+| Centralized training **and** execution | everything | everything |
+| Decentralized training **and** execution | local only | local only |
+| **Centralized training, decentralized execution** | everything | **local only** |
+</div>
+
+The third row is the one that matters, and notice that it is not a compromise
+between the first two. It takes the *advantage* of the first, full
+information where the learning happens, and the *constraint* of the second,
+where the constraint is unavoidable anyway.
+
+<Callout variant="takeaway">
+The insight is that these are different moments with different requirements.
+
+At **execution** time, local information is a hard constraint: it is set by
+physics, by network topology, by what sensors exist. You cannot negotiate with
+it.
+
+At **training** time it is not a constraint at all. Training usually happens
+in a simulator you control, on one machine, with every agent's observation and
+action sitting in memory. Refusing to look at them buys nothing.
+
+> **Can we use global information to make training easier, without requiring
+> global information when the agents actually act?**
+</Callout>
+
+That question is the next section.
+
+<KnowledgeCheck
+  id="co-1-3-modes"
+  type="choice"
+  question="A team of eight agents, five actions each, must run on physically separate robots that cannot communicate. Which approach is ruled out, and why?"
+  options={[
+    {
+      text: 'Centralized execution, twice over: the joint action space has 390,625 entries, and the robots could not reach a central controller anyway.',
+      correct: true,
+      feedback: 'Both reasons are independently fatal, and it is worth seeing that they are separate. Even with a tractable action space the communication requirement would sink it, and even with perfect communication the exponential space would.',
+    },
+    {
+      text: 'Centralized training, the agents cannot share information.',
+      correct: false,
+      feedback: 'This is the confusion the section exists to prevent. The robots cannot share information at execution time. Training almost certainly happens in a simulator beforehand, where every observation is available. The deployment constraint says nothing about the training constraint.',
+    },
+    {
+      text: 'Decentralized execution, eight agents cannot coordinate without communication.',
+      correct: false,
+      feedback: 'They can, and often must. Decentralized execution is the requirement here, not the thing ruled out. Coordinating without communication is harder, and the Communicate chapter is about what changes when a channel is available.',
+    },
+    {
+      text: 'Nothing is ruled out; all three modes remain available.',
+      correct: false,
+      feedback: 'Centralized execution needs every observation delivered to one controller each step and every action sent back. With robots that cannot communicate, that is not an option.',
+    },
+  ]}
+>
+Keeping "what is available while learning" and "what is available while
+acting" as two separate questions is the single most useful habit in this
+chapter.
+</KnowledgeCheck>
+
+## Centralized and Decentralized Learning Summary
+
+- Two independent questions: what information is available during
+  **training**, and what is available during **execution**.
+- **Centralized training and execution** removes coordination, credit
+  assignment and non-stationarity in one stroke, and is limited by an
+  exponential joint action space $m^\nag$ plus the practical impossibility of
+  central control in distributed systems.
+- **Decentralized training and execution**, independent learning, scales and
+  deploys, but gives up all information about partners.
+- Local information is a **hard constraint at execution** and usually **no
+  constraint at all during training**. That asymmetry is the opening the rest
+  of the chapter exploits.

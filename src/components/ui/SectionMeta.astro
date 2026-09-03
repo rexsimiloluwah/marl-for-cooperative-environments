@@ -1,0 +1,46 @@
+---
+/**
+ * SECTION META
+ *
+ * One line under the page title: how long the page takes to read.
+ *
+ * Reading time is computed from the page source (see lib/reading-time.ts), so
+ * it cannot drift out of date. It replaces the hand-written minute ranges and
+ * the Bloom-level chips that used to sit here: the ranges went stale, and the
+ * chips told the reader about the resource's design rather than about the page
+ * in front of them.
+ */
+import Icon from './Icon.astro';
+import { readingMinutes } from '../../lib/reading-time';
+
+const entry = Astro.locals.starlightRoute?.entry;
+const minutes = entry?.body ? readingMinutes(entry.body) : null;
+---
+
+{
+  minutes !== null && (
+    <p class="meta">
+      <Icon name="clock" size={14} />
+      <span>{minutes} min read</span>
+    </p>
+  )
+}
+
+<style>
+  /* Two classes, because `.sl-markdown-content p` in theme.css is a class plus
+     a type selector and would otherwise win over Astro's :where()-scoped rule
+     and add paragraph margins here. */
+  .meta.meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 var(--s-5);
+    font-size: var(--t-small);
+    color: var(--ink-faint);
+  }
+
+  .meta :global(.icon) {
+    flex: none;
+    opacity: 0.8;
+  }
+</style>

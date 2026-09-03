@@ -1,0 +1,41 @@
+---
+/**
+ * THEME PROVIDER
+ *
+ * Same contract as Starlight's (inline, pre-paint, `starlight-theme` in
+ * localStorage, `data-theme` on the root element) with one deliberate change:
+ * the fallback when nothing is stored.
+ *
+ * Starlight resolves an absent preference to dark unless the system asks for
+ * light. This resource inverts that, resolving to light unless the system
+ * asks for dark, because it is a textbook: the reference design, the printed
+ * output, the Manim videos and the Quarto slides are all on a light ground,
+ * and a projector in a lit lecture room wants light. A reader whose OS is set
+ * to dark still gets dark.
+ *
+ * Kept inline so there is no flash of the wrong theme.
+ */
+---
+
+<script is:inline>
+  window.StarlightThemeProvider = (() => {
+    let storedTheme = null;
+    try {
+      storedTheme = localStorage.getItem('starlight-theme');
+    } catch {
+      /* storage blocked; fall through to the system preference */
+    }
+    const theme =
+      storedTheme === 'light' || storedTheme === 'dark'
+        ? storedTheme
+        : window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light';
+    document.documentElement.dataset.theme = theme;
+    return {
+      // Retained so anything in Starlight that calls it still finds it. Our
+      // ThemeSelect override reflects its own state, so this is a no-op.
+      updatePickers() {},
+    };
+  })();
+</script>

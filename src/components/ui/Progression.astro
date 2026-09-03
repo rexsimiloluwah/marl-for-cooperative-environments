@@ -1,0 +1,126 @@
+---
+/**
+ * CONCEPTUAL PROGRESSION
+ *
+ * The shape of a chapter as a row of steps. Deliberately plain: it orients a
+ * reader before the technical material and is not a diagram of anything, so
+ * anything more elaborate would imply structure that is not there.
+ */
+interface Props {
+  steps: string[];
+  /** A second row, for a chapter with an inner loop. */
+  loop?: string[];
+  loopLabel?: string;
+}
+const { steps, loop, loopLabel } = Astro.props;
+---
+
+<div class="prog not-content">
+  <ol class="prog__row">
+    {steps.map((s) => <li class="prog__step">{s}</li>)}
+  </ol>
+  {
+    loop && (
+      <>
+        {loopLabel && <p class="prog__label">{loopLabel}</p>}
+        <ol class="prog__row prog__row--loop">
+          {loop.map((s) => <li class="prog__step">{s}</li>)}
+        </ol>
+      </>
+    )
+  }
+</div>
+
+<style>
+  .prog {
+    margin-block: var(--s-5);
+    container-type: inline-size;
+  }
+
+  .prog__row {
+    display: flex;
+    align-items: stretch;
+    /* Never wrap: a chevron pointing into a second row reads as a broken
+       diagram. The step text wraps instead. */
+    flex-wrap: nowrap;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .prog__step {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: var(--s-3) var(--s-2) var(--s-3) var(--s-4);
+    font-family: var(--font-sans);
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    line-height: 1.35;
+    color: var(--ink);
+    background: var(--surface-sunken);
+    border: var(--hairline) solid var(--rule);
+    border-left: 0;
+  }
+  .prog__step:first-child {
+    border-left: var(--hairline) solid var(--rule);
+    border-radius: var(--r-sm) 0 0 var(--r-sm);
+  }
+  .prog__step:last-child { border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+
+  /* the notch that makes the row read left to right */
+  .prog__step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -7px;
+    width: 13px;
+    height: 13px;
+    background: var(--surface-sunken);
+    border-top: var(--hairline) solid var(--rule);
+    border-right: var(--hairline) solid var(--rule);
+    transform: translateY(-50%) rotate(45deg);
+    z-index: 1;
+  }
+
+  .prog__row--loop .prog__step {
+    background: var(--c-observe-tint);
+    border-color: var(--c-observe-edge);
+    font-weight: var(--w-regular);
+  }
+  .prog__row--loop .prog__step:not(:last-child)::after {
+    background: var(--c-observe-tint);
+    border-color: var(--c-observe-edge);
+  }
+
+  .prog__label {
+    margin: var(--s-4) 0 var(--s-2);
+    font-family: var(--font-sans);
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    color: var(--ink-muted);
+  }
+
+  /* Below this the steps are too narrow to read, so the row becomes a
+     column. Container units, because the text column is much narrower than
+     the viewport. */
+  @container (max-width: 30rem) {
+    .prog__row { flex-direction: column; }
+    .prog__step,
+    .prog__step:first-child,
+    .prog__step:last-child {
+      border-left: var(--hairline) solid var(--rule);
+      border-radius: var(--r-sm);
+    }
+    .prog__row--loop .prog__step { border-color: var(--c-observe-edge); }
+    .prog__step:not(:last-child) { margin-bottom: 5px; }
+    .prog__step:not(:last-child)::after {
+      top: auto;
+      right: auto;
+      bottom: -7px;
+      left: 50%;
+      transform: translateX(-50%) rotate(135deg);
+    }
+  }
+</style>

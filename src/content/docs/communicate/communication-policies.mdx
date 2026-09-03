@@ -1,0 +1,205 @@
+---
+title: "Communication Policies"
+description: "Policies for message selection, timing, recipients, and communication cost."
+related:
+  - slug: communicate/learning-protocols
+    icon: lightbulb
+  - slug: communicate/communication-constraints
+    icon: cycle
+  - slug: lab/challenge
+    icon: antenna
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+Should the agent send anything at all right now?
+</Callout>
+
+A communication policy determines what an agent sends, whether it sends at a particular time, and which agents receive the message.
+
+<Objectives>
+
+- Select what to send from a local observation
+- Decide when a message is worth sending
+- Choose which agents should receive it
+- Price communication inside the shared reward
+
+</Objectives>
+
+## Message Selection
+
+An agent's message is produced by a policy, exactly like its environment
+action, and from the same input.
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\tone{comm}{m^\ag_t} \sim \tone{policy}{\pol{\ag}^{m}}\bigl(\cdot \given \tone{observe}{h^\ag_t}\bigr)`}
+  terms={[
+    { tex: String.raw`\pol{\ag}^{m}`, is: 'the communication policy: this agent’s rule for what to say', tone: 'policy' },
+    { tex: String.raw`h^\ag_t`, is: 'its own history, since what is worth saying often depends on what happened earlier', tone: 'observe' },
+  ]}
+  caption="Saying something is a decision, made locally, from the same information as any other."
+/>
+
+Two things follow from that shape. The communication policy is **local**: an
+agent can only report what it knows. And it is **learnable**: nothing about
+this is hand-written unless you choose to hand-write it, which is *Learning Communication Protocols*.
+
+Note the input is $h^\ag_t$ rather than $\obs{\ag}$. Some of the most useful
+messages are about change, not state. "The order just changed" needs a memory
+of the previous order to say at all.
+
+## Communication Timing
+
+Because the message space contains $\varnothing$, one available message is to
+send nothing. So the agent faces two questions, and they are genuinely
+different:
+
+> **What should I say?**
+>
+> **Do I need to say anything at all?**
+
+The second is easy to overlook and does most of the work in a constrained
+system. Most steps in most tasks are unremarkable. If the situation has not
+changed and the partner's plan is still right, a message repeating that is
+pure cost.
+
+<Callout variant="takeaway">
+A team that can stay silent is strictly more capable than one that must speak
+every step, and its protocol is much easier to read.
+
+**When** a message arrives becomes informative in its own right. Under a
+protocol that stays quiet by default, the mere fact of a message says
+"something has changed", before its content is even decoded.
+</Callout>
+
+That has a sharp edge, and *Communication Constraints* named it: a protocol
+where silence means something breaks under message loss. Making silence
+meaningful buys efficiency and pays for it in fragility.
+
+## Message Recipients
+
+Three arrangements, in increasing specificity.
+
+**Broadcast.** Everyone receives it. Simple, and it scales badly: bandwidth
+grows with the number of listeners, and a message useful to one partner is
+noise to the rest.
+
+**Range-limited.** Only nearby agents receive it, as described in
+*Communication Constraints*.
+Who hears you is determined by the state rather than chosen.
+
+**Targeted.** The sender picks a recipient. More expressive, and it enlarges
+the message space, since the agent now chooses both content and address.
+
+<Callout tone="observe" title="Where this stops" icon="compass">
+Targeting invites a whole literature on learning *who* to talk to, usually
+with attention mechanisms or graph networks over the team.
+
+This resource stops at the concept. The reason is that the interesting
+question at this level is what a message accomplishes, and that question is
+already fully present with two agents and a broadcast channel.
+</Callout>
+
+## Communication Cost
+
+The final piece, and the one that makes the design questions bite.
+
+If sending is free, the answer to "should I say anything?" is always yes:
+another message can only add information, so a team should talk constantly.
+That makes the interesting question disappear.
+
+Charging for it brings the question back.
+
+<Equation
+  label="Figure 2"
+  wide
+  tex={String.raw`\tone{reward}{r'_t} = \tone{reward}{r_t} - \ubrace{comm}{\lambda\, c_t}{what talking cost}`}
+  terms={[
+    { tex: String.raw`r'_t`, is: 'the reward the team actually receives', tone: 'reward' },
+    { tex: String.raw`r_t`, is: 'the task reward: what the team achieved', tone: 'reward' },
+    { tex: String.raw`c_t`, is: 'how much communication was used this step, in bits or messages', tone: 'comm' },
+    { tex: String.raw`\lambda`, is: 'the price. Setting it is a design decision, not a physical constant' },
+  ]}
+  caption="Talking is now something the team pays for, so a message has to earn its price."
+/>
+
+<Callout tone="observe" title="A design extension, not a textbook definition" icon="compass">
+Message capacity, range, loss and noise are all part of the standard
+formulation of communication in a partially observable game. A **cost term in
+the reward** is a modelling extension this resource adds on purpose, because
+it is what real deployments face, and because it converts a vague preference
+for efficiency into something an agent can optimise.
+
+Treat $\lambda$ as a knob you chose, and report it alongside any result.
+</Callout>
+
+What $\lambda$ does to the learning problem:
+
+- At $\lambda = 0$, a team should talk constantly. What to say becomes
+  uninteresting, since everything can be said.
+- As $\lambda$ rises, messages that change no decision get selected against
+  first. This is the mechanism that makes the three tests from *Message
+  Content* enforceable rather than merely good advice.
+- At high $\lambda$, the team goes quiet and has to coordinate on
+  observations, memory and convention, as in the Coordinate chapter.
+
+<Callout variant="example">
+Treat $\lambda$ as an experimental control. Sweeping it upward reveals when a
+kitchen policy changes from sending every observation, to communicating only
+decisive information, to remaining silent. The thresholds show how much task
+reward the learned policy attributes to its messages.
+</Callout>
+
+<KnowledgeCheck
+  id="cm-2-5-cost"
+  type="choice"
+  question="A team is trained with λ = 0 and learns to broadcast its full observation every step. What is the most likely outcome when it is deployed on a channel that charges per bit?"
+  options={[
+    {
+      text: 'Performance falls, because the protocol was never selected for efficiency and most of what it sends changes no decision.',
+      correct: true,
+      feedback: 'Right. With λ = 0 nothing pressured the team to be selective, so the protocol carries whatever was easiest to learn. Charging for that afterwards penalises every irrelevant bit, and no part of training ever identified which bits those were.',
+    },
+    {
+      text: 'Performance is unaffected, since the agents already learned to coordinate well.',
+      correct: false,
+      feedback: 'They learned to coordinate given unlimited communication. That skill does not transfer to a channel where the same behaviour now subtracts from the reward on every step.',
+    },
+    {
+      text: 'The agents will stop communicating, since messages now cost something.',
+      correct: false,
+      feedback: 'They would need to re-learn to do that. A deployed policy does not adapt its protocol because the reward function changed; it keeps executing what it learned, now at a cost.',
+    },
+    {
+      text: 'Performance improves, because the cost encourages more efficient messages.',
+      correct: false,
+      feedback: 'A cost during *training* encourages efficiency. A cost imposed only at deployment just charges for behaviour already fixed. The λ you train with is part of the problem specification.',
+    },
+  ]}
+>
+The general lesson: constraints have to be present during training, or the
+protocol will not be shaped by them.
+</KnowledgeCheck>
+
+## Communication Policies Summary
+
+- A **communication policy** $\pol{\ag}^{m}(\cdot \given h^\ag_t)$ produces
+  messages from local information, and is learnable like any other policy.
+- Because $\varnothing$ exists, an agent decides both **what** to say and
+  **whether** to say anything.
+- A team that can stay silent is more capable, and makes the arrival of a
+  message informative by itself. It also becomes fragile under loss.
+- Recipients may be reached by **broadcast**, by **range**, or by **targeting**.
+- A **cost** $r'_t = r_t - \lambda c_t$ is what makes efficiency an objective
+  rather than an aspiration. At $\lambda = 0$ a team should talk constantly.
+- Constraints must be present **during training**. A protocol learned for free
+  does not become efficient when charged later.

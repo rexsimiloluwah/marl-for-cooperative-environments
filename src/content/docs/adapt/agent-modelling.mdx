@@ -1,0 +1,215 @@
+---
+title: "Agent Modelling"
+description: "Predicting partner behaviour from interaction history and conditioning cooperative actions on the prediction."
+related:
+  - slug: adapt/partner-representations
+    icon: lightbulb
+  - slug: adapt/ad-hoc-teamwork
+    icon: users-round
+  - slug: background/partial-observability
+    icon: cycle
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+What can an agent infer about a partner it has only just met?
+</Callout>
+
+Agent modelling uses observed behaviour to predict how another agent is likely to act.
+
+<Objectives>
+
+- Predict what another agent is likely to do
+- Build an explicit model of a partner's policy
+- Condition an ego policy on that prediction
+- Reason about what happens when the model is wrong
+
+</Objectives>
+
+## Predicting Other Agents
+
+Suppose agent 1 is paired with an unfamiliar agent, and watches it for a few
+steps.
+
+<div class="table-scroll">
+
+| Step | What agent 1 observes the stranger doing |
+| --- | --- |
+| 1 | moves toward the stove |
+| 2 | prepares the cooking station |
+| 3 | stays beside the stove |
+</div>
+
+A reasonable inference:
+
+> This agent intends to cook. It probably expects me to collect the
+> ingredients.
+
+And therefore a decision:
+
+> I should collect the ingredient.
+
+Nothing exotic happened. Agent 1 used its observations of behaviour to predict
+behaviour, and acted on the prediction. That is
+<Term tone="policy">agent modelling</Term>, which the textbook defines as
+constructing models of other agents that make useful predictions about their
+behaviour.
+
+<Callout variant="takeaway">
+Diversity training and agent modelling answer the same problem differently.
+
+**Diversity** produces a policy that works acceptably against a range of
+partners, without ever identifying which one it has.
+
+**Modelling** identifies the partner and specialises to it.
+
+They compose: a diverse population gives an agent a range of partners worth
+distinguishing, and a model lets it tell them apart.
+</Callout>
+
+## Partner Policy Models
+
+Formally, agent $\ag$ maintains an estimate of another agent's policy.
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\tone{policy}{\hat{\pi}^{\,\ag}_j}`}
+  terms={[
+    { tex: String.raw`\hat{\pi}^{\,\ag}_j`, is: 'agent i’s model OF agent j. The hat marks it as an estimate, and the superscript marks whose estimate it is', tone: 'policy' },
+  ]}
+  caption="A model, held by one agent, of another agent's decision rule."
+/>
+
+Two features of that notation carry the content. The **hat** says this is
+agent $\ag$'s belief rather than the truth: agent $j$'s actual policy is not
+available. And the **superscript** says the model belongs to agent $\ag$: two
+agents modelling the same partner may hold different models of it.
+
+What the model produces is a prediction over the partner's next action.
+
+<Equation
+  label="Figure 2"
+  wide
+  tex={String.raw`\Pr\bigl(\tone{action}{a^{j}_t} \given \ubrace{observe}{h^{\ag}_t}{everything agent i has seen so far}\bigr)`}
+  terms={[
+    { tex: String.raw`a^{j}_t`, is: 'the partner’s next action, which agent i is trying to anticipate', tone: 'action' },
+    { tex: String.raw`h^{\ag}_t`, is: 'agent i’s own history: the only evidence it has', tone: 'observe' },
+  ]}
+  caption="A distribution over what the partner will do, conditioned only on what this agent has personally seen."
+/>
+
+Look hard at the right-hand side of that conditioning bar, because it is what
+keeps this honest. The prediction is conditioned on $h^{\ag}_t$, agent $\ag$'s
+**own** history. Not on the state, not on the partner's observations, and
+certainly not on the partner's parameters.
+
+The textbook describes exactly this: neural agent models that use an agent's
+observation history to predict the actions of other agents.
+
+<Callout variant="pitfall">
+It is easy to write down a partner model that quietly cheats. If your model
+takes the partner's observation as an input, or its policy parameters, or the
+global state, then it is not something a deployed agent could compute.
+
+The test from the Coordinate chapter applies unchanged: check that every input is in
+$h^{\ag}_t$. A model trained with privileged inputs is a CTDE construct and
+has to be distilled into something local before it means anything.
+</Callout>
+
+## Partner-Conditioned Policies
+
+A prediction is only worth having if it changes a decision. So the model
+becomes an input to the policy.
+
+<Equation
+  label="Figure 3"
+  wide
+  tex={String.raw`\tone{action}{a^{\ag}_t} \sim \tone{policy}{\pol{\ag}}\bigl(\cdot \given \ubrace{observe}{\obs{\ag}}{what I see},\ \ubrace{policy}{\hat{\pi}^{\,\ag}_j}{who I think you are}\bigr)`}
+  terms={[
+    { tex: String.raw`\obs{\ag}`, is: 'the observation, as in every previous chapter', tone: 'observe' },
+    { tex: String.raw`\hat{\pi}^{\,\ag}_j`, is: 'the partner model, now part of what the policy conditions on', tone: 'policy' },
+  ]}
+  caption="Same local policy as always, with one extra input: a belief about the partner."
+/>
+
+In the kitchen this is the difference between two behaviours. Without the
+model, agent 1 follows a fixed rule and hopes it fits. With it, agent 1 waits
+two steps, observes a stranger heading for the stove, and *chooses* to fetch.
+
+<Callout tone="observe" title="What this does not require" icon="compass">
+Conditioning on a partner model does not mean retraining at deployment. The
+policy is fixed; what changes within an episode is the **input** to it, as the
+model is updated from new observations.
+
+This distinction matters and *Zero-Shot Coordination* returns to it. An agent can adapt its
+behaviour without any weights changing, purely by revising a belief.
+</Callout>
+
+## Consequences of Model Error
+
+Worth stating, because agent modelling is not free.
+
+A model that is correct lets an agent specialise and do better than any
+partner-agnostic policy could. A model that is confidently wrong makes it do
+**worse**: it commits to a complementary role that does not complement, and
+the failure is decisive rather than hedged.
+
+That is the same asymmetry as the Communication Lab's cross-play matrix, where
+mismatched protocols scored 0.00 against a chance baseline of 0.25.
+Confident misunderstanding beats no information only when the confidence is
+justified.
+
+<KnowledgeCheck
+  id="ad-3-4-inputs"
+  type="choice"
+  question="Which of these partner models could actually be used by a deployed agent?"
+  options={[
+    {
+      text: 'A model predicting the partner’s next action from the modelling agent’s own observation history.',
+      correct: true,
+      feedback: 'Correct. Its only input is h_i, which the agent has by definition. This is the form the textbook describes, and it is the only one on this list that survives deployment.',
+    },
+    {
+      text: 'A model that takes the partner’s current observation and predicts its action.',
+      correct: false,
+      feedback: 'The partner’s observation is not available: that is the premise of partial observability. This model could be trained under CTDE and would need distilling into something local before deployment.',
+    },
+    {
+      text: 'A model that reads the partner’s policy parameters directly.',
+      correct: false,
+      feedback: 'This assumes access to another agent’s internals, which ad hoc teamwork specifically rules out. If you had the parameters you would not need a model.',
+    },
+    {
+      text: 'A model conditioned on the global state, since the state determines everything.',
+      correct: false,
+      feedback: 'The state does determine a great deal and no agent receives it. This is the same mistake as writing a policy on the state instead of the observation, one level up.',
+    },
+  ]}
+>
+"Is every input in $h^\ag_t$?" is the check that keeps a partner model
+deployable.
+</KnowledgeCheck>
+
+## Agent Modelling Summary
+
+- **Agent modelling** builds models of other agents that make useful
+  predictions about their behaviour.
+- $\hat{\pi}^{\,\ag}_j$ is agent $\ag$'s **estimate** of agent $j$. Both the
+  hat and the superscript matter.
+- The prediction $\Pr(a^j_t \given h^\ag_t)$ is conditioned on the modelling
+  agent's **own history**, which is the only evidence it has.
+- A model that takes a partner's observations, parameters, or the global
+  state is not deployable.
+- The model becomes an **input to the policy**, so behaviour adapts within an
+  episode without any weights changing.
+- Diversity and modelling are complementary: one produces robustness without
+  identification, the other identifies and specialises.
+- A confidently wrong model is worse than none, because it commits.

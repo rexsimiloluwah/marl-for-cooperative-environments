@@ -1,0 +1,493 @@
+---
+/**
+ * JOINT VALUE LAB
+ *
+ * A two-agent joint-action value table the learner can poke at, covering
+ * three of the chapter's ideas on one object:
+ *
+ *   interdependence , the same action for agent 1 spans a range of outcomes
+ *   credit          , a counterfactual, holding the teammate fixed
+ *   decomposition   , the best additive fit, its residual, and whether IGM
+ *                      survives
+ *
+ * Everything shown is computed from the supplied table by ordinary
+ * arithmetic. Nothing here is a training result and nothing is a measured
+ * number: the tables are hand-designed teaching examples, which is why the
+ * page says so beside every instance.
+ *
+ * The additive fit is the least-squares one. For a matrix M, the best
+ * separable approximation is
+ *
+ *   fit(i,j) = rowmean(i) + colmean(j) - grandmean
+ *
+ * and the residual M - fit is exactly the interaction no additive
+ * decomposition can represent. That makes VDN's limitation something a
+ * learner can read off the screen rather than take on trust.
+ */
+interface Props {
+  /** Instance id, so two labs on one page do not collide. */
+  id: string;
+  /** Row labels: agent 1's actions. */
+  actions1: string[];
+  /** Column labels: agent 2's actions. */
+  actions2: string[];
+  /** values[i][j] is the team value of (agent 1 -> i, agent 2 -> j). */
+  values: number[][];
+}
+const { id, actions1, actions2, values } = Astro.props;
+
+if (!/^[a-z0-9-]+$/.test(id)) {
+  throw new Error(`<JointValueLab> needs a kebab-case id, got "${id}".`);
+}
+if (values.length !== actions1.length) {
+  throw new Error('<JointValueLab>: values needs one row per agent-1 action.');
+}
+for (const row of values) {
+  if (row.length !== actions2.length) {
+    throw new Error('<JointValueLab>: every row needs one entry per agent-2 action.');
+  }
+}
+---
+
+<joint-value-lab
+  class="jv not-content"
+  data-jv={id}
+  data-values={JSON.stringify(values)}
+  data-a1={JSON.stringify(actions1)}
+  data-a2={JSON.stringify(actions2)}
+>
+  <div class="jv__modes" role="tablist" aria-label="What to show">
+    <button class="jv__mode is-on" type="button" role="tab" aria-selected="true" data-mode="explore">
+      Explore
+    </button>
+    <button class="jv__mode" type="button" role="tab" aria-selected="false" data-mode="credit">
+      Credit
+    </button>
+    <button class="jv__mode" type="button" role="tab" aria-selected="false" data-mode="decompose">
+      Decompose
+    </button>
+  </div>
+
+  <p class="jv__lead" data-lead></p>
+
+  <div class="jv__scroll">
+    <table class="jv__grid">
+      <caption class="jv__cap">
+        Team value for each joint action. Rows are agent 1, columns are agent 2.
+      </caption>
+      <thead>
+        <tr>
+          <td class="jv__corner"></td>
+          {
+            actions2.map((a) => (
+              <th scope="col" class="jv__colh">
+                {a}
+              </th>
+            ))
+          }
+          <th scope="col" class="jv__marg" data-margh hidden>row mean</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          actions1.map((a, i) => (
+            <tr>
+              <th scope="row" class="jv__rowh">
+                {a}
+              </th>
+              {
+                actions2.map((_, j) => (
+                  <td class="jv__cell">
+                    <button
+                      class="jv__pick"
+                      type="button"
+                      data-i={i}
+                      data-j={j}
+                      aria-label={`Agent 1 ${a}, agent 2 ${actions2[j]}`}
+                    >
+                      <span class="jv__val">{values[i][j].toFixed(1)}</span>
+                      <span class="jv__sub2" data-fit hidden />
+                    </button>
+                  </td>
+                ))
+              }
+              <td class="jv__marg" data-margc hidden />
+            </tr>
+          ))
+        }
+        <tr data-margrow hidden>
+          <th scope="row" class="jv__marg">col mean</th>
+          {actions2.map(() => <td class="jv__marg" data-margr />)}
+          <td class="jv__marg" />
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="jv__out" data-out aria-live="polite"></div>
+</joint-value-lab>
+
+<script>
+  type Mode = 'explore' | 'credit' | 'decompose';
+
+  class JointValueLab extends HTMLElement {
+    connectedCallback() {
+      const V: number[][] = JSON.parse(this.dataset.values ?? '[]');
+      const A1: string[] = JSON.parse(this.dataset.a1 ?? '[]');
+      const A2: string[] = JSON.parse(this.dataset.a2 ?? '[]');
+      if (!V.length) return;
+
+      const rows = V.length;
+      const cols = V[0].length;
+      const out = this.querySelector('[data-out]');
+      const lead = this.querySelector('[data-lead]');
+      const picks = [...this.querySelectorAll<HTMLButtonElement>('.jv__pick')];
+
+      let mode: Mode = 'explore';
+      let sel: [number, number] | null = null;
+
+      /* ---- derived quantities, all plain arithmetic ---- */
+      const rowMean = (i: number) => V[i].reduce((a, b) => a + b, 0) / cols;
+      const colMean = (j: number) => V.reduce((a, r) => a + r[j], 0) / rows;
+      const grand = V.flat().reduce((a, b) => a + b, 0) / (rows * cols);
+
+      /* Least-squares additive fit, and the interaction it cannot capture. */
+      const fit = (i: number, j: number) => rowMean(i) + colMean(j) - grand;
+      const resid = (i: number, j: number) => V[i][j] - fit(i, j);
+      const maxResid = Math.max(
+        ...V.flatMap((_, i) => V[i].map((__, j) => Math.abs(resid(i, j)))),
+      );
+
+      const argmaxJoint = (): [number, number] => {
+        let best: [number, number] = [0, 0];
+        for (let i = 0; i < rows; i++)
+          for (let j = 0; j < cols; j++)
+            if (V[i][j] > V[best[0]][best[1]]) best = [i, j];
+        return best;
+      };
+      const argmaxRow = () => {
+        let b = 0;
+        for (let i = 1; i < rows; i++) if (rowMean(i) > rowMean(b)) b = i;
+        return b;
+      };
+      const argmaxCol = () => {
+        let b = 0;
+        for (let j = 1; j < cols; j++) if (colMean(j) > colMean(b)) b = j;
+        return b;
+      };
+
+      const n1 = (x: number) => x.toFixed(1);
+      const sgn = (x: number) => `${x >= 0 ? '+' : '−'}${n1(Math.abs(x))}`;
+
+      const LEAD: Record<Mode, string> = {
+        explore:
+          'Pick a joint action. Then change only agent 2, and watch what happens to a fixed choice by agent 1.',
+        credit:
+          'Pick a joint action. The highlighted row and column are the alternatives each agent had, holding its teammate fixed.',
+        decompose:
+          'Row and column means give the best additive fit. The small number in each cell is what addition gets wrong.',
+      };
+
+      const BODY: Record<Mode, () => string> = {
+        explore: () => {
+          if (!sel) return '<p class="jv__hint">Select a cell above.</p>';
+          const [i, j] = sel;
+          const lo = Math.min(...V[i]);
+          const hi = Math.max(...V[i]);
+          return `
+            <p><strong>${A1[i]}</strong> and <strong>${A2[j]}</strong> together are worth
+            <strong>${n1(V[i][j])}</strong>.</p>
+            <p>Agent 1 chose <em>${A1[i]}</em>. Depending only on what agent 2 does, that
+            same choice is worth between <strong>${n1(lo)}</strong> and
+            <strong>${n1(hi)}</strong>, a spread of ${n1(hi - lo)}.</p>
+            <p class="jv__note">An individual value for <span class="jv__mono">${A1[i]}</span>
+            must report one number for that whole range. Averaging over agent 2 gives
+            ${n1(rowMean(i))}, which is the value of nothing agent 1 can actually bring
+            about on its own.</p>`;
+        },
+
+        credit: () => {
+          if (!sel) return '<p class="jv__hint">Select a cell above.</p>';
+          const [i, j] = sel;
+          const alt1 = V.map((r) => r[j]);
+          const alt2 = V[i];
+          const c1 = V[i][j] - alt1.reduce((a, b) => a + b, 0) / rows;
+          const c2 = V[i][j] - alt2.reduce((a, b) => a + b, 0) / cols;
+          const li = (labels: string[], vals: number[], k: number) =>
+            labels
+              .map(
+                (l, x) =>
+                  `<li${x === k ? ' class="is-taken"' : ''}><span>${l}</span><span class="jv__mono">${n1(vals[x])}</span></li>`,
+              )
+              .join('');
+          return `
+            <p>Team value here: <strong>${n1(V[i][j])}</strong>. It is one number, and both
+            agents receive it.</p>
+            <div class="jv__cols">
+              <div>
+                <p class="jv__ch">Had agent 1 chosen differently
+                <span class="jv__note">(agent 2 held at ${A2[j]})</span></p>
+                <ul class="jv__list">${li(A1, alt1, i)}</ul>
+                <p>Contribution: <strong>${sgn(c1)}</strong></p>
+              </div>
+              <div>
+                <p class="jv__ch">Had agent 2 chosen differently
+                <span class="jv__note">(agent 1 held at ${A1[i]})</span></p>
+                <ul class="jv__list">${li(A2, alt2, j)}</ul>
+                <p>Contribution: <strong>${sgn(c2)}</strong></p>
+              </div>
+            </div>
+            <p class="jv__note">Each contribution compares what happened against the average
+            of what would have happened had only that agent acted differently. Note that they
+            do not sum to the team value, they are not shares of it.</p>`;
+        },
+
+        decompose: () => {
+          const exact = maxResid < 0.05;
+          const [bi, bj] = argmaxJoint();
+          const gi = argmaxRow();
+          const gj = argmaxCol();
+          const igm = gi === bi && gj === bj;
+          return `
+            <p>The individual values come from the margins: agent 1's from the row means,
+            agent 2's from the column means. The best additive prediction for a cell is
+            <span class="jv__mono">row + col &minus; ${n1(grand)}</span>.</p>
+            <p><strong>${
+              exact
+                ? 'Addition reproduces this table exactly.'
+                : `Addition is wrong by up to ${n1(maxResid)}.`
+            }</strong> ${
+              exact
+                ? 'The agents do not interact here, so VDN loses nothing.'
+                : 'That error is the interaction between the agents, the part no additive decomposition can represent, however well trained.'
+            }</p>
+            <p class="jv__${igm ? 'ok' : 'bad'}">Greedy from the individual values gives
+            <strong>(${A1[gi]}, ${A2[gj]})</strong>; the true best joint action is
+            <strong>(${A1[bi]}, ${A2[bj]})</strong>. ${
+              igm
+                ? 'They agree, so local greedy selection still reaches the team optimum, IGM holds.'
+                : 'They disagree, so agents maximising their own values miss the team optimum, IGM fails for this decomposition.'
+            }</p>`;
+        },
+      };
+
+      const show = () => {
+        const wantMarg = mode === 'decompose';
+        this.querySelectorAll('[data-margh],[data-margc],[data-margrow]').forEach((el) =>
+          el.toggleAttribute('hidden', !wantMarg),
+        );
+
+        picks.forEach((b) => {
+          const i = Number(b.dataset.i);
+          const j = Number(b.dataset.j);
+          b.classList.toggle('is-sel', !!sel && sel[0] === i && sel[1] === j);
+          b.classList.toggle('is-row', mode !== 'decompose' && !!sel && sel[0] === i);
+          b.classList.toggle('is-col', mode === 'credit' && !!sel && sel[1] === j);
+
+          const sub = b.querySelector('[data-fit]');
+          if (!sub) return;
+          if (wantMarg) {
+            const r = resid(i, j);
+            sub.textContent = sgn(r);
+            sub.className = `jv__sub2 ${Math.abs(r) < 0.05 ? '' : 'is-resid'}`;
+            sub.removeAttribute('hidden');
+          } else {
+            sub.setAttribute('hidden', '');
+          }
+        });
+
+        if (wantMarg) {
+          this.querySelectorAll<HTMLElement>('[data-margc]').forEach((el, i) => {
+            el.textContent = n1(rowMean(i));
+          });
+          this.querySelectorAll<HTMLElement>('[data-margr]').forEach((el, j) => {
+            el.textContent = n1(colMean(j));
+          });
+        }
+
+        if (lead) lead.textContent = LEAD[mode];
+        if (out) out.innerHTML = BODY[mode]();
+      };
+
+      picks.forEach((b) => {
+        b.addEventListener('click', () => {
+          sel = [Number(b.dataset.i), Number(b.dataset.j)];
+          show();
+        });
+      });
+
+      this.querySelectorAll<HTMLButtonElement>('.jv__mode').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          mode = (btn.dataset.mode as Mode) ?? 'explore';
+          this.querySelectorAll('.jv__mode').forEach((b) => {
+            const on = b === btn;
+            b.classList.toggle('is-on', on);
+            b.setAttribute('aria-selected', String(on));
+          });
+          show();
+        });
+      });
+
+      show();
+    }
+  }
+  if (!customElements.get('joint-value-lab')) {
+    customElements.define('joint-value-lab', JointValueLab);
+  }
+</script>
+
+<style>
+  .jv {
+    display: block;
+    margin-block: var(--s-5);
+    padding: var(--s-4);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+
+  .jv__modes {
+    display: flex;
+    gap: var(--s-1);
+    margin-bottom: var(--s-3);
+    flex-wrap: wrap;
+  }
+  .jv__mode {
+    padding: 5px 12px;
+    font: inherit;
+    font-size: var(--t-small);
+    color: var(--ink-muted);
+    background: transparent;
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+  .jv__mode:hover { border-color: var(--ui); }
+  .jv__mode.is-on {
+    color: var(--surface);
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+
+  .jv__lead {
+    margin: 0 0 var(--s-3);
+    font-size: var(--t-small);
+    line-height: 1.5;
+    color: var(--ink-muted);
+  }
+
+  .jv__scroll { overflow-x: auto; }
+
+  .jv__grid { border-collapse: collapse; font-size: var(--t-small); }
+  /* A hidden <tr> still lays out a row in some engines, leaving a blank band
+     under the table when the margins are off. */
+  .jv__grid tr[hidden] { display: none; }
+  .jv__cap {
+    margin-bottom: var(--s-2);
+    font-size: var(--t-micro);
+    color: var(--ink-faint);
+    text-align: left;
+    caption-side: top;
+  }
+
+  .jv__corner { border: none; }
+  .jv__colh,
+  .jv__rowh {
+    padding: var(--s-2);
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    color: var(--ink-muted);
+    white-space: nowrap;
+  }
+  .jv__colh { text-align: center; }
+  .jv__rowh { text-align: right; }
+
+  .jv__cell { padding: 2px; }
+
+  .jv__pick {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    width: 5.5rem;
+    height: 3.1rem;
+    font: inherit;
+    color: var(--ink);
+    background: var(--surface-sunken);
+    border: 1.5px solid transparent;
+    border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+  .jv__pick:hover { border-color: var(--ui); }
+  .jv__pick:focus-visible { outline: 2px solid var(--ui); outline-offset: 1px; }
+  .jv__pick.is-row { background: var(--c-observe-tint); }
+  .jv__pick.is-col { background: var(--c-action-tint); }
+  .jv__pick.is-sel {
+    background: var(--c-reward-tint);
+    border-color: var(--c-reward-ink);
+  }
+
+  .jv__val {
+    font-family: var(--font-mono);
+    font-size: var(--t-body);
+    font-weight: var(--w-semibold);
+  }
+  .jv__sub2 {
+    font-family: var(--font-mono);
+    font-size: var(--t-micro);
+    color: var(--ink-faint);
+  }
+  .jv__sub2[hidden] { display: none; }
+  .jv__sub2.is-resid { color: var(--c-conflict-ink); }
+
+  .jv__marg {
+    padding: var(--s-2);
+    font-family: var(--font-mono);
+    font-size: var(--t-meta);
+    color: var(--ink-faint);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .jv__out {
+    margin-top: var(--s-3);
+    padding-top: var(--s-3);
+    font-size: var(--t-small);
+    line-height: 1.6;
+    border-top: var(--hairline) solid var(--rule);
+  }
+  .jv__out :global(p) { margin-block: var(--s-2); }
+  .jv__out :global(p:first-child) { margin-top: 0; }
+  .jv__out :global(p:last-child) { margin-bottom: 0; }
+
+  .jv__note,
+  .jv__hint { color: var(--ink-muted); }
+  .jv__ok { color: var(--c-reward-ink); }
+  .jv__bad { color: var(--c-conflict-ink); }
+  .jv__mono { font-family: var(--font-mono); }
+
+  .jv__cols {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: var(--s-4);
+    margin-block: var(--s-3);
+  }
+  .jv__ch {
+    margin: 0 0 var(--s-2);
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+  }
+  .jv__list { margin: 0 0 var(--s-2); padding: 0; list-style: none; }
+  .jv__list :global(li) {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s-3);
+    padding: 2px 0;
+    border-bottom: var(--hairline) solid var(--rule);
+  }
+  .jv__list :global(li.is-taken) {
+    font-weight: var(--w-semibold);
+    color: var(--c-reward-ink);
+  }
+</style>

@@ -1,0 +1,327 @@
+---
+/**
+ * CROSS-PLAY MATRIX
+ *
+ * Every policy against every partner, with the co-trained pairings on the
+ * diagonal.
+ *
+ * The diagonal is what a conventional evaluation reports and the off-diagonal
+ * is what this chapter is about, so the component's whole job is to make the
+ * two visually separable and then let the learner compute with them. The
+ * "cross-play" mode shows each policy's mean EXCLUDING its own diagonal
+ * entry, because including it is the single easiest way to make a
+ * partner-dependent policy look general.
+ *
+ * Values are supplied as a prop. Nothing here is computed from a training run,
+ * so a page using it has to say where its numbers came from.
+ */
+interface Props {
+  /** Instance id. */
+  id: string;
+  /** Row labels: the policies being evaluated. */
+  policies: string[];
+  /** Column labels: the partners they are paired with. */
+  partners: string[];
+  /** values[i][j] is policy i paired with partner j. */
+  values: number[][];
+  /** Unit shown in the readout, e.g. '%'. */
+  unit?: string;
+  /**
+   * Which column is each row's co-trained partner. Defaults to the diagonal,
+   * which is the usual arrangement.
+   */
+  familiar?: number[];
+}
+const { id, policies, partners, values, unit = '', familiar } = Astro.props;
+
+if (!/^[a-z0-9-]+$/.test(id)) {
+  throw new Error(`<CrossPlay> needs a kebab-case id, got "${id}".`);
+}
+if (values.length !== policies.length) {
+  throw new Error('<CrossPlay>: one row of values per policy.');
+}
+for (const r of values) {
+  if (r.length !== partners.length) {
+    throw new Error('<CrossPlay>: one value per partner in every row.');
+  }
+}
+const fam = familiar ?? policies.map((_, i) => i);
+
+const flat = values.flat();
+const lo = Math.min(...flat);
+const hi = Math.max(...flat);
+/** Heat, as a 0..1 fraction of the observed range. */
+const heat = (v: number) => (hi === lo ? 0.5 : (v - lo) / (hi - lo));
+---
+
+<cross-play
+  class="cp not-content"
+  data-cp={id}
+  data-values={JSON.stringify(values)}
+  data-policies={JSON.stringify(policies)}
+  data-partners={JSON.stringify(partners)}
+  data-familiar={JSON.stringify(fam)}
+  data-unit={unit}
+>
+  <div class="cp__modes" role="tablist" aria-label="What to show">
+    <button class="cp__mode is-on" type="button" role="tab" aria-selected="true" data-mode="values">
+      Values
+    </button>
+    <button class="cp__mode" type="button" role="tab" aria-selected="false" data-mode="cross">
+      Cross-play mean
+    </button>
+    <button class="cp__mode" type="button" role="tab" aria-selected="false" data-mode="gap">
+      Gap
+    </button>
+  </div>
+
+  <p class="cp__lead" data-lead></p>
+
+  <div class="cp__scroll">
+    <table class="cp__grid">
+      <thead>
+        <tr>
+          <td class="cp__corner"></td>
+          {
+            partners.map((p) => (
+              <th scope="col" class="cp__colh">
+                {p}
+              </th>
+            ))
+          }
+          <th scope="col" class="cp__extra" data-extrah hidden></th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          policies.map((pol, i) => (
+            <tr>
+              <th scope="row" class="cp__rowh">
+                {pol}
+              </th>
+              {
+                partners.map((par, j) => (
+                  <td class="cp__cell">
+                    <button
+                      class={`cp__pick${fam[i] === j ? ' is-familiar' : ''}`}
+                      type="button"
+                      data-i={i}
+                      data-j={j}
+                      style={`--heat: ${heat(values[i][j]).toFixed(3)}`}
+                      aria-label={`${pol} with ${par}: ${values[i][j]}${unit}`}
+                    >
+                      {values[i][j]}
+                    </button>
+                  </td>
+                ))
+              }
+              <td class="cp__extra" data-extra hidden></td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <p class="cp__readout" data-readout aria-live="polite"></p>
+</cross-play>
+
+<script>
+  type Mode = 'values' | 'cross' | 'gap';
+
+  class CrossPlay extends HTMLElement {
+    connectedCallback() {
+      const V: number[][] = JSON.parse(this.dataset.values ?? '[]');
+      const POL: string[] = JSON.parse(this.dataset.policies ?? '[]');
+      const PAR: string[] = JSON.parse(this.dataset.partners ?? '[]');
+      const FAM: number[] = JSON.parse(this.dataset.familiar ?? '[]');
+      const unit = this.dataset.unit ?? '';
+      if (!V.length) return;
+
+      const lead = this.querySelector('[data-lead]');
+      const out = this.querySelector('[data-readout]');
+      let mode: Mode = 'values';
+
+      const n1 = (x: number) => (Number.isInteger(x) ? String(x) : x.toFixed(1));
+
+      /* Each policy's mean over partners that are NOT its co-trained one. */
+      const crossMean = (i: number) => {
+        const others = V[i].filter((_, j) => j !== FAM[i]);
+        return others.reduce((a, b) => a + b, 0) / others.length;
+      };
+      const gap = (i: number) => V[i][FAM[i]] - crossMean(i);
+
+      const LEAD: Record<Mode, string> = {
+        values:
+          'Every policy against every partner. Outlined cells are the pairings that trained together.',
+        cross:
+          "Each policy's mean over the partners it did NOT train with. Its own diagonal entry is excluded.",
+        gap: 'Familiar-partner score minus cross-play mean. Large means partner-dependent.',
+      };
+
+      const show = () => {
+        const extra = mode !== 'values';
+        this.querySelectorAll('[data-extra],[data-extrah]').forEach((el) =>
+          el.toggleAttribute('hidden', !extra),
+        );
+        const head = this.querySelector('[data-extrah]');
+        if (head) head.textContent = mode === 'cross' ? 'cross-play' : 'gap';
+
+        this.querySelectorAll<HTMLElement>('[data-extra]').forEach((el, i) => {
+          const v = mode === 'cross' ? crossMean(i) : gap(i);
+          el.textContent = n1(v) + unit;
+          el.className = `cp__extra${mode === 'gap' && v > 15 ? ' is-bad' : ''}`;
+        });
+
+        // In the derived modes, dim the diagonal to show it is excluded.
+        this.querySelectorAll<HTMLElement>('.cp__pick').forEach((b) => {
+          const i = Number(b.dataset.i);
+          const j = Number(b.dataset.j);
+          b.classList.toggle('is-excluded', mode === 'cross' && FAM[i] === j);
+        });
+
+        if (lead) lead.textContent = LEAD[mode];
+        if (out && !out.textContent) out.textContent = 'Select a cell for detail.';
+      };
+
+      this.querySelectorAll<HTMLButtonElement>('.cp__pick').forEach((b) => {
+        b.addEventListener('click', () => {
+          const i = Number(b.dataset.i);
+          const j = Number(b.dataset.j);
+          this.querySelectorAll('.cp__pick').forEach((x) => x.classList.remove('is-sel'));
+          b.classList.add('is-sel');
+          if (!out) return;
+          const own = FAM[i] === j;
+          out.textContent =
+            `${POL[i]} with ${PAR[j]} → ${n1(V[i][j])}${unit}. ` +
+            (own
+              ? 'This is its co-trained partner, so this is a training result.'
+              : `Its own partner gives ${n1(V[i][FAM[i]])}${unit}, a difference of ${n1(V[i][FAM[i]] - V[i][j])}${unit}.`);
+        });
+      });
+
+      this.querySelectorAll<HTMLButtonElement>('.cp__mode').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          mode = (btn.dataset.mode as Mode) ?? 'values';
+          this.querySelectorAll('.cp__mode').forEach((b) => {
+            const on = b === btn;
+            b.classList.toggle('is-on', on);
+            b.setAttribute('aria-selected', String(on));
+          });
+          show();
+        });
+      });
+
+      show();
+    }
+  }
+  if (!customElements.get('cross-play')) {
+    customElements.define('cross-play', CrossPlay);
+  }
+</script>
+
+<style>
+  .cp {
+    display: block;
+    margin-block: var(--s-5);
+    padding: var(--s-4);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+
+  .cp__modes {
+    display: flex;
+    gap: var(--s-1);
+    margin-bottom: var(--s-3);
+    flex-wrap: wrap;
+  }
+  .cp__mode {
+    padding: 5px 12px;
+    font: inherit;
+    font-size: var(--t-small);
+    color: var(--ink-muted);
+    background: transparent;
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+  .cp__mode:hover { border-color: var(--ui); }
+  .cp__mode.is-on {
+    color: var(--surface);
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+
+  .cp__lead {
+    margin: 0 0 var(--s-3);
+    font-size: var(--t-small);
+    line-height: 1.5;
+    color: var(--ink-muted);
+  }
+
+  .cp__scroll { overflow-x: auto; }
+  .cp__grid { border-collapse: collapse; font-size: var(--t-small); }
+
+  .cp__corner { border: none; }
+  .cp__colh,
+  .cp__rowh {
+    padding: var(--s-2);
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    color: var(--ink-muted);
+    white-space: nowrap;
+  }
+  .cp__colh { text-align: center; }
+  .cp__rowh { text-align: right; }
+
+  .cp__cell { padding: 2px; }
+
+  .cp__pick {
+    width: 3.6rem;
+    height: 2.4rem;
+    font-family: var(--font-mono);
+    font-size: var(--t-small);
+    color: var(--ink);
+    /* Heat as a tint rather than a hue ramp, so the diagonal outline stays
+       legible and the whole thing survives greyscale printing. */
+    background: color-mix(in srgb, var(--c-observe) calc(var(--heat, 0) * 34%), var(--surface-sunken));
+    border: 1.5px solid transparent;
+    border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+  .cp__pick:hover { border-color: var(--ui); }
+  .cp__pick:focus-visible { outline: 2px solid var(--ui); outline-offset: 1px; }
+  .cp__pick.is-familiar {
+    border-color: var(--ink);
+    font-weight: var(--w-semibold);
+  }
+  .cp__pick.is-sel { border-color: var(--c-reward-ink); border-width: 2px; }
+  .cp__pick.is-excluded { opacity: 0.3; }
+
+  .cp__extra {
+    padding: var(--s-2);
+    font-family: var(--font-mono);
+    font-size: var(--t-small);
+    font-weight: var(--w-semibold);
+    color: var(--ink);
+    text-align: center;
+    white-space: nowrap;
+  }
+  .cp__extra.is-bad { color: var(--c-conflict-ink); }
+  th.cp__extra {
+    font-family: var(--font-sans);
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    color: var(--ink-muted);
+  }
+
+  .cp__readout {
+    margin: var(--s-3) 0 0;
+    padding-top: var(--s-3);
+    font-size: var(--t-small);
+    line-height: 1.55;
+    color: var(--ink-2);
+    border-top: var(--hairline) solid var(--rule);
+  }
+</style>

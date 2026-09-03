@@ -1,0 +1,963 @@
+---
+/**
+ * KNOWLEDGE CHECK
+ *
+ * Tests conceptual reasoning, and only that. A code exercise tests
+ * implementation; an experiment tests causal understanding. Those stay
+ * separate components on purpose, because folding all three into one
+ * "quiz" produces something that measures none of them.
+ *
+ * The point of a check is not the verdict, it is the per-option `feedback`.
+ * A distractor is a belief the reader might actually hold, and its feedback
+ * is the sentence that dislodges it. A distractor with no feedback teaches
+ * nothing at all, so an incorrect option without feedback is a build-time
+ * warning rather than a silent gap.
+ *
+ * No gamification, anywhere: no score, no streak, no points, no celebration.
+ * The answer is remembered locally so a reader who comes back to a page sees
+ * what they said last time; that record reports what was attempted, never
+ * what is known. Grading belongs to the worksheets and the project rubric.
+ *
+ * THREE TYPES
+ *   choice    exactly one correct option
+ *   multiple  several correct options, all of them required
+ *   predict   the reader commits before the reveal; nothing is ever "wrong".
+ *             With options it is a forced choice between hypotheses; with no
+ *             options it is a free-text commitment, stored as the string
+ *             branch of `CheckState.answer`.
+ *
+ * COLOUR. The box is chrome, not a concept, so it carries the UI blue rather
+ * than one of the six semantic tones: a check about communication and a check
+ * about reward are the same kind of object, and tinting the container by
+ * subject would make the palette mean two things at once. Semantic colour
+ * appears only where it carries meaning, reward green for a correct answer,
+ * conflict red for one that is not, comm cyan for a recorded prediction,
+ * which is exactly what those tones mean everywhere else in the resource.
+ *
+ * ACCESSIBILITY. A real `<fieldset>` and `<legend>`, real radios and
+ * checkboxes, restyled but never replaced by divs: the group semantics, the
+ * arrow-key roving inside a radio group, and the label hit areas are native
+ * behaviour we would otherwise rebuild badly. Every outcome is signalled by
+ * an icon shape and a word as well as by colour. Feedback is moved into a
+ * live region so it is announced rather than quietly appearing below.
+ *
+ * WHY EVERY MOVING PART IS RENDERED SERVER-SIDE. The client script only
+ * moves, unhides and re-labels nodes; it never builds one. Astro scopes
+ * component CSS by stamping a class on the elements it rendered, so an
+ * element created in the browser would match none of the styles below.
+ *
+ * The answers are present in the page source, as they are for any static
+ * check. That is an accepted limit of the form: this is a self-check, not an
+ * exam.
+ *
+ *   <KnowledgeCheck
+ *     id="ctde-execution"
+ *     question="At execution time, what does a CTDE agent act on?"
+ *     options={[
+ *       { text: 'Its own observation', correct: true, feedback: '…' },
+ *       { text: 'The global state', feedback: '…' },
+ *     ]}
+ *   >
+ *     Prose here becomes the explanation shown after answering.
+ *   </KnowledgeCheck>
+ */
+import Icon from './Icon.astro';
+
+export type CheckType = 'choice' | 'multiple' | 'predict';
+
+export interface CheckOption {
+  text: string;
+  /** Ignored for `predict`, which never grades. */
+  correct?: boolean;
+  /** Why this option is right, or why it is tempting but wrong. */
+  feedback?: string;
+}
+
+interface Props {
+  /** Stable, and unique across the whole resource: it is both the
+      localStorage key and the radio group name, so two checks sharing an id
+      would share an answer. Renaming one discards what the reader stored
+      under the old name. */
+  id: string;
+  question: string;
+  type?: CheckType;
+  /** Omit only for a free-text `predict`. */
+  options?: CheckOption[];
+  /** Shown after answering. The default slot does the same job and takes
+      rich content; this prop exists for one-sentence explanations. */
+  explanation?: string;
+}
+
+const { id, question, type = 'choice', options = [], explanation } = Astro.props;
+
+const TYPES: CheckType[] = ['choice', 'multiple', 'predict'];
+
+if (!id) {
+  throw new Error(
+    '<KnowledgeCheck> needs a stable `id`. It is the key the answer is stored under.'
+  );
+}
+if (!question) {
+  throw new Error(`<KnowledgeCheck id="${id}"> needs a \`question\`.`);
+}
+if (!TYPES.includes(type)) {
+  throw new Error(
+    `<KnowledgeCheck id="${id}"> type "${type}" is not one of: ${TYPES.join(', ')}.`
+  );
+}
+
+const graded = type !== 'predict';
+const freeText = type === 'predict' && options.length === 0;
+
+if (graded && options.length < 2) {
+  throw new Error(
+    `<KnowledgeCheck id="${id}"> of type "${type}" needs at least two options. ` +
+      'Only `predict` may be asked without options, as a free-text commitment.'
+  );
+}
+
+const correctIndices = options.reduce<number[]>(
+  (acc, o, i) => (o.correct ? [...acc, i] : acc),
+  []
+);
+
+/* ---- authoring lint -------------------------------------------------------
+   These run during the build, where an author will see them. They are
+   warnings rather than errors because a half-written check should still
+   render while a chapter is being drafted. */
+
+if (type === 'choice' && correctIndices.length !== 1) {
+  console.warn(
+    `[KnowledgeCheck] "${id}" is type "choice" but has ${correctIndices.length} ` +
+      'options marked correct. Use type="multiple" for several, or mark exactly one.'
+  );
+}
+
+if (type === 'multiple' && correctIndices.length < 2) {
+  console.warn(
+    `[KnowledgeCheck] "${id}" is type "multiple" but has ${correctIndices.length} ` +
+      'options marked correct. A single answer should be type="choice".'
+  );
+}
+
+/* The whole value of the component. A distractor names a misconception, and
+   without feedback the reader is told they are wrong and not why. */
+if (graded) {
+  options.forEach((o, i) => {
+    if (!o.correct && !o.feedback) {
+      console.warn(
+        `[KnowledgeCheck] "${id}" option ${i + 1} ("${o.text}") is a distractor ` +
+          'with no `feedback`. Say why it is tempting and why it does not hold, ' +
+          'or the question teaches nothing to the reader who picks it.'
+      );
+    }
+  });
+}
+
+const hasExplanationSlot = Astro.slots.has('default');
+const hasExplanation = Boolean(explanation) || hasExplanationSlot;
+
+if (!hasExplanation && !options.some((o) => o.feedback)) {
+  console.warn(
+    `[KnowledgeCheck] "${id}" reveals nothing after answering: no per-option ` +
+      '`feedback`, no `explanation`, no explanation body.'
+  );
+}
+
+/* ---- rendering ---------------------------------------------------------- */
+
+const uid = `kc-${id.replace(/[^A-Za-z0-9_-]/g, '-')}`;
+const inputType = type === 'multiple' ? 'checkbox' : 'radio';
+
+/** A, B, C … tie each feedback row back to the option it explains. */
+const optionKey = (i: number) =>
+  i < 26 ? String.fromCharCode(65 + i) : String(i + 1);
+
+const HEADING: Record<CheckType, string> = {
+  choice: 'Knowledge check',
+  multiple: 'Knowledge check',
+  predict: 'Predict first',
+};
+
+const HINT: Record<CheckType, string> = {
+  choice: 'Select one answer.',
+  multiple: 'Select every answer that applies. All of them are required.',
+  predict: 'Commit to a prediction before you read on. There is no wrong answer here.',
+};
+
+const SUBMIT: Record<CheckType, string> = {
+  choice: 'Check answer',
+  multiple: 'Check answer',
+  predict: 'Commit prediction',
+};
+
+/* Only the verdicts this type can actually reach are rendered. */
+const verdicts = (
+  type === 'predict'
+    ? [{ key: 'noted', icon: 'flag', text: 'Prediction recorded.' }]
+    : [
+        { key: 'right', icon: 'check', text: 'Correct.' },
+        ...(type === 'multiple'
+          ? [{ key: 'partial', icon: 'help-circle', text: 'Partly right.' }]
+          : []),
+        { key: 'wrong', icon: 'help-circle', text: 'Not quite.' },
+      ]
+) as { key: string; icon: string; text: string }[];
+---
+
+{/* A <section> with no accessible name is not a landmark, which is what is
+    wanted: the fieldset and its legend already group the question, and a
+    page carrying several checks would otherwise present several landmarks
+    all named "Knowledge check". The id is for deep links to a check. */}
+<section
+  class="kc"
+  id={uid}
+  data-check
+  data-id={id}
+  data-type={type}
+  data-state="open"
+  data-correct={JSON.stringify(correctIndices)}
+>
+  <p class="kc__head">
+    <Icon name="check-square" size={15} />
+    <span>{HEADING[type]}</span>
+  </p>
+
+  <fieldset class="kc__field" aria-describedby={`${uid}-hint`}>
+    <legend class="kc__q">{question}</legend>
+    <p class="kc__hint" id={`${uid}-hint`}>{HINT[type]}</p>
+
+    {
+      freeText ? (
+        <div class="kc__free">
+          <label class="kc__free-label" for={`${uid}-free`}>
+            Your prediction
+          </label>
+          <textarea
+            class="kc__free-input"
+            id={`${uid}-free`}
+            data-free
+            rows="3"
+            spellcheck="true"
+          />
+        </div>
+      ) : (
+        <div class="kc__opts">
+          {options.map((o, i) => (
+            <label class="kc__opt">
+              <input
+                class="kc__input"
+                type={inputType}
+                name={uid}
+                value={i}
+                data-input
+              />
+              <span class="kc__opt-key" aria-hidden="true">
+                {optionKey(i)}
+              </span>
+              <span class="kc__opt-text">{o.text}</span>
+            </label>
+          ))}
+        </div>
+      )
+    }
+  </fieldset>
+
+  <div class="kc__actions">
+    <button type="button" class="btn btn--primary" data-submit disabled>
+      {SUBMIT[type]}
+    </button>
+    <button type="button" class="btn" data-again hidden>
+      <Icon name="cycle" size={14} />
+      <span>Try again</span>
+    </button>
+  </div>
+
+  {/* Empty until an answer is given. The script upgrades `aria-live` to
+      polite only after it has replayed any stored answer, so returning to a
+      page does not read the whole response block out unprompted. */}
+  <div class="kc__response" data-response aria-live="off" aria-atomic="false" />
+
+  {/* Everything the response can contain, rendered here and hidden, then
+      moved across on submit. Moving a node into a live region is the one
+      change every screen reader announces reliably, and it keeps all markup
+      server-rendered so Astro's scoped styles apply to it. */}
+  <div class="kc__store" data-store hidden>
+    {
+      verdicts.map((v) => (
+        <p class="kc__verdict" data-verdict={v.key}>
+          <Icon name={v.icon} size={15} />
+          <span>{v.text}</span>
+        </p>
+      ))
+    }
+
+    {
+      freeText && (
+        <div class="kc__echo">
+          <p class="kc__echo-label">You predicted</p>
+          <p class="kc__echo-text" data-echo />
+        </div>
+      )
+    }
+
+    {
+      options.length > 0 && (
+        <div class="kc__fb" data-fb-list>
+          {options.map((o, i) => (
+            <div class="kc__fb-row" data-row={i} hidden>
+              <p class="kc__fb-head">
+                <span class="kc__fb-mark kc__fb-mark--right">
+                  <Icon name="check" size={13} />
+                </span>
+                <span class="kc__fb-mark kc__fb-mark--wrong">
+                  <Icon name="help-circle" size={13} />
+                </span>
+                <span class="kc__fb-mark kc__fb-mark--noted">
+                  <Icon name="flag" size={13} />
+                </span>
+                <span class="kc__fb-key" aria-hidden="true">
+                  {optionKey(i)}
+                </span>
+                <span class="kc__fb-text">{o.text}</span>
+                <span class="kc__fb-tag" data-tag />
+              </p>
+              {o.feedback && <p class="kc__fb-why">{o.feedback}</p>}
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    {
+      hasExplanation && (
+        <div class="kc__explain" data-explain>
+          <p class="kc__explain-label">Explanation</p>
+          {explanation && <p class="kc__explain-text">{explanation}</p>}
+          <slot />
+        </div>
+      )
+    }
+  </div>
+</section>
+
+<script>
+  import {
+    checkState,
+    saveCheck,
+    resetCheck,
+    type CheckState,
+  } from '../../lib/progress';
+
+  type Grade = 'right' | 'partial' | 'wrong' | 'noted';
+
+  /** Tags name the relationship between a row and the reader's answer. They
+      are text, not colour, so the outcome survives without colour vision. */
+  const TAG = {
+    chosenRight: 'Your answer · correct',
+    chosenWrong: 'Your answer · not correct',
+    missed: 'Correct answer, not selected',
+    prediction: 'Your prediction',
+    answer: 'Answer',
+  };
+
+  const sameSet = (a: number[], b: number[]) =>
+    a.length === b.length && a.every((v) => b.includes(v));
+
+  function setup(root: HTMLElement) {
+    const id = root.dataset.id ?? '';
+    const type = (root.dataset.type ?? 'choice') as
+      | 'choice'
+      | 'multiple'
+      | 'predict';
+
+    let correct: number[] = [];
+    try {
+      correct = JSON.parse(root.dataset.correct ?? '[]') as number[];
+    } catch {
+      correct = [];
+    }
+
+    const inputs = Array.from(
+      root.querySelectorAll<HTMLInputElement>('[data-input]')
+    );
+    const free = root.querySelector<HTMLTextAreaElement>('[data-free]');
+    const submit = root.querySelector<HTMLButtonElement>('[data-submit]');
+    const again = root.querySelector<HTMLButtonElement>('[data-again]');
+    const response = root.querySelector<HTMLElement>('[data-response]');
+    const store = root.querySelector<HTMLElement>('[data-store]');
+    if (!submit || !again || !response || !store) return;
+
+    const rows = Array.from(store.querySelectorAll<HTMLElement>('[data-row]'));
+    const fbList = store.querySelector<HTMLElement>('[data-fb-list]');
+    const explain = store.querySelector<HTMLElement>('[data-explain]');
+    const echo = store.querySelector<HTMLElement>('[data-echo]');
+    const echoBlock = echo?.closest<HTMLElement>('.kc__echo') ?? null;
+
+    /* `resetCheck` deletes the stored entry, so the attempt count is carried
+       here across a "try again" rather than silently restarting at one. */
+    let carriedAttempts = 0;
+
+    const selection = () =>
+      inputs.filter((i) => i.checked).map((i) => Number(i.value));
+
+    const answered = () =>
+      free ? free.value.trim().length > 0 : selection().length > 0;
+
+    function syncSubmit() {
+      submit!.disabled = !answered();
+    }
+
+    function grade(selected: number[]): Grade {
+      if (type === 'predict') return 'noted';
+      if (sameSet(selected, correct)) return 'right';
+      if (type === 'multiple' && selected.some((i) => correct.includes(i))) {
+        return 'partial';
+      }
+      return 'wrong';
+    }
+
+    /** Move the parts of the response that apply into the live region. */
+    function reveal(selected: number[], result: Grade) {
+      const verdict = store!.querySelector<HTMLElement>(
+        `[data-verdict="${result}"]`
+      );
+      if (verdict) response!.appendChild(verdict);
+
+      if (free && echoBlock && echo) {
+        echo.textContent = free.value.trim();
+        response!.appendChild(echoBlock);
+      }
+
+      rows.forEach((row, i) => {
+        const chosen = selected.includes(i);
+        const isCorrect = correct.includes(i);
+        let state: '' | 'right' | 'wrong' | 'noted' = '';
+        let tag = '';
+
+        if (type === 'predict') {
+          /* A prediction is never wrong. The reader's own option is marked
+             as recorded; an option the author flagged is shown as the
+             answer, whether or not the reader picked it. */
+          if (chosen) {
+            state = isCorrect ? 'right' : 'noted';
+            tag = isCorrect ? `${TAG.prediction} · ${TAG.answer}` : TAG.prediction;
+          } else if (isCorrect) {
+            state = 'right';
+            tag = TAG.answer;
+          }
+        } else if (chosen && isCorrect) {
+          state = 'right';
+          tag = TAG.chosenRight;
+        } else if (chosen) {
+          state = 'wrong';
+          tag = TAG.chosenWrong;
+        } else if (isCorrect) {
+          state = 'right';
+          tag = TAG.missed;
+        }
+
+        if (!state) return;
+        row.dataset.state = state;
+        const tagEl = row.querySelector<HTMLElement>('[data-tag]');
+        if (tagEl) tagEl.textContent = tag;
+        row.hidden = false;
+      });
+
+      if (fbList && rows.some((r) => !r.hidden)) response!.appendChild(fbList);
+      if (explain) response!.appendChild(explain);
+    }
+
+    function lock() {
+      inputs.forEach((i) => {
+        i.disabled = true;
+      });
+      if (free) free.readOnly = true;
+      submit!.hidden = true;
+      again!.hidden = false;
+      root.dataset.state = 'answered';
+    }
+
+    function unlock() {
+      inputs.forEach((i) => {
+        i.disabled = false;
+        i.checked = false;
+      });
+      if (free) {
+        free.readOnly = false;
+        free.value = '';
+      }
+      submit!.hidden = false;
+      again!.hidden = true;
+      root.dataset.state = 'open';
+    }
+
+    /** Put every moved node back in the store and empty the live region. */
+    function clearResponse() {
+      rows.forEach((row) => {
+        row.hidden = true;
+        delete row.dataset.state;
+        const tagEl = row.querySelector<HTMLElement>('[data-tag]');
+        if (tagEl) tagEl.textContent = '';
+      });
+      Array.from(response!.children).forEach((node) => store!.appendChild(node));
+      if (echo) echo.textContent = '';
+    }
+
+    submit.addEventListener('click', () => {
+      if (!answered()) return;
+      const selected = selection();
+      const result = grade(selected);
+      const returning = document.activeElement === submit;
+
+      const state: CheckState = {
+        answer: free ? free.value.trim() : selected,
+        /* A prediction is complete the moment it is committed. Recording it
+           as `false` would report a finished activity as a failed one in the
+           local summary, so a committed prediction counts as done. */
+        correct: type === 'predict' ? true : result === 'right',
+        attempts: (checkState(id)?.attempts ?? carriedAttempts) + 1,
+      };
+      saveCheck(id, state);
+
+      lock();
+      reveal(selected, result);
+      /* Submitting hides the button that had focus, which would drop focus
+         to the document. Hand it to the control that replaced it. */
+      if (returning) again.focus();
+    });
+
+    again.addEventListener('click', () => {
+      carriedAttempts = checkState(id)?.attempts ?? carriedAttempts;
+      resetCheck(id);
+      clearResponse();
+      unlock();
+      syncSubmit();
+      (inputs[0] ?? free)?.focus();
+    });
+
+    inputs.forEach((i) => i.addEventListener('change', syncSubmit));
+    free?.addEventListener('input', syncSubmit);
+    syncSubmit();
+
+    /* Replay a stored answer. Indices are validated against the options as
+       they are now, so an edited question cannot restore into a state that
+       no longer exists. */
+    const stored = checkState(id);
+    if (stored) {
+      if (free && typeof stored.answer === 'string') {
+        free.value = stored.answer;
+        lock();
+        reveal([], 'noted');
+      } else if (Array.isArray(stored.answer)) {
+        const selected = stored.answer.filter(
+          (i) => Number.isInteger(i) && i >= 0 && i < inputs.length
+        );
+        selected.forEach((i) => {
+          inputs[i].checked = true;
+        });
+        lock();
+        reveal(selected, grade(selected));
+      }
+    }
+
+    /* Live only from here on, so the replay above is silent. */
+    requestAnimationFrame(() => response.setAttribute('aria-live', 'polite'));
+  }
+
+  document
+    .querySelectorAll<HTMLElement>('[data-check]')
+    .forEach((el) => setup(el));
+</script>
+
+<style>
+  /* Astro scopes with :where(), leaving these at single-class specificity,
+     while theme.css styles prose elements at `.sl-markdown-content p` and
+     friends, one class plus one type, which outranks a single class. Any
+     rule below that targets an element type the article stylesheet also
+     targets is therefore written with two classes. */
+
+  .kc {
+    margin-block: var(--s-6);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    /* The UI blue, not a semantic tone: this bar says "something here is
+       yours to operate", the same thing it says in the navigation. */
+    border-inline-start: 3px solid var(--ui);
+    border-radius: var(--r-md);
+    padding: var(--s-4);
+  }
+
+  .kc .kc__head {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    margin: 0 0 var(--s-3);
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    letter-spacing: var(--tr-label);
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  /* ---- question ---- */
+
+  .kc__field {
+    /* A fieldset defaults to min-width: min-content, which stops long
+       options from wrapping inside a flex or grid parent. */
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .kc .kc__q {
+    display: block;
+    width: 100%;
+    padding: 0;
+    font-size: var(--t-body);
+    font-weight: var(--w-medium);
+    line-height: var(--lh-heading);
+    color: var(--ink);
+    text-wrap: pretty;
+  }
+
+  .kc .kc__hint {
+    margin: var(--s-2) 0 0;
+    font-size: var(--t-small);
+    color: var(--ink-muted);
+  }
+
+  /* Once the check is answered the instruction is spent, and leaving it
+     under the question competes with the feedback for attention. */
+  .kc[data-state='answered'] .kc__hint {
+    display: none;
+  }
+
+  /* ---- options ---- */
+
+  .kc__opts {
+    display: grid;
+    gap: var(--s-1);
+    margin-top: var(--s-3);
+  }
+
+  .kc__opt {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    align-items: baseline;
+    gap: var(--s-2);
+    padding: var(--s-2) var(--s-3);
+    border: var(--hairline) solid transparent;
+    border-radius: var(--r-sm);
+    font-size: var(--t-meta);
+    line-height: 1.5;
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease),
+      border-color var(--dur-fast) var(--ease);
+  }
+
+  .kc__opt:hover {
+    background: var(--surface-hover);
+  }
+
+  .kc__opt:has(.kc__input:focus-visible) {
+    background: var(--surface-hover);
+  }
+
+  /* Blue for "this is what you picked", the same meaning the blue carries
+     for an active navigation row. Not a claim about correctness. */
+  .kc__opt:has(.kc__input:checked) {
+    background: var(--ui-tint);
+    border-color: var(--ui-edge);
+  }
+
+  .kc[data-state='answered'] .kc__opt {
+    cursor: default;
+  }
+
+  .kc[data-state='answered'] .kc__opt:hover {
+    background: transparent;
+  }
+
+  .kc[data-state='answered'] .kc__opt:has(.kc__input:checked) {
+    background: var(--ui-tint);
+  }
+
+  /* A restyled native control, never a replaced one: `accent-color` keeps
+     the platform's own checked, focused and disabled rendering. */
+  .kc__input {
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    accent-color: var(--ui);
+    /* Baseline-align a replaced element with the text beside it. */
+    transform: translateY(0.12em);
+    flex: none;
+  }
+
+  /* Disabled must not mean unreadable: the text keeps full contrast once the
+     answer is locked, because that is when it is being re-read. */
+  .kc__input:disabled {
+    opacity: 1;
+  }
+
+  .kc__opt-key {
+    font-size: var(--t-small);
+    font-weight: var(--w-semibold);
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .kc__opt-text {
+    color: var(--ink);
+    min-width: 0;
+  }
+
+  /* ---- free-text prediction ---- */
+
+  .kc__free {
+    margin-top: var(--s-3);
+  }
+
+  .kc__free-label {
+    display: block;
+    margin-bottom: var(--s-1);
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    letter-spacing: var(--tr-label);
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .kc__free-input {
+    display: block;
+    width: 100%;
+    padding: var(--s-2) var(--s-3);
+    border: var(--hairline) solid var(--rule-strong);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: var(--t-meta);
+    line-height: var(--lh-body);
+    resize: vertical;
+  }
+
+  .kc__free-input:read-only {
+    background: var(--surface-sunken);
+    color: var(--ink);
+  }
+
+  /* ---- actions ---- */
+
+  .kc__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-2);
+    margin-top: var(--s-4);
+  }
+
+  /* `.btn` sets a display, which outranks the user-agent rule behind the
+     `hidden` attribute, so a hidden button has to be told to go away. */
+  .kc .kc__actions [hidden] {
+    display: none;
+  }
+
+  /* ---- response ---- */
+
+  .kc__response:not(:empty) {
+    margin-top: var(--s-4);
+    padding-top: var(--s-4);
+    border-top: var(--hairline) solid var(--rule);
+  }
+
+  .kc .kc__verdict {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    margin: 0;
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+  }
+
+  /* Correct is reward green, not-yet is conflict red, a recorded prediction
+     is comm cyan, the same meanings those tones carry in the diagrams. The
+     icon and the wording say it too; the colour only agrees with them. */
+  .kc__verdict[data-verdict='right'] {
+    color: var(--c-reward-ink);
+  }
+
+  .kc__verdict[data-verdict='partial'],
+  .kc__verdict[data-verdict='wrong'] {
+    color: var(--c-conflict-ink);
+  }
+
+  .kc__verdict[data-verdict='noted'] {
+    color: var(--c-comm-ink);
+  }
+
+  /* ---- echoed prediction ---- */
+
+  .kc__echo {
+    margin-top: var(--s-3);
+    padding: var(--s-2) var(--s-3);
+    border-inline-start: 2px solid var(--c-comm);
+    background: var(--c-comm-tint);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  }
+
+  .kc .kc__echo-label {
+    margin: 0 0 var(--s-1);
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    letter-spacing: var(--tr-label);
+    text-transform: uppercase;
+    color: var(--c-comm-ink);
+  }
+
+  .kc .kc__echo-text {
+    margin: 0;
+    font-size: var(--t-meta);
+    line-height: var(--lh-body);
+    color: var(--ink);
+    white-space: pre-wrap;
+  }
+
+  /* ---- per-option feedback ---- */
+
+  .kc__fb {
+    display: grid;
+    gap: var(--s-3);
+    margin-top: var(--s-3);
+  }
+
+  .kc__fb-row {
+    padding-inline-start: var(--s-3);
+    border-inline-start: 2px solid var(--rule-strong);
+  }
+
+  .kc__fb-row[data-state='right'] {
+    border-inline-start-color: var(--c-reward);
+  }
+
+  .kc__fb-row[data-state='wrong'] {
+    border-inline-start-color: var(--c-conflict);
+  }
+
+  .kc__fb-row[data-state='noted'] {
+    border-inline-start-color: var(--c-comm);
+  }
+
+  .kc .kc__fb-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-2);
+    margin: 0;
+    font-size: var(--t-meta);
+    line-height: 1.45;
+    color: var(--ink);
+  }
+
+  /* Three marks are rendered for every row and the state chooses one, so
+     the SVG never has to be built in the browser. */
+  .kc__fb-mark {
+    display: none;
+    transform: translateY(0.15em);
+  }
+
+  .kc__fb-row[data-state='right'] .kc__fb-mark--right {
+    display: block;
+    color: var(--c-reward-ink);
+  }
+
+  .kc__fb-row[data-state='wrong'] .kc__fb-mark--wrong {
+    display: block;
+    color: var(--c-conflict-ink);
+  }
+
+  .kc__fb-row[data-state='noted'] .kc__fb-mark--noted {
+    display: block;
+    color: var(--c-comm-ink);
+  }
+
+  .kc__fb-key {
+    font-size: var(--t-small);
+    font-weight: var(--w-semibold);
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .kc__fb-text {
+    font-weight: var(--w-medium);
+  }
+
+  .kc__fb-tag {
+    font-size: var(--t-micro);
+    letter-spacing: 0.02em;
+    color: var(--ink-muted);
+    white-space: nowrap;
+  }
+
+  .kc .kc__fb-why {
+    margin: var(--s-1) 0 0;
+    font-size: var(--t-meta);
+    line-height: var(--lh-loose);
+    color: var(--ink-muted);
+  }
+
+  /* ---- explanation ---- */
+
+  .kc__explain {
+    margin-top: var(--s-4);
+    padding-top: var(--s-3);
+    border-top: var(--hairline) solid var(--rule);
+  }
+
+  .kc .kc__explain-label {
+    margin: 0 0 var(--s-2);
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    letter-spacing: var(--tr-label);
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .kc .kc__explain-text,
+  .kc .kc__explain :global(p) {
+    margin-block: var(--s-3);
+    font-size: var(--t-meta);
+    line-height: var(--lh-loose);
+    color: var(--ink);
+  }
+
+  .kc .kc__explain :global(> :first-child) {
+    margin-top: 0;
+  }
+
+  .kc .kc__explain :global(> :last-child) {
+    margin-bottom: 0;
+  }
+
+  /* ---- touch ---- */
+
+  @media (pointer: coarse) {
+    .kc__opt {
+      padding-block: var(--s-3);
+    }
+  }
+
+  /* An answered check prints with its feedback; an unanswered one prints as
+     the question, which is what an instructor handing out a section wants. */
+  @media print {
+    .kc {
+      break-inside: avoid;
+    }
+
+    .kc__actions {
+      display: none;
+    }
+  }
+</style>

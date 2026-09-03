@@ -1,0 +1,210 @@
+---
+title: "Communication in Cooperative MARL"
+description: "How decentralized agents use communication to reduce information asymmetry while preserving local action selection."
+related:
+  - slug: communicate/messages
+    icon: lightbulb
+  - slug: background/partial-observability
+    icon: cycle
+  - slug: coordinate/ctde
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KitchenScene from '../../../components/diagrams/KitchenScene.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+When can talking improve a decision that still has to be made locally?
+</Callout>
+
+Communication addresses information asymmetry: cooperative agents may need one another's private observations or intentions to choose compatible actions.
+
+<Objectives>
+
+- Define information asymmetry in a cooperative team
+- Explain which coordination failures local information alone cannot fix
+- Distinguish communication at execution from centralized training
+- Treat an incoming message as an input to a policy
+
+</Objectives>
+
+## Information Asymmetry
+
+Back to the kitchen, with the partition up.
+
+<KitchenScene divided>
+Agent 1 can see the order ticket. Agent 2 can see the stove. Neither can see
+the other's half.
+</KitchenScene>
+
+Agent 1 knows the next order is soup. Agent 2 knows the current dish is nearly
+done. Both are maximising the same team reward, and **neither knows the thing
+the other knows**.
+
+This is not simply partial observability. *Partial Observability*
+established that an agent's view is a crop of the truth, and that some states
+are indistinguishable from inside. That is a statement about one agent's
+ignorance.
+
+The multi-agent version is sharper, and it is the premise of this chapter:
+
+<Callout variant="takeaway">
+**Another agent may already possess information that would improve my
+decision.**
+
+The information is not missing from the system. It is merely in the wrong
+place.
+</Callout>
+
+That distinction changes what a solution can look like. If nobody knows the
+thing, an agent has to infer it, or hedge, or accept the loss. If a *partner*
+knows it, there is a third option: ask, or be told.
+
+## Coordination Under Local Information
+
+Without communication, coordinated behaviour has to come from somewhere.
+the Coordinate chapter used all of these, mostly without naming them:
+
+- **local observations**, react to what you can see,
+- **memory**, an agent's own history disambiguates its current view,
+- **learned conventions**, fixed role assignments that happen to fit
+  together, like agent 1 always fetching,
+- **predictability**, modelling what a partner tends to do, which works
+  precisely while the partner is stable.
+
+Communication adds a fifth source, and it is the only one that moves
+information *between* agents at execution time.
+
+But it is worth setting the bar immediately, because this chapter can very
+easily degenerate into "more messages are better".
+
+<Callout variant="pitfall">
+**Communication is useful only when it provides information that changes a
+useful decision.**
+
+Three ways a message earns nothing:
+
+- the receiver **already knew** it,
+- the receiver **cannot act** differently on it,
+- the receiver **would have chosen the same action** either way.
+
+A protocol that transmits a great deal and changes no decisions has cost
+bandwidth and bought nothing. *Message Content* turns this into a design question
+and *Communication Failures* into a failure mode.
+</Callout>
+
+## Communication and Centralized Training
+
+This distinction deserves its own section, because the Coordinate chapter just spent four
+sections on CTDE and the two ideas are easy to run together.
+
+Under **CTDE**, extra information $z_t$ is available to the *learning
+algorithm*. It shapes gradients during training and is gone at deployment. The
+deployed policy is a function of local information alone.
+
+Under **communication**, one agent sends something another agent uses *while
+acting*. It exists at deployment, by definition. That is the whole point of
+it.
+
+<div class="table-scroll">
+
+| | Centralized training (CTDE) | Communication |
+| --- | --- | --- |
+| When is the information used? | during **training** | during **execution** |
+| Who consumes it? | the learning algorithm | another **agent's policy** |
+| Does it survive deployment? | no | **yes** |
+| Does it need a channel? | no | yes, with capacity, delay, loss |
+| Does it cost anything at run time? | nothing | bandwidth, energy, airtime |
+</div>
+
+<Callout tone="observe" title="A test that settles it" icon="compass">
+Take your trained system, remove the radios from the deployed agents, and run
+it.
+
+If it still works, the mechanism was **CTDE**. If it breaks, it was
+**communication**.
+</Callout>
+
+The two also compose, and most modern systems use both: centralized training
+to learn *what to say*, and a channel at execution to say it. the Adapt chapter's
+research connection is a good example, the protocol is learned with
+centralized help and then has to survive on its own.
+
+## Messages as Decision Inputs
+
+One more boundary before the formalism. A message does not directly change the
+environment.
+
+If agent 1 says "soup next", the stove does not get hotter and no tomato
+moves. The kitchen is exactly as it was. What changes is what agent 2
+*knows*, and therefore what agent 2 may choose to do next, and only then,
+through agent 2's action, does the kitchen change.
+
+<Equation
+  label="Figure 1"
+  wide
+  tex={String.raw`\tone{action}{\text{environment action}} \longrightarrow \tone{observe}{\text{the kitchen}} \qquad\qquad \tone{comm}{\text{message}} \longrightarrow \tone{policy}{\text{a partner's decision}}`}
+  terms={[
+    { tex: String.raw`\text{environment action}`, is: 'changes the environment through the transition function', tone: 'action' },
+    { tex: String.raw`\text{message}`, is: 'changes information available to another policy', tone: 'comm' },
+  ]}
+  caption="Environmental actions change state; messages change another agent\u2019s decision input."
+/>
+
+This is why communication can be modelled as an extra action with an unusual
+property: other agents observe it, and the state does not depend on it. The
+next section makes that precise.
+
+<KnowledgeCheck
+  id="cm-2-1-ctde-vs-comm"
+  type="choice"
+  question="A team trains with a critic that sees every agent's observation. At deployment, each agent acts on its own observation and sends nothing. Is this communication?"
+  options={[
+    {
+      text: 'No. The shared information was used only by the learning algorithm and is gone at deployment, so this is CTDE.',
+      correct: true,
+      feedback: 'Correct. Apply the radio test: remove the radios and nothing changes, because nothing was being transmitted. The critic saw everything during training and no longer exists.',
+    },
+    {
+      text: 'Yes. Information from all agents was combined, so they communicated.',
+      correct: false,
+      feedback: 'Information was combined by the trainer, not sent between agents. Communication is about what one agent gives another while acting. It must survive deployment and needs a channel.',
+    },
+    {
+      text: 'Yes, because the critic effectively relayed each agent’s observations to the others.',
+      correct: false,
+      feedback: 'The critic influenced the parameters of every policy, which is real, but no agent receives anything at run time. A policy shaped by information is not a policy that has that information.',
+    },
+    {
+      text: 'It depends on whether the agents could have communicated if needed.',
+      correct: false,
+      feedback: 'Capability is irrelevant. What matters is whether the deployed system transmits anything, and here it does not.',
+    },
+  ]}
+>
+This question comes up constantly in practice, and the radio test settles it
+every time.
+</KnowledgeCheck>
+
+## Communication in Cooperative MARL Summary
+
+- Partners suffer **information asymmetry**: each holds something the other
+  could use. The information is in the system, in the wrong place.
+- Without a channel, coordination relies on local observations, memory,
+  learned conventions and partner predictability.
+- **Communication is useful only when it changes a useful decision.** Messages
+  the receiver already knew, cannot act on, or would ignore earn nothing.
+- **CTDE is not communication.** Centralized information is consumed by the
+  learning algorithm and disappears; a message is consumed by another agent's
+  policy at execution and needs a channel.
+- The radio test: remove the radios from the deployed system. If it still
+  works, it was CTDE.
+- A message does not change the environment. It changes what a partner knows,
+  and so what a partner might do.

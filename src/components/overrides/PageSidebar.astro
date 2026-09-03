@@ -1,0 +1,159 @@
+---
+/**
+ * PAGE SIDEBAR
+ *
+ * Starlight's table of contents, plus an authored "Related" panel.
+ *
+ * Related links come from page frontmatter rather than being inferred. An
+ * inferred list would be guessing at conceptual adjacency, and pointing a
+ * learner at the wrong section costs more than showing them nothing.
+ */
+import MobileTableOfContents from 'virtual:starlight/components/MobileTableOfContents';
+import TableOfContents from 'virtual:starlight/components/TableOfContents';
+import { findPage } from '../../lib/nav';
+import Icon from '../ui/Icon.astro';
+
+const { toc, entry } = Astro.locals.starlightRoute;
+const raw = (entry.data as { related?: (string | { slug: string; icon?: string })[] })
+  .related;
+
+/** Default icon per destination area, so an author need not specify one. */
+const AREA_ICON: Record<string, string> = {
+  Background: 'book',
+  Coordinate: 'lightbulb',
+  Communicate: 'lightbulb',
+  Adapt: 'chart',
+  Lab: 'beaker',
+  Project: 'flag',
+  Resources: 'book',
+  Start: 'compass',
+};
+
+const related = (raw ?? [])
+  .map((item) => {
+    const slug = typeof item === 'string' ? item : item.slug;
+    const icon = typeof item === 'string' ? undefined : item.icon;
+    const page = findPage(slug);
+    if (!page) {
+      console.warn(
+        `[PageSidebar] related slug "${slug}" on "${entry.id}" is not in src/lib/nav.ts`
+      );
+      return null;
+    }
+    return {
+      href: `/${page.slug}/`,
+      title: page.title,
+      number: page.number,
+      icon: icon ?? AREA_ICON[page.section.short] ?? 'book',
+    };
+  })
+  .filter((x): x is NonNullable<typeof x> => x !== null);
+---
+
+{
+  toc && (
+    <div class="lg:sl-hidden">
+      <MobileTableOfContents />
+    </div>
+  )
+}
+
+<div class="rs sl-hidden lg:sl-block">
+  {
+    toc && (
+      <div class="rs__panel">
+        <TableOfContents />
+      </div>
+    )
+  }
+
+  {
+    related.length > 0 && (
+      <div class="rs__panel rs__panel--related">
+        <h2 class="rs__heading">Related</h2>
+        <ul class="rel">
+          {related.map((r) => (
+            <li>
+              <a href={r.href}>
+                <Icon name={r.icon} size={15} class="rel__icon" />
+                <span class="rel__text">
+                  {r.number && <span class="rel__num">{r.number}</span>}
+                  {r.title}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+</div>
+
+<style>
+  .rs {
+    padding: var(--s-6) var(--s-4) var(--s-8);
+  }
+
+  .rs__panel + .rs__panel {
+    margin-top: var(--s-5);
+    padding-top: var(--s-5);
+    border-top: var(--hairline) solid var(--rule);
+  }
+
+  .rs__heading {
+    margin: 0 0 var(--s-3);
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    letter-spacing: var(--tr-label);
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .rel {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--s-1);
+  }
+
+  .rel li {
+    margin: 0;
+  }
+
+  .rel a {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-2);
+    padding: 0.3rem var(--s-2);
+    margin-inline: calc(var(--s-2) * -1);
+    border-radius: var(--r-sm);
+    font-size: var(--t-meta);
+    line-height: 1.4;
+    color: var(--ink-muted);
+    text-decoration: none;
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease);
+  }
+
+  .rel a:hover {
+    background: var(--surface-hover);
+    color: var(--ink);
+  }
+
+  .rel__icon {
+    margin-top: 0.15rem;
+    color: var(--ui);
+  }
+
+  .rel__num {
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+    margin-inline-end: 0.3rem;
+  }
+
+  .rel__text {
+    min-width: 0;
+  }
+</style>

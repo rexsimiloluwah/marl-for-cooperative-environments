@@ -1,0 +1,195 @@
+---
+title: "Communicate Worksheet"
+description: "Five concise activities on communication mechanisms, capacity, cost, message loss, and protocol trade-offs."
+related:
+  - slug: communicate/lab
+    icon: beaker
+  - slug: communicate/communication-failures
+    icon: cycle
+  - slug: adapt/partner-dependence
+    icon: users-round
+---
+
+import Question from '../../../components/worksheet/Question.astro';
+import Match from '../../../components/worksheet/Match.astro';
+import Explore from '../../../components/worksheet/Explore.astro';
+import Objectives from '../../../components/worksheet/Objectives.astro';
+import AnswerKey from '../../../components/worksheet/AnswerKey.astro';
+import Answer from '../../../components/worksheet/Answer.astro';
+import Callout from '../../../components/ui/Callout.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+This five-part digital activity consolidates the chapter's communication
+concepts. You will match mechanisms to their applications, calculate the
+capacity of a discrete message and the effect of communication cost, then use
+an interactive graph to analyze how message loss changes task performance.
+The final prompt asks you to trade task success against bandwidth use. Every
+item except that short design judgment is automatically checkable.
+
+<Objectives items={[
+  'Match communication mechanisms and constraints to their roles in MARL. <strong>Understand</strong>',
+  'Calculate message capacity and communication-adjusted rewards. <strong>Apply</strong>',
+  'Interpret how communication reliability affects cooperative performance. <strong>Analyse</strong>',
+  'Evaluate the trade-off between communication and task performance. <strong>Evaluate</strong>',
+]} />
+
+## 1 · Match Mechanisms to Applications
+
+<Match
+  id="cm-ws-match"
+  blocks={['Discrete message', 'Continuous message', 'Message loss', 'Communication range', 'Communication cost']}
+  items={[
+    { text: 'An agent chooses one symbol from $\\{0, 1, 2, 3\\}$.', block: 0 },
+    { text: 'A message is received only by nearby agents.', block: 3 },
+    { text: 'A sent message may never arrive.', block: 2 },
+    { text: 'The reward is reduced whenever an agent sends information.', block: 4 },
+    { text: 'An agent sends a learned real-valued vector.', block: 1 },
+  ]}
+/>
+
+## 2 · Calculate Message Capacity
+
+For a $b$-bit message, $|\mathcal{M}| = 2^b$.
+
+<Question id="cm-ws-cap1" n="2.1" numeric={8} notes={false} unit="distinct messages">
+A channel allows **3 bits** per message. How many distinct messages can it
+represent?
+</Question>
+
+<Question id="cm-ws-cap2" n="2.2" numeric={4} notes={false} unit="bits">
+You need at least **16** distinct messages. What is the minimum number of bits
+required?
+
+<Fragment slot="hint">
+Find the smallest $b$ with $2^b \geq 16$.
+</Fragment>
+</Question>
+
+<Question id="cm-ws-cap3" n="2.3" numeric={2} notes={false} unit="situations per message">
+A team needs to distinguish 8 situations but has only 2 bits. On average, how
+many situations must share each message?
+
+<Fragment slot="hint">
+Two bits give four messages. A narrow channel does not shorten descriptions,
+it merges situations.
+</Fragment>
+</Question>
+
+## 3 · Calculate Communication Cost
+
+A cost term charges the team for talking: $r'_t = r_t - \lambda c_t$.
+
+<Question id="cm-ws-cost1" n="3.1" numeric={8} notes={false}>
+With $r_t = 10$, $\lambda = 0.5$ and $c_t = 4$, calculate $r'_t$.
+</Question>
+
+<Question id="cm-ws-cost2" n="3.2" numeric={6} notes={false}>
+Now raise the price to $\lambda = 1$, keeping $r_t = 10$ and $c_t = 4$.
+</Question>
+
+<Question id="cm-ws-cost3" n="3.3" numeric={2.5} tolerance={0.05} notes={false} unit="bits">
+At $\lambda = 1$, how many bits could the team afford before the four sent
+bits stop being worth it, if those bits raise $r_t$ from 7.5 to 10?
+
+<Fragment slot="hint">
+The messages bought 2.5 of task reward. At a price of 1 per bit, how many bits
+does 2.5 pay for?
+</Fragment>
+</Question>
+
+## 4 · Explore Message Loss and Performance
+
+Measured on the Communication Lab task: four dishes, four symbols, two tabular
+learners, 20 seeds, 8000 evaluation trials each.
+
+<Explore
+  id="cm-ws-loss"
+  kind="line"
+  labels={['0', '10', '20', '30', '40', '50']}
+  values={[1.0, 0.924, 0.849, 0.773, 0.695, 0.611]}
+  xLabel="Message loss (%)"
+  yLabel="Task success"
+  slider
+  readout="{x}% loss → success {y}"
+/>
+
+<Question id="cm-ws-loss1" n="4.1" numeric={30} notes={false} unit="% loss">
+At what message-loss rate does success first fall below 0.80?
+</Question>
+
+<Question id="cm-ws-loss2" n="4.2" numeric={30.5} tolerance={1} notes={false} unit="percentage points">
+By how many percentage points does success fall between 0% and 40% loss?
+</Question>
+
+## 5 · Evaluate a Communication Trade-off
+
+> **Protocol A** achieves 94% task success and sends 20 messages per episode.
+>
+> **Protocol B** achieves 91% success and sends 6 messages per episode.
+
+<Question id="cm-ws-decide" n="5.1" rows={4} placeholder="Two or three sentences.">
+Which would you choose for a bandwidth-constrained robot system, and why?
+</Question>
+
+<AnswerKey>
+
+<Answer n="1">
+Discrete message · communication range · message loss · communication cost ·
+continuous message, matched to the descriptions in order.
+</Answer>
+
+<Answer n="2.1">
+$2^3 = 8$.
+</Answer>
+
+<Answer n="2.2">
+**4** bits. $2^4 = 16$; three bits give only 8.
+</Answer>
+
+<Answer n="2.3">
+Two bits give 4 messages for 8 situations, so **2** situations share each
+message. The receiver disambiguates from context, and where it cannot, the
+team pays for the merge.
+</Answer>
+
+<Answer n="3.1">
+$10 - 0.5 \times 4 = 8$.
+</Answer>
+
+<Answer n="3.2">
+$10 - 1 \times 4 = 6$.
+</Answer>
+
+<Answer n="3.3">
+The messages bought $10 - 7.5 = 2.5$ of task reward, which at a price of 1 per
+bit pays for **2.5 bits**. Sending 4 costs 4 and returns 2.5, so those
+messages lose the team 1.5 per step.
+</Answer>
+
+<Answer n="4.1">
+**30%**, where success is 0.773. At 20% it is still 0.849.
+</Answer>
+
+<Answer n="4.2">
+$1.000 - 0.695 = 0.305$, about **30.5** percentage points.
+</Answer>
+
+<Answer n="5.1">
+No single right answer.
+
+**B is the better default.** It gives up 3 points of success and sends 70%
+fewer messages. Under a bandwidth constraint these are not comparable
+currencies: 3 points is a small bounded loss, while 20 messages per episode
+may simply not fit, making A's 94% unavailable rather than expensive.
+
+**A is defensible** if the channel carries it and the task is
+failure-sensitive.
+
+A strong answer notes what the table omits: behaviour under **message loss**.
+A protocol sending 20 messages has redundancy; one sending 6 may need every
+one to arrive.
+</Answer>
+
+</AnswerKey>

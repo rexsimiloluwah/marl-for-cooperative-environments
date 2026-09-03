@@ -1,0 +1,219 @@
+---
+title: "The Dec-POMDP Framework"
+description: "The components, interaction sequence, and joint-policy objective of a cooperative Dec-POMDP."
+related:
+  - slug: coordinate/coordination
+    icon: compass
+  - slug: coordinate/coordination
+    icon: chart
+  - slug: resources/references
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import StepAnatomy from '../../../components/diagrams/StepAnatomy.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+Which formal pieces are needed to state a cooperative problem precisely?
+</Callout>
+
+A decentralized partially observable Markov decision process, or Dec-POMDP, is the standard model for cooperative agents that act from local information and receive a shared reward.
+
+<Objectives>
+
+- List the components of a Dec-POMDP
+- Follow one complete interaction step through the model
+- State the joint-policy objective
+- Map the cooperative kitchen into the framework
+
+</Objectives>
+
+## Dec-POMDP Components
+
+<Equation
+  label="Figure 1"
+  wide
+  tex={String.raw`\mathcal{M} = \bigl\langle\, \tone{policy}{\mathcal{N}},\ \tone{observe}{\mathcal{S}},\ \tone{action}{\{\mathcal{A}_\ag\}},\ P,\ \tone{reward}{R},\ \tone{observe}{\{\Omega_\ag\}},\ \tone{observe}{\{O_\ag\}},\ \mu,\ \gamma \,\bigr\rangle`}
+  terms={[
+    { tex: String.raw`\mathcal{N}`, is: 'the agents, the deciders', tone: 'policy' },
+    { tex: String.raw`\mathcal{S}`, is: 'the states, what can be true', tone: 'observe' },
+    { tex: String.raw`\{\mathcal{A}_\ag\}`, is: 'each agent’s own action set', tone: 'action' },
+    { tex: String.raw`P`, is: 'the transition function, defined on the joint action' },
+    { tex: String.raw`R`, is: 'the one reward function every agent shares', tone: 'reward' },
+    { tex: String.raw`\{\Omega_\ag\}`, is: 'each agent’s set of possible observations', tone: 'observe' },
+    { tex: String.raw`\{O_\ag\}`, is: 'each agent’s observation function, mapping a state to what it sees', tone: 'observe' },
+    { tex: String.raw`\mu`, is: 'the distribution episodes start from' },
+    { tex: String.raw`\gamma`, is: 'the discount factor' },
+  ]}
+  caption="A decentralized partially observable Markov decision process. Everything you have met, in one tuple."
+/>
+
+That is a <Term tone="policy">Dec-POMDP</Term>, and it is the standard model
+for a cooperative multi-agent problem. Presentations of it vary in small ways, some fold $\mu$ into $\mathcal{S}$, some write a single observation function
+instead of one per agent, so expect minor differences between papers rather
+than assuming you have misread one.
+
+Read the acronym backwards and it tells you its own history.
+
+**MDP.** A Markov decision process: states, actions, a transition rule, a
+reward, a discount. Sutton and Barto's subject, and *Reinforcement Learning*.
+
+**PO-MDP.** *Partially observable.* Add observation sets and observation
+functions, and the agent no longer sees the state.
+
+**Dec-POMDP.** *Decentralized.* Add more agents, each with its own actions and
+its own observations, all sharing one reward function, and crucially, no
+central decider. The team's behaviour is produced by separate policies.
+
+<Callout tone="observe" title="Where it sits" icon="compass">
+Drop the shared reward and give each agent its own $R_\ag$ and you have a
+**partially observable stochastic game**, which covers competitive and mixed
+settings too. Keep the shared reward but let every agent see the state and you
+have a **multi-agent MDP**. The Dec-POMDP is the corner of that space where
+interests are identical and information is not shared, which is precisely the
+interesting cooperative case.
+</Callout>
+
+## A Complete Dec-POMDP Step
+
+Here is the whole model running for a single step.
+
+<StepAnatomy agents={3} />
+
+Follow it left to right. There is one state. Each agent's observation function
+produces its own observation from that state. Each agent's policy turns its
+own observation into its own action, with no access to the others' choices.
+Those actions combine into one joint action. The environment consumes it
+**once**, and returns a next state and a single team reward that everybody
+receives.
+
+Every difficulty in this resource is visible in that picture. The narrowing at
+each agent's observation is partial observability. The convergence at the
+joint action is interdependence. The single reward coming back out, undivided,
+is credit assignment.
+
+## The Joint-Policy Objective
+
+The goal is stated on the joint policy, because there is nothing smaller to
+state it on.
+
+<Equation
+  label="Figure 2"
+  wide
+  tex={String.raw`\boldsymbol{\pi}^{*} = \arg\max_{\boldsymbol{\pi}} \; \E_{\boldsymbol{\pi}}\Bigl[\; \cbox{reward}{\sum_{t=0}^{T} \gamma^{t}\, \rew} \;\Bigr]`}
+  terms={[
+    { tex: String.raw`\boldsymbol{\pi}^{*}`, is: 'the best joint policy: one local policy per agent', tone: 'policy' },
+    { tex: String.raw`\arg\max_{\boldsymbol{\pi}}`, is: 'maximise over the whole bundle at once, not one agent at a time' },
+    { tex: String.raw`\sum \gamma^{t} \rew`, is: 'the discounted team return of an episode', tone: 'reward' },
+  ]}
+  caption="One objective, maximised over every agent's policy simultaneously."
+/>
+
+Note what is being searched over. Not a single policy but a *tuple* of them,
+and every element must be a function of its own agent's local information
+only. So the problem the rest of this resource works on is:
+
+> **Find decentralized policies that produce strong team behaviour despite
+> interdependent actions and incomplete information.**
+
+Both halves of that sentence are constraints. Drop "decentralized" and it
+becomes an ordinary, if large, single-agent problem. Drop "incomplete
+information" and coordination gets dramatically easier.
+
+## The Kitchen as a Dec-POMDP
+
+The model is abstract; the kitchen has been concrete throughout. Here they
+are side by side, which is the point of having carried one example the whole
+way.
+
+<div class="table-scroll">
+
+| Piece | In the kitchen |
+| --- | --- |
+| $\mathcal{N}$ | $\{1, 2\}$, two agents |
+| $\mathcal{S}$ | every configuration of positions, ingredients, stove and order |
+| $\mathcal{A}_\ag$ | move, pick up, put down, prepare, interact |
+| $P$ | what the kitchen does given **both** agents' actions |
+| $R$ | one payment when an order is served, to both agents |
+| $\Omega_\ag$ | the views an agent can have of its own surroundings |
+| $O_\ag$ | the crop: nearby counter, what it holds, a nearby partner, the ticket |
+| $\mu$ | a fresh kitchen with a new order |
+| $\gamma$ | how much a served order later is worth now |
+</div>
+
+Nothing in the left column was invented to fit the right. The kitchen was
+always this object; we just had not written it down.
+
+<Callout variant="takeaway">
+The value of the Dec-POMDP abstraction is transfer. Domains with different
+physical objects can share the same structure of local observations, joint
+actions, state transitions, and common rewards. A coordination or credit
+assignment argument stated at this level is therefore not tied to the kitchen.
+</Callout>
+
+<KnowledgeCheck
+  id="bg-1-8-reduction"
+  type="choice"
+  question="Which single change would turn a Dec-POMDP into an ordinary single-agent POMDP?"
+  options={[
+    {
+      text: 'One controller receives every agent’s observation and selects the whole joint action.',
+      correct: true,
+      feedback: 'Correct. With one decider holding all the observations and choosing the joint action, there is a single policy over a single (large) action space, and the decentralization constraint is gone. This is the central-learning reduction, and it is exactly what *Centralized and Decentralized Learning* examines, along with why the exponential joint action space makes it impractical.',
+    },
+    {
+      text: 'Every agent is given the full state.',
+      correct: false,
+      feedback: 'That removes the partial observability, giving a multi-agent MDP. It does not remove the multi-agent part: several agents still choose separately and simultaneously, so coordination is still required.',
+    },
+    {
+      text: 'Reduce the number of agents to two.',
+      correct: false,
+      feedback: 'Two agents is still multi-agent, and this chapter has used two throughout precisely because two is already enough for every difficulty to appear. Agent count changes the size of the joint action space, not the kind of problem.',
+    },
+    {
+      text: 'Give each agent its own reward function.',
+      correct: false,
+      feedback: 'That goes the other way: it drops the common reward and gives you a partially observable stochastic game, which is a more general and harder setting rather than a single-agent one.',
+    },
+  ]}
+>
+Knowing what would make the problem easy is a good way to see what actually
+makes it hard.
+</KnowledgeCheck>
+
+## Dec-POMDP Summary
+
+- A cooperative multi-agent problem is a **Dec-POMDP**: agents, states,
+  per-agent actions, a joint transition rule, **one shared reward**,
+  per-agent observations and observation functions, a start distribution and a
+  discount.
+- The name decomposes: **MDP** → **partially observable** → **decentralized**.
+- One step: one state, one observation per agent, one action per agent, one
+  joint action, one transition, one shared reward.
+- The objective is over the **joint policy**, with every component restricted
+  to local information: find decentralized policies that work well together
+  despite interdependence and incomplete information.
+- Different cooperative domains can share the same Dec-POMDP structure.
+
+## Further reading
+
+The standard reference is **Multi-Agent Reinforcement Learning: Foundations
+and Modern Approaches** by Stefano V. Albrecht, Filippos Christianos and Lukas
+Schäfer (MIT Press, 2024), free at
+[marl-book.com](https://www.marl-book.com). Its Chapter 3 develops the game
+models this section places us among, and its Chapter 4 covers the solution
+concepts the Coordinate chapter will need.
+
+For a compact survey of the same ground alongside single-agent RL, Chapter 5
+of **Reinforcement Learning: A Comprehensive Overview** by Kevin P. Murphy
+([arXiv:2412.05265](https://arxiv.org/abs/2412.05265)) covers multi-agent RL
+in eighteen pages, with a figure of the game hierarchy that is the quickest
+single picture of where a Dec-POMDP sits.

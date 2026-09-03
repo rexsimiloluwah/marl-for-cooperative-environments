@@ -1,0 +1,336 @@
+---
+/**
+ * EXPLORE
+ *
+ * A small chart the learner drags a slider through, so a relationship is
+ * something they move rather than a figure they look at.
+ *
+ * Three shapes cover every worksheet: `bars` for a quantity that explodes,
+ * `line` for a trend, and `grouped` for comparing two measures across a few
+ * named cases. All of them take their data as a prop, so nothing here
+ * computes a result and nothing can quietly become a claim.
+ */
+interface Series {
+  name: string;
+  values: number[];
+}
+interface Props {
+  /** Stable id, so two explorers on one page do not collide. */
+  id: string;
+  kind?: 'bars' | 'line' | 'grouped';
+  /** Category labels along the x axis. */
+  labels: string[];
+  /** Single-series data, for bars and line. */
+  values?: number[];
+  /** Multi-series data, for grouped. */
+  series?: Series[];
+  xLabel: string;
+  yLabel: string;
+  /** Show a slider that steps through the categories. */
+  slider?: boolean;
+  /**
+   * Readout template. `{x}` becomes the category label, `{y}` the value,
+   * formatted with thousands separators.
+   */
+  readout?: string;
+}
+const {
+  id,
+  kind = 'bars',
+  labels,
+  values = [],
+  series = [],
+  xLabel,
+  yLabel,
+  slider = false,
+  readout = '{x} → {y}',
+} = Astro.props;
+
+if (!/^[a-z0-9-]+$/.test(id)) {
+  throw new Error(`<Explore> needs a kebab-case id, got "${id}".`);
+}
+const grouped = kind === 'grouped';
+if (grouped && !series.length) {
+  throw new Error(`<Explore id="${id}"> kind="grouped" needs series.`);
+}
+if (!grouped && values.length !== labels.length) {
+  throw new Error(`<Explore id="${id}"> needs one value per label.`);
+}
+
+/* ---- geometry ---- */
+const W = 640;
+const H = 300;
+/* Left padding fits a seven-figure tick label plus the rotated axis title. */
+const PAD = { t: 18, r: 16, b: 52, l: 84 };
+const plotW = W - PAD.l - PAD.r;
+const plotH = H - PAD.t - PAD.b;
+
+const all = grouped ? series.flatMap((s) => s.values) : values;
+const yMax = Math.max(...all, 0);
+const yMin = Math.min(...all, 0);
+const span = yMax - yMin || 1;
+const y = (v: number) => PAD.t + plotH - ((v - yMin) / span) * plotH;
+
+const n = labels.length;
+const band = plotW / n;
+const cx = (i: number) => PAD.l + band * (i + 0.5);
+
+/* Bar widths: a grouped chart splits its band between the series. */
+const barW = grouped ? (band * 0.7) / series.length : band * 0.62;
+
+/* Four gridlines is enough to read a value off without becoming a table. */
+const ticks = Array.from({ length: 5 }, (_, k) => yMin + (span * k) / 4);
+const fmt = (v: number) =>
+  Math.abs(v) >= 1000 ? Math.round(v).toLocaleString('en-US') : String(+v.toFixed(1));
+
+const TONES = ['observe', 'reward', 'action'];
+---
+
+<explore-chart
+  class="xp not-content"
+  data-xp={id}
+  data-labels={JSON.stringify(labels)}
+  data-values={JSON.stringify(grouped ? series.map((s) => s.values) : [values])}
+  data-names={JSON.stringify(grouped ? series.map((s) => s.name) : [yLabel])}
+  data-readout={readout}
+>
+  {
+    grouped && (
+      <ul class="xp__key">
+        {series.map((s, k) => (
+          <li class={`xp__keyItem xp__keyItem--${TONES[k % TONES.length]}`}>{s.name}</li>
+        ))}
+      </ul>
+    )
+  }
+
+  <div class="xp__frame">
+    <svg viewBox={`0 0 ${W} ${H}`} class="xp__svg" role="img" aria-labelledby={`xp-${id}-t`}>
+      <title id={`xp-${id}-t`}>
+        {yLabel} against {xLabel}.
+        {
+          grouped
+            ? series
+                .map((s) => `${s.name}: ${s.values.map((v, i) => `${labels[i]} ${fmt(v)}`).join(', ')}`)
+                .join('. ')
+            : values.map((v, i) => `${labels[i]}: ${fmt(v)}`).join(', ')
+        }
+      </title>
+
+      {/* gridlines and y axis */}
+      {
+        ticks.map((t) => (
+          <>
+            <path class="xp__grid" d={`M ${PAD.l} ${y(t)} H ${W - PAD.r}`} />
+            <text class="xp__tick" x={PAD.l - 8} y={y(t) + 3.5} text-anchor="end">
+              {fmt(t)}
+            </text>
+          </>
+        ))
+      }
+      <path class="xp__axis" d={`M ${PAD.l} ${PAD.t} V ${PAD.t + plotH} H ${W - PAD.r}`} />
+
+      {/* bars, or a line */}
+      {
+        kind === 'line' ? (
+          <>
+            <path
+              class="xp__line"
+              d={values.map((v, i) => `${i ? 'L' : 'M'} ${cx(i)} ${y(v)}`).join(' ')}
+            />
+            {values.map((v, i) => (
+              <circle class="xp__dot" data-dot={i} cx={cx(i)} cy={y(v)} r="4" />
+            ))}
+          </>
+        ) : grouped ? (
+          series.map((s, k) =>
+            s.values.map((v, i) => (
+              <rect
+                class={`xp__bar xp__bar--${TONES[k % TONES.length]}`}
+                data-bar={i}
+                x={cx(i) - (barW * series.length) / 2 + k * barW}
+                y={Math.min(y(v), y(0))}
+                width={barW - 2}
+                height={Math.abs(y(v) - y(0))}
+                rx="2"
+              />
+            )),
+          )
+        ) : (
+          values.map((v, i) => (
+            <rect
+              class="xp__bar xp__bar--observe"
+              data-bar={i}
+              x={cx(i) - barW / 2}
+              y={Math.min(y(v), y(0))}
+              width={barW}
+              height={Math.abs(y(v) - y(0))}
+              rx="2"
+            />
+          ))
+        )
+      }
+
+      {/* x labels */}
+      {
+        labels.map((l, i) => (
+          <text class="xp__xlab" data-xlab={i} x={cx(i)} y={PAD.t + plotH + 18} text-anchor="middle">
+            {l}
+          </text>
+        ))
+      }
+
+      <text class="xp__axisLab" x={PAD.l + plotW / 2} y={H - 8} text-anchor="middle">
+        {xLabel}
+      </text>
+      <text
+        class="xp__axisLab"
+        transform={`rotate(-90) translate(${-(PAD.t + plotH / 2)} 11)`}
+        text-anchor="middle"
+      >
+        {yLabel}
+      </text>
+    </svg>
+  </div>
+
+  {
+    slider && (
+      <div class="xp__ctl">
+        <label class="xp__ctlLab" for={`xp-${id}-s`}>
+          {xLabel}
+        </label>
+        <input
+          class="xp__slider"
+          id={`xp-${id}-s`}
+          type="range"
+          min="0"
+          max={n - 1}
+          step="1"
+          value={n - 1}
+          data-slider
+        />
+      </div>
+    )
+  }
+
+  <p class="xp__readout" data-readout-el aria-live="polite"></p>
+</explore-chart>
+
+<script>
+  class ExploreChart extends HTMLElement {
+    connectedCallback() {
+      const labels: string[] = JSON.parse(this.dataset.labels ?? '[]');
+      const rows: number[][] = JSON.parse(this.dataset.values ?? '[]');
+      const names: string[] = JSON.parse(this.dataset.names ?? '[]');
+      const tpl = this.dataset.readout ?? '{x} → {y}';
+      const slider = this.querySelector<HTMLInputElement>('[data-slider]');
+      const out = this.querySelector('[data-readout-el]');
+
+      const fmt = (v: number) =>
+        Math.abs(v) >= 1000 ? Math.round(v).toLocaleString('en-US') : String(+v.toFixed(1));
+
+      const select = (i: number) => {
+        this.querySelectorAll<HTMLElement>('[data-bar],[data-dot]').forEach((el) => {
+          el.classList.toggle('is-on', Number(el.dataset.bar ?? el.dataset.dot) === i);
+        });
+        this.querySelectorAll<HTMLElement>('[data-xlab]').forEach((el) => {
+          el.classList.toggle('is-on', Number(el.dataset.xlab) === i);
+        });
+        if (!out) return;
+        // One series reads as a single value; several read as a list, so the
+        // same template serves both shapes.
+        const val =
+          rows.length === 1
+            ? fmt(rows[0][i])
+            : rows.map((r, k) => `${names[k]} ${fmt(r[i])}`).join(', ');
+        out.textContent = tpl.replace('{x}', labels[i]).replace('{y}', val);
+      };
+
+      slider?.addEventListener('input', () => select(Number(slider.value)));
+      select(slider ? Number(slider.value) : labels.length - 1);
+    }
+  }
+  if (!customElements.get('explore-chart')) {
+    customElements.define('explore-chart', ExploreChart);
+  }
+</script>
+
+<style>
+  .xp { display: block; margin-block: var(--s-4); }
+
+  .xp__key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-3);
+    margin: 0 0 var(--s-2);
+    padding: 0;
+    list-style: none;
+    font-size: var(--t-meta);
+    color: var(--ink-muted);
+  }
+  .xp__keyItem { display: flex; align-items: center; gap: 6px; }
+  .xp__keyItem::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+  }
+  .xp__keyItem--observe::before { background: var(--c-observe); }
+  .xp__keyItem--reward::before { background: var(--c-reward); }
+  .xp__keyItem--action::before { background: var(--c-action); }
+
+  .xp__frame {
+    padding: var(--s-3);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+  .xp__svg { display: block; width: 100%; height: auto; }
+
+  .xp__grid { stroke: var(--rule); stroke-width: 1; }
+  .xp__axis { fill: none; stroke: var(--rule-strong, var(--rule)); stroke-width: 1.2; }
+
+  .xp__tick,
+  .xp__xlab {
+    font: 400 10px / 1 var(--font-mono);
+    fill: var(--ink-3);
+  }
+  .xp__xlab.is-on { fill: var(--ink); font-weight: 600; }
+
+  .xp__axisLab {
+    font: 500 10.5px / 1 var(--font-sans);
+    fill: var(--ink-3);
+  }
+
+  .xp__bar { opacity: 0.42; transition: opacity 0.12s; }
+  .xp__bar--observe { fill: var(--c-observe); }
+  .xp__bar--reward { fill: var(--c-reward); }
+  .xp__bar--action { fill: var(--c-action); }
+  .xp__bar.is-on { opacity: 1; }
+
+  .xp__line { fill: none; stroke: var(--c-observe); stroke-width: 2; }
+  .xp__dot { fill: var(--surface); stroke: var(--c-observe); stroke-width: 2; }
+  .xp__dot.is-on { fill: var(--c-observe); r: 6; }
+
+  .xp__ctl {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    margin-top: var(--s-3);
+  }
+  .xp__ctlLab {
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    color: var(--ink-muted);
+    white-space: nowrap;
+  }
+  .xp__slider { flex: 1; accent-color: var(--ui); }
+
+  .xp__readout {
+    margin: var(--s-2) 0 0;
+    font-family: var(--font-mono);
+    font-size: var(--t-small);
+    font-weight: var(--w-semibold);
+    color: var(--ink);
+  }
+</style>

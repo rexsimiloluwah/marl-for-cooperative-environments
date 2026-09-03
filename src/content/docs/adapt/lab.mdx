@@ -1,0 +1,285 @@
+---
+title: "Adapt Lab"
+description: "A lightweight Colab investigation of specialization, partner diversity, online identification, and unseen-partner evaluation."
+related:
+  - slug: adapt/worksheet
+    icon: clipboard
+  - slug: adapt/evaluating-generalization
+    icon: chart
+  - slug: adapt/research-zsc-eval
+    icon: cycle
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import NotebookLink from '../../../components/lab/NotebookLink.astro';
+import CrossPlay from '../../../components/lab/CrossPlay.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+The Adapt Lab is a hands-on Colab investigation of cooperation with familiar
+and unseen partners in a small kitchen. You will compare a specialist, a
+generalist trained with diverse partners, and an adaptive agent that identifies
+behaviour online. The experiments examine familiar performance, two different
+held-out partners, generalization gaps, mid-episode partner change, and
+cross-play. Supplied tabular policies and short episodes run on free Colab CPU,
+so the work centers on interpreting partner-dependent behaviour.
+
+<NotebookLink
+  path="notebooks/02_adapt.ipynb"
+  time="about 30 minutes"
+  compute="CPU only, nothing to install"
+/>
+
+## Experimental Task
+
+Two agents. Each step, each picks `FETCH`, `COOK` or `WAIT`.
+
+- Exactly one `FETCH` obtains an ingredient.
+- Exactly one `COOK` on an ingredient serves an order: **+1**.
+- **Both `FETCH`**: they collide at the store, nothing obtained.
+- **Both `COOK`**: they both grab the pan, the dish is ruined.
+
+The collisions are what make it a coordination problem. The pair must split
+the roles and **nothing says which agent takes which**, so the split is an
+arbitrary convention. An episode is 40 steps, so a specialised pair serves
+about 39 orders.
+
+## Partner Policies
+
+<div class="table-scroll">
+
+| Partner | Behaviour | In training? |
+| --- | --- | --- |
+| `ingredient-first` | always fetches | yes |
+| `cooking-first` | always cooks | yes |
+| `reactive` | waits, then does whatever you did not | yes |
+| `idle-then-cook` | cooks if an ingredient is there, else waits | yes |
+| `mostly-fetch` | fetches 85% of the time, else waits | **held out** |
+| `alternate` | alternates fetch and cook | **held out** |
+</div>
+
+The two held-out partners are chosen deliberately, and this is the design
+decision that makes the lab worth running. `mostly-fetch` behaves much like
+`ingredient-first`, so it is a stranger **near** the training distribution.
+`alternate` needs a response no training partner needed, so it is a stranger
+**outside** it.
+
+That is the ZSC-Eval point from *Partner Dependence*0 built into the experiment: how
+much a held-out partner resembles the training set decides what holding it out
+measures.
+
+<Callout tone="observe" title="What these numbers are" icon="compass">
+Every figure below is produced by the notebook's own code, on this task, with
+these hyperparameters. Reproducible, and not benchmark results.
+</Callout>
+
+## Compared Agent Designs
+
+**Specialist**, trained against `ingredient-first` alone. Standard practice:
+fix a partner, optimise team return.
+
+**Generalist**, trained against all four population partners.
+
+**Adaptive**, which watches for four steps, works out which known type the
+partner most resembles, then plays that type's best response. *Agent Modelling*'s
+agent modelling in its simplest form, with **no weight updates at
+deployment**: it revises a belief and switches which fixed policy it follows.
+
+## Familiar and Unseen-Partner Results
+
+The **ceiling** column is a separate agent trained against that partner alone,
+so it is what any method could achieve knowing exactly who it faced.
+
+<div class="table-scroll">
+
+| Partner | Ceiling | Specialist | Generalist | Adaptive |
+| --- | --- | --- | --- | --- |
+| `ingredient-first` | 39 | **39** | 38 | 36 |
+| `cooking-first` | 39 | 38 | **39** | 35 |
+| `reactive` | 39 | **0** | **39** | 37 |
+| `idle-then-cook` | 39 | 38 | **39** | 35 |
+| `mostly-fetch` *(held out)* | 33 | 29 | 28 | 25 |
+| `alternate` *(held out)* | 39 | 0 | 0 | 2 |
+</div>
+
+Four things to take from that table.
+
+**The specialist scores zero against `reactive`.** Not badly, *zero*. It
+learned "my partner fetches, so I cook", which is optimal against
+`ingredient-first` and catastrophic against a partner that is also waiting for
+someone else to commit. Nothing is broken in either agent.
+
+**Diversity removes the failure.** The generalist reaches 38 or 39 across the
+whole population. It works exactly as *Training Partner Diversity* described, by removing a
+shortcut: "my partner fetches" stops paying once half the population does not
+fetch. It costs a point against `ingredient-first`, which is the price of not
+exploiting one partner's habits.
+
+**The specialist beats the generalist on `mostly-fetch`.** 29 against 28. The
+stranger happens to resemble its training partner, so its narrow rule
+transfers. A specialist is not always worse on unseen partners, only on
+unseen partners unlike its own.
+
+**Nobody handles `alternate`.** All three sit near zero against a ceiling of
+39. No method here invents a response that no training partner required.
+
+## Online Partner Identification
+
+The adaptive agent's belief is the interesting part. The notebook prints which
+partner it thinks it has, after each step of observation:
+
+<div class="table-scroll">
+
+| True partner | What the agent concludes |
+| --- | --- |
+| `ingredient-first` | `ingredient-first`, correct |
+| `cooking-first` | `cooking-first`, correct |
+| `reactive` | `reactive`, correct |
+| `mostly-fetch` | `ingredient-first`: **wrong, and useful** |
+| `alternate` | `ingredient-first`: **wrong, and useless** |
+</div>
+
+The two held-out rows are the lesson. For `mostly-fetch`, the agent picks the
+nearest thing it knows and the response is nearly right. For `alternate`, it
+picks the nearest thing it knows and the response is simply wrong, because
+nothing it knows behaves like that.
+
+<Callout variant="takeaway">
+A partner model does not fail gracefully by being uncertain. It fails by
+confidently returning the closest familiar answer.
+
+Whether that is useful depends entirely on whether the stranger is near
+anything familiar, which is a property of your training population rather than
+of your model.
+</Callout>
+
+## Limits of the Generalization Gap
+
+Now the result worth the whole lab. Compute the *Partner Generalization* diagnostic,
+familiar minus unseen, for each arm.
+
+<div class="table-scroll">
+
+| Arm | Familiar | Unseen | **Gap** |
+| --- | --- | --- | --- |
+| Specialist | 28.8 | 14.3 | **14.4** |
+| Generalist | 38.8 | 14.1 | 24.6 |
+| Adaptive | 35.8 | 13.7 | 22.1 |
+</div>
+
+**The specialist has the smallest gap, and it is the worst agent here.**
+
+Its gap is small because its familiar-partner average is dragged down by the
+zero against `reactive`, not because it generalises. This is the warning from
+*Evaluating Partner Generalization*, measured: uniform mediocrity has a small gap.
+
+<Callout variant="pitfall">
+Never report a gap on its own. Report both numbers, or report unseen-partner
+performance directly, which cannot be gamed by being bad at everything.
+
+Any method selected by minimising the gap would pick the specialist here.
+</Callout>
+
+## Mid-Episode Partner Change
+
+The notebook's last experiment swaps the partner at step 20 without telling
+the agent. Switching from `ingredient-first` to `cooking-first`:
+
+<div class="table-scroll">
+
+| Arm | With a switch | No switch | Cost |
+| --- | --- | --- | --- |
+| Specialist | 37 | 39 | 2 |
+| Generalist | 36 | 38 | 2 |
+| Adaptive | 34 | 36 | 2 |
+</div>
+
+Read this carefully, because the honest reading is not dramatic. The switch
+costs every arm about two orders, so none of them collapses: all three
+condition on what the partner did last step, and both partners here are
+handled by reacting.
+
+The adaptive agent is nonetheless the **weakest** on the switch, which is
+worth sitting with given that adaptation is its whole purpose. The reason is
+in its code: it commits **once**, after four steps, and never revises. A
+belief formed early and held forever is not adaptation, it is a slower form of
+assumption.
+
+The notebook asks you to make it re-identify continuously, and to find what
+that costs on partners that never change.
+
+## Cross-Play Analysis
+
+For comparison, here is the Communicate chapter cross-play matrix again, now with the
+vocabulary to read it properly. Switch to *gap* mode and note that every agent
+looks identical on that statistic, because they are all perfect with
+themselves and all poor with each other.
+
+<CrossPlay
+  id="ad-lab-crossplay"
+  policies={['S0', 'S1', 'S2', 'S3', 'S4', 'S5']}
+  partners={['R0', 'R1', 'R2', 'R3', 'R4', 'R5']}
+  values={[
+    [100, 25, 50, 0, 50, 25],
+    [25, 100, 0, 50, 0, 0],
+    [50, 0, 100, 25, 100, 50],
+    [0, 50, 25, 100, 25, 0],
+    [50, 0, 100, 25, 100, 50],
+    [25, 0, 50, 0, 50, 100],
+  ]}
+  unit="%"
+/>
+
+<KnowledgeCheck
+  id="ad-lab-gap"
+  type="choice"
+  question="Selecting a method by minimising the generalization gap would choose the specialist in this lab. What does that tell you about the gap?"
+  options={[
+    {
+      text: 'That it is a diagnostic rather than an objective. It can be lowered either by improving unseen-partner performance or by damaging familiar-partner performance, and it cannot tell the two apart.',
+      correct: true,
+      feedback: 'Exactly. Two very different changes move the gap the same way, which is what makes it useless as a target and still useful as a description alongside the absolute numbers.',
+    },
+    {
+      text: 'That the gap was calculated incorrectly here.',
+      correct: false,
+      feedback: 'The arithmetic is right: 28.8 − 14.3 = 14.4. The problem is what the quantity means, not how it was computed.',
+    },
+    {
+      text: 'That the specialist is actually the best agent and the other measures are misleading.',
+      correct: false,
+      feedback: 'The specialist scores zero against a competent partner in its own training distribution. The gap is the misleading measure here, not the per-partner scores.',
+    },
+    {
+      text: 'That gaps should be computed only on held-out partners.',
+      correct: false,
+      feedback: 'A gap needs both halves by definition: it is familiar minus unseen. Computing it on unseen partners alone is not possible.',
+    },
+  ]}
+>
+This generalises beyond this lab: any difference-of-two-numbers metric can be
+improved by making the larger number smaller.
+</KnowledgeCheck>
+
+<NotebookLink
+  path="notebooks/02_adapt.ipynb"
+  compact
+  label="Run it yourself:"
+/>
+
+## Experimental Findings
+
+- A **specialist** trained with one partner scored **zero** with a perfectly
+  competent one it never met.
+- **Diversity** removed the failure and cost about one point of peak
+  performance per familiar partner.
+- **Modelling** works when the stranger resembles someone known. It fails
+  confidently, not gracefully, when it does not.
+- Held-out partners **near** the training distribution and **outside** it
+  measure very different things. `mostly-fetch` and `alternate` differ by 25
+  orders for the adaptive agent.
+- The **generalization gap is not a target.** The worst agent here has the
+  smallest one.
+- An agent that commits to a belief once and never revises is not adapting.

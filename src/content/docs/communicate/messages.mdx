@@ -1,0 +1,220 @@
+---
+title: "Messages"
+description: "Messages as actions, discrete and continuous message spaces, and receiver policies."
+related:
+  - slug: communicate/message-content
+    icon: lightbulb
+  - slug: communicate/communication-constraints
+    icon: cycle
+  - slug: background/joint-actions-policies
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import MessageFlow from '../../../components/diagrams/MessageFlow.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+How does communication fit inside a cooperative Dec-POMDP?
+</Callout>
+
+A message is an action whose immediate effect is to change the information available to other agents rather than the environment state.
+
+<Objectives>
+
+- Add a message choice alongside an agent's environmental action
+- Separate an action's environmental effect from its informational effect
+- Define discrete and continuous message spaces
+- Condition a receiver's policy on an incoming message
+
+</Objectives>
+
+## Communication as an Action
+
+Split each agent's action into two parts: something it does to the world, and
+something it says.
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\mathcal{A}_\ag = \ubrace{action}{\mathcal{X}_\ag}{acts on the environment} \times \ubrace{comm}{\mathcal{M}_\ag}{acts on partners}`}
+  terms={[
+    { tex: String.raw`\mathcal{X}_\ag`, is: 'environment actions: move, pick up, chop, transmit on a channel', tone: 'action' },
+    { tex: String.raw`\mathcal{M}_\ag`, is: 'communication actions: the messages this agent can send', tone: 'comm' },
+    { tex: String.raw`\times`, is: 'every environment action pairs with every message, so the agent chooses both' },
+  ]}
+  caption="One action set with two halves. An agent picks a move and a message on the same step."
+/>
+
+So an agent's choice at step $t$ is a pair.
+
+<Equation
+  label="Figure 2"
+  tex={String.raw`\tone{policy}{\act{\ag}} = \bigl(\tone{action}{x^\ag_t},\ \tone{comm}{m^\ag_t}\bigr)`}
+  terms={[
+    { tex: String.raw`x^\ag_t`, is: 'what agent i does to the kitchen', tone: 'action' },
+    { tex: String.raw`m^\ag_t`, is: 'what agent i says while doing it', tone: 'comm' },
+  ]}
+  caption="Both at once. Saying something does not cost the agent its turn."
+/>
+
+In the kitchen:
+
+<div class="table-scroll">
+
+| Part | Example |
+| --- | --- |
+| environment action $x^1_t$ | move toward the stove |
+| message $m^1_t$ | "ingredient ready" |
+</div>
+
+Note the agent does both on the same step. Communication is not a turn spent
+talking instead of working. It is an extra channel running alongside the work.
+
+## Environmental and Informational Effects
+
+Here is the property that makes a message a peculiar kind of action.
+
+<MessageFlow>
+Two destinations. The environment action goes down into the kitchen and moves
+things. The message goes sideways into a partner and moves nothing.
+</MessageFlow>
+
+The transition function does not depend on $m^\ag_t$. Say "ingredient ready"
+and the stove does not warm, no tomato moves, and the order gets no closer to
+being served. The kitchen is precisely as it was.
+
+What changes is that another agent **observed** the message, and may therefore
+choose differently on the next step. Only then, through that agent's
+environment action, does anything happen.
+
+<Callout variant="takeaway">
+A message has no direct effect on the world and an indirect effect on
+everything, because it changes what a partner will do.
+
+That is why communication cannot be evaluated on its own. Its value is
+entirely in the decisions it changes.
+</Callout>
+
+## Message Spaces
+
+What can be said depends on what $\mathcal{M}_\ag$ contains, and there are two
+usual shapes.
+
+**Discrete.** A small set of symbols, one of which gets sent.
+
+<Equation
+  label="Figure 3"
+  tex={String.raw`\tone{comm}{\mathcal{M}_\ag} = \{m_1,\ m_2,\ m_3,\ m_4\}`}
+  terms={[
+    { tex: String.raw`\mathcal{M}_i`, is: 'the message space available to agent i', tone: 'comm' },
+    { tex: String.raw`m_k`, is: 'one selectable discrete message symbol', tone: 'comm' },
+  ]}
+  caption="A four-symbol message space can represent at most four distinct signals."
+/>
+
+**Continuous.** A real-valued vector, which can carry a great deal more.
+
+<Equation
+  label="Figure 4"
+  tex={String.raw`\tone{comm}{m^\ag_t} \in \R^{d}`}
+  terms={[
+    { tex: String.raw`d`, is: 'the width of the message vector' },
+  ]}
+  caption="A learned vector. Expressive, and much harder for a human to read."
+/>
+
+Both appear in practice, along with multi-valued vectors of discrete symbols.
+Discrete spaces are easier to inspect and match real channels with fixed
+bit budgets; continuous ones are easier to learn by gradient descent, since
+the message is differentiable.
+
+<Callout variant="definition" title="The empty message">
+Almost every message space includes a distinguished element $\varnothing$,
+meaning **say nothing**.
+
+This matters more than it looks. Including $\varnothing$ turns "what should I
+say?" into two questions, the second being "should I say anything at all?"
+*Communication Policies* takes that seriously, and it is what makes a communication cost
+meaningful.
+</Callout>
+
+## Receiver Policies
+
+The receiving agent now has two sources of information: what it saw, and what
+it was told.
+
+<Equation
+  label="Figure 5"
+  wide
+  tex={String.raw`\tone{action}{x^{2}_t} \sim \tone{policy}{\pol{2}}\bigl(\cdot \given \ubrace{observe}{\obs{2}}{what I saw},\ \ubrace{comm}{m^{1}_t}{what I was told}\bigr)`}
+  terms={[
+    { tex: String.raw`\obs{2}`, is: 'agent 2’s own observation, as before', tone: 'observe' },
+    { tex: String.raw`m^{1}_t`, is: 'the message agent 1 sent, now an input to agent 2’s policy', tone: 'comm' },
+  ]}
+  caption="A received message is just another input to a local policy."
+/>
+
+No new machinery is needed. The message is treated as part of what the agent
+knows, and a policy that reads it is still a local policy: agent 2 conditions
+on things it actually received.
+
+<Callout tone="observe" title="Why this stays decentralized" icon="compass">
+It is worth checking that nothing has been smuggled in. Agent 2 does not
+receive agent 1's observation, or its state, or its intended action. It
+receives a message that agent 1 chose to send, from a finite set, subject to
+whatever the channel does to it.
+
+That is a much weaker thing than shared information, and it is the reason
+communication is a design problem rather than a solution.
+</Callout>
+
+<KnowledgeCheck
+  id="cm-2-2-message-effect"
+  type="choice"
+  question="Agent 1 sends 'ingredient ready' and the team's reward that step is unchanged. Has the message accomplished nothing?"
+  options={[
+    {
+      text: 'Not necessarily. A message cannot change this step’s reward, since it does not affect the transition. Its effect appears in what agent 2 does next.',
+      correct: true,
+      feedback: 'Right. The reward depends on the state and the environment actions, and the message is neither. Judging a message by the reward on the step it was sent will always understate it.',
+    },
+    {
+      text: 'Yes. If the reward did not change, the message carried no useful information.',
+      correct: false,
+      feedback: 'This confuses when the effect appears with whether there is one. The message changes agent 2’s next decision, so its payoff arrives later, through agent 2’s action.',
+    },
+    {
+      text: 'No, because messages always increase the reward slightly.',
+      correct: false,
+      feedback: 'Messages do not enter the reward function directly at all. In fact, where a communication cost is charged, sending one lowers the reward, which is *Communication Policies*.',
+    },
+    {
+      text: 'It depends on whether the message was true.',
+      correct: false,
+      feedback: 'Truthfulness is not the issue in a cooperative setting, where all agents share one reward and none gains by misleading the others. The issue is timing: a message acts through a partner, so its effect is never immediate.',
+    },
+  ]}
+>
+Messages pay off one step late, at the earliest. That shapes how they have to
+be learned.
+</KnowledgeCheck>
+
+## Messages Summary
+
+- An agent's action set factors as
+  $\mathcal{A}_\ag = \mathcal{X}_\ag \times \mathcal{M}_\ag$: an environment
+  action and a message, chosen together on the same step.
+- The transition does **not** depend on the message. A message changes what a
+  partner knows, never the world directly.
+- Message spaces are **discrete** (a few symbols, inspectable, matched to real
+  bit budgets) or **continuous** (a learned vector, expressive, opaque).
+- Most spaces include $\varnothing$, so an agent can choose to say nothing.
+- A receiver treats a message as one more input to its own local policy. It
+  does not gain access to a partner's observation, only to what that partner
+  chose to send.

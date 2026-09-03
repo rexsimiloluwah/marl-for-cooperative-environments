@@ -1,0 +1,381 @@
+---
+title: "Wireless Allocation Experiments"
+description: "Colab experiments on optimal allocation, coordination, what communication costs, traffic shift, and unfamiliar agents."
+related:
+  - slug: project/brief
+    icon: file-text
+  - slug: lab/environment
+    icon: box
+  - slug: adapt/evaluating-generalization
+    icon: chart
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import NotebookLink from '../../../components/lab/NotebookLink.astro';
+import Explore from '../../../components/worksheet/Explore.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+This Colab activity integrates coordination, communication, and partner
+adaptation in the supplied wireless environment. Short experiments move from
+manual allocation and independent learning to coordinated policies, what
+communication costs, a traffic shift, and an unfamiliar access point. You will
+finish by comparing every system in one table and defending a design choice.
+The environment and baselines come from the
+[Python package](/resources/python-package/), so the notebook holds the
+experiment and not the infrastructure.
+
+<NotebookLink
+  path="notebooks/wireless_network_resource_allocation_marl_lab.ipynb"
+  time="60 to 90 minutes"
+  compute="Free Colab CPU is enough; no GPU"
+/>
+
+<Callout tone="observe" title="What the numbers on this section are" icon="compass">
+Every figure below is a mean over **three training seeds**, 4000 training
+episodes each, evaluated greedily on 150 episodes from a fixed seed. They come
+from `scripts/marl/measure_wireless.py`, which is the same code the notebook
+runs.
+
+Reproducible, and not benchmark results. The environment is a teaching model of
+interference, not a calibrated simulation, so read the reasoning rather than
+the digits.
+</Callout>
+
+## 1 to 2 · Find the optimum by hand
+
+Before any learning, you choose joint actions yourself and watch the network
+respond. Then the notebook enumerates all 81 allocations to show whether you
+found the best one.
+
+Four access points on three channels means **one pair must share**, so the
+question is never whether to share. It is which pair.
+
+Two quantities decide it, and they do not carry equal weight:
+
+- **Demand.** Useful throughput is $\min(d_i, \text{rate}_i)$. A light access
+  point does not notice a slower channel, because its throughput was capped by
+  its own demand anyway.
+- **Distance.** Coupling falls off as $1/(1 + (d/d_0)^2)$. In the supplied
+  layout AP0 and AP1 couple at **0.671** while AP0 and AP3 couple at
+  **0.059**, an order of magnitude apart.
+
+<div class="table-scroll">
+
+| Allocation | Reward | What is sharing |
+| --- | --- | --- |
+| `[0, 0, 0, 0]` | 3.51 | everybody on one channel |
+| `[2, 2, 1, 0]` | 5.73 | a **heavy** access point with its closest neighbour |
+| **`[0, 1, 1, 2]`** | **7.92** | the two **light** access points |
+| Best of all 81 | 7.92 | the same allocation |
+</div>
+
+One episode, seed 42, where AP0 and AP3 are the busy pair. It shows the shape
+of the problem rather than an average.
+
+**Demand decides which pair shares. Distance decides what it costs when a busy
+access point has to.** Pairing the two light ones is optimal even when they are
+the closest pair in the network: a channel shared at coupling 0.671 still
+delivers 1.20, which is more than the 0.8 they wanted.
+
+## 3 to 4 · Independent, then coordinated
+
+Two rules that do not learn, then two that do. The greedy rule picks the
+channel with the best quality minus the interference it measured, which is
+individually sensible.
+
+<div class="table-scroll">
+
+| System | Reward | Throughput | Avoidable interference | Collision rate |
+| --- | --- | --- | --- | --- |
+| Random | 6.00 | 6.19 | 0.88 | 0.47 |
+| Greedy local | **3.37** | 3.96 | 2.83 | **1.00** |
+| Independent | 7.17 | 7.24 | 0.22 | 0.14 |
+| **Coordinated (VDN)** | **7.56** | 7.62 | **0.15** | **0.07** |
+| Ceiling | 7.90 | | | |
+</div>
+
+Two results here, and the first one surprises almost everybody.
+
+**Greedy local scores below random.** Every decision it makes is defensible in
+isolation and it finishes at 3.37 against random's 6.00. Its collision rate is
+1.00: every access point is in harmful interference on every step. Because all
+four run the identical deterministic rule on a similar observation, they move
+to the same channel together. Random never synchronises, and that alone is
+worth 2.6 reward here.
+
+**Coordination is worth 0.39.** Independent learning reaches 7.17, value
+decomposition 7.56, and the ceiling is 7.90. Execution is identical between
+the two; only the training signal changes. Avoidable interference falls from
+0.22 to 0.15 and the collision rate halves.
+
+<Callout variant="takeaway">
+Read the two learners against the ceiling, not against each other.
+
+Independent learning closes most of the gap on its own: from random's 6.00 to
+7.17, against a ceiling of 7.90. Value decomposition then takes 0.39 of the
+remaining 0.73.
+
+Independent learning is a serious baseline here, not a strawman. What value
+decomposition adds is a credit signal, and the size of that gain tells you how
+much of the difficulty was credit assignment in the first place.
+</Callout>
+
+## 5 · What communication buys, and what it costs
+
+Give each access point one bit carrying its demand level, so the team sends
+four messages per step. That mapping is a design decision, not a property of
+the problem.
+
+The interesting question is not whether the bits are useful. It is whether they
+are useful **enough**.
+
+<div class="table-scroll">
+
+| System | Reward | Throughput | Messages |
+| --- | --- | --- | --- |
+| Coordinated | **7.56** | 7.62 | 0 |
+| Coordinated + comm, free | 7.64 | 7.72 | 4 |
+| Coordinated + comm, price 0.05 | 7.43 | **7.70** | 4 |
+</div>
+
+Talking raises throughput, from 7.62 to 7.70. And it lowers the team reward,
+from 7.56 to 7.43, because four messages at 0.05 each is a bill of 0.20 per
+step against a gain of about 0.08.
+
+<Callout variant="takeaway">
+Useful is not the same as worth it.
+
+The messages carry real information and change real decisions. Throughput goes
+up every time. The team reward still goes down, because the reward is what
+charges for the bandwidth.
+
+A system evaluated on throughput alone would have adopted this protocol.
+</Callout>
+
+## 6 · The break-even price
+
+Sweep the price and find where talking stops paying.
+
+<Explore
+  id="lab-comm-cost"
+  kind="line"
+  labels={['0.00', '0.02', '0.05', '0.10', '0.25']}
+  values={[7.64, 7.53, 7.43, 7.15, 6.71]}
+  xLabel="Price per message"
+  yLabel="Team reward"
+  slider
+  readout="price {x} → reward {y}"
+/>
+
+The silent coordinated system scores **7.56**, so that is the line
+communication has to beat.
+
+<div class="table-scroll">
+
+| Price per message | Reward | Against silence (7.56) |
+| --- | --- | --- |
+| 0.00 | 7.64 | talking wins, barely |
+| **0.02** | **7.53** | **silence wins** |
+| 0.05 | 7.43 | silence wins |
+| 0.10 | 7.15 | silence wins |
+| 0.25 | 6.71 | silence wins |
+</div>
+
+You can predict the crossover before running the sweep. Communication bought
+about 0.08 reward for four messages, so it breaks even near
+$\lambda \approx 0.08/4 = 0.02$, and the sweep puts it there.
+
+Being able to compute where a protocol stops paying is the practical skill this
+section is for. Note also how small the free-communication gain is: 0.08 on a
+reward of 7.6, which is the same order as the spread across training seeds. A
+single seed could have shown this protocol helping or hurting.
+
+## 7 · Changed traffic
+
+Train under **skewed** demand, where two access points are busy, then evaluate
+under **hotspot**, where one saturates and the rest go quiet. No retraining.
+
+<div class="table-scroll">
+
+| System | Trained regime | Hotspot | Drop | Gap to hotspot ceiling |
+| --- | --- | --- | --- | --- |
+| Independent | 7.17 | 6.60 | 0.57 | 0.37 |
+| Coordinated | 7.56 | **6.87** | 0.69 | **0.10** |
+| Coordinated + comm | 7.43 | **3.62** | **3.81** | 3.36 |
+| Ceiling | 7.90 | 6.98 | | |
+</div>
+
+Read the last column, not the drop column. The hotspot regime is simply harder:
+its ceiling is 6.98 against 7.90. The coordinated system's 0.69 drop leaves it
+**0.10 from optimal in the new regime**, so almost all of that drop is the
+regime changing rather than the policy failing.
+
+The communicating system is a different story. It falls to 3.62, below random.
+
+<Callout variant="pitfall">
+The talking system does not degrade. It collapses, and into a shape you have
+already seen.
+
+Under hotspot traffic it chooses `[0, 0, 0, 0]` on **every** step: all four
+access points on one channel, collision rate 1.00, mean distinct channels used
+1.00. Its 3.62 sits next to greedy local's 3.37.
+
+The first guess is that it landed in states it never trained on. Measure it and
+that is false: **0.0%** of its hotspot decisions use an unseen state key. Every
+individual state was visited.
+
+What was never trained is the **joint** configuration. Under skewed demand
+exactly two access points are busy, so no access point ever saw all of its
+neighbours quiet at once. Under hotspot they all do, they all read the same
+message pattern, and a deterministic greedy policy on identical inputs
+synchronises. The extra information turned four independent decisions into one.
+</Callout>
+
+That single result carries all three chapters at once. Conditioning on more
+information is a coordination decision, a communication decision, and an
+adaptation risk, and here it is the same herd failure that sank the greedy rule
+in section 4.
+
+## 8 · An access point you did not train
+
+Replace one access point with equipment from another operator: it takes the
+best local channel regardless of anyone else. You did not train it.
+
+<div class="table-scroll">
+
+| System | Familiar | With a stranger | Drop |
+| --- | --- | --- | --- |
+| Independent | 7.17 | 6.68 | 0.49 |
+| **Coordinated** | **7.56** | **7.29** | **0.27** |
+| Coordinated + comm | 7.43 | 6.55 | 0.88 |
+</div>
+
+Here the coordinated system is both the best and the most robust, and the
+talking system degrades most. That is the opposite ordering from section 7,
+where the smallest drop belonged to the weakest system.
+
+<Callout variant="pitfall">
+A drop is not a quality measure, and it is not a brittleness measure either.
+
+In section 7 Independent had the smallest drop, 0.57, and was not the better
+system: it was 0.37 from the new ceiling while Coordinated was 0.10 from it. A
+small drop can simply mean you had less to lose.
+
+In section 8 the ordering reverses. Neither table alone supports a conclusion
+about robustness, which is why the lab makes you run both.
+
+This is the Adapt chapter lesson arriving in a completely different domain.
+</Callout>
+
+## 9 · A lossy channel
+
+The talking system learned to depend on bits arriving. Drop some, with no
+retraining.
+
+<div class="table-scroll">
+
+| Probability a message is lost | Reward | Against silence (7.56) |
+| --- | --- | --- |
+| 0.0 | 7.43 | silence already wins |
+| 0.1 | 6.85 | |
+| 0.3 | 5.99 | |
+| 0.5 | 5.19 | below random (6.00) |
+</div>
+
+At half the messages lost the system scores below a random allocation. A lost
+message reads as a quiet neighbour here, so loss does not merely remove
+information: it supplies confident wrong information.
+
+## 10 · The comparison table
+
+The notebook finishes by assembling everything into the table you submit.
+
+<div class="table-scroll">
+
+| System | Reward | Throughput | Collision rate | Messages | Hotspot | With stranger |
+| --- | --- | --- | --- | --- | --- | --- |
+| Random | 6.00 | 6.19 | 0.47 | 0 | | |
+| Greedy local | 3.37 | 3.96 | 1.00 | 0 | | |
+| Independent | 7.17 | 7.24 | 0.14 | 0 | 6.60 | 6.68 |
+| **Coordinated** | **7.56** | 7.62 | 0.07 | 0 | **6.87** | **7.29** |
+| Coordinated + comm | 7.43 | 7.70 | 0.18 | 4 | 3.62 | 6.55 |
+| **Ceiling** | **7.90** | | | | **6.98** | |
+</div>
+
+## Allocation Design Decision
+
+The only substantial writing the lab asks for.
+
+> **Which system would you deploy if communication bandwidth is limited and
+> neighbouring access points may change?**
+
+Three to four sentences. Name the trade-off you are accepting, and point at
+what in the table supports it.
+
+There is no single correct answer, but the tables do contain a tension worth
+resolving out loud. The talking system has the highest throughput and the
+lowest reward, needs bandwidth the premise says is scarce, and is the one that
+collapses when traffic moves. The silent coordinated system is the best on
+every column that charges for something. Saying why you would still consider
+the talking system, or why you would not, is the answer.
+
+<KnowledgeCheck
+  id="lab-challenge-diag"
+  type="choice"
+  question="Communication raised throughput from 7.62 to 7.70 and lowered team reward from 7.56 to 7.43. What does that pair of numbers establish?"
+  options={[
+    {
+      text: 'The messages carried useful information, and at this price the bandwidth cost more than the information was worth.',
+      correct: true,
+      feedback: 'Exactly. Throughput is the task measure and it improved, so the bits were not noise. The reward is what charges for bandwidth, and four messages at 0.05 is 0.20 per step against a gain near 0.08. Both facts are true at once, and only one of them is visible if you report a single number.',
+    },
+    {
+      text: 'The messages were noise, since the reward went down.',
+      correct: false,
+      feedback: 'Throughput went up, and the free-communication run reached 7.64 against silence at 7.56. Both say the information changed decisions for the better. What sank the reward was the price, not the content.',
+    },
+    {
+      text: 'The protocol needed more training to become worthwhile.',
+      correct: false,
+      feedback: 'More training cannot make a message cheaper. The gap here is a price, and you can compute where it closes: about 0.02 per message. The sweep in section 6 confirms it.',
+    },
+    {
+      text: 'The interference penalty is dominating the reward.',
+      correct: false,
+      feedback: 'Avoidable interference for that system is 0.27, worth about 0.05 at the interference weight. The communication bill is 0.20, four times larger, and it is the term that flipped the comparison.',
+    },
+  ]}
+>
+Choosing what to measure decides what you will conclude. That is what this
+section is assessing.
+</KnowledgeCheck>
+
+<NotebookLink
+  path="notebooks/wireless_network_resource_allocation_marl_lab.ipynb"
+  compact
+  label="Run the experiments:"
+/>
+
+## Assessed Capabilities
+
+Not recall. Transfer.
+
+**Coordinate.** You reasoned from local channel decisions to a joint network
+outcome, found the optimum by hand, measured a deterministic local rule
+scoring below random, and separated what independent learning achieves from
+what value decomposition adds on top of it.
+
+**Communicate.** You measured what the information was worth, priced it per
+message, computed the break-even price before running the sweep, and found a
+protocol that improves the task measure while lowering the objective.
+
+**Adapt.** You measured degradation under changed traffic and under an access
+point you did not train, read both against the new regime's ceiling rather
+than against the drop, found the two tables disagree about which system is
+robust, and diagnosed a collapse that individual state coverage could not
+explain.
+
+Next: the Final Project, where nobody supplies the environment either.

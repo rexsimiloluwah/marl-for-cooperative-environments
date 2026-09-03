@@ -1,0 +1,77 @@
+---
+title: "Coordinate"
+description: "If every agent wants the same thing, why can they still fail to work together?"
+related:
+  - slug: coordinate/coordination
+    icon: chart
+  - slug: coordinate/lab
+    icon: beaker
+  - slug: background/one-agent-to-many
+    icon: compass
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import ChapterHero from '../../../components/diagrams/ChapterHero.astro';
+import Progression from '../../../components/ui/Progression.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this chapter you can answer">
+If every agent wants the same thing, why can they still fail to work together?
+</Callout>
+
+## Let's say
+
+Two agents are working in a kitchen. Their shared goal is to prepare and serve
+an order as quickly as possible.
+
+- An ingredient is missing.
+- Agent A decides to collect it.
+- Agent B independently makes the same decision.
+- Both agents reach for the same ingredient.
+- Meanwhile, nobody prepares the stove.
+
+Both decisions make sense individually. Together, they are inefficient.
+
+<ChapterHero variant="coordinate">
+Same goal. Different joint actions. Different outcomes.
+</ChapterHero>
+
+## The coordination problem
+
+- The quality of one agent's action often depends on what the other agents do.
+- A shared goal does not automatically produce coordinated behaviour.
+- The team receives one reward, so nobody is told what they personally
+  contributed.
+
+## In this chapter
+
+- **Joint decisions:** Understand why individual actions must be considered
+  together.
+- **Independent learning:** See what happens when each agent learns its own
+  policy while the others are also learning.
+- **Centralized and decentralized learning:** Compare what information can be
+  used during training and during execution.
+- **Centralized training with decentralized execution:** Learn how agents can
+  use global information while training but still act from local observations
+  at deployment.
+- **Centralized critics:** See how team-level information can improve value
+  estimation during training.
+- **Credit assignment:** Understand why a shared reward does not reveal which
+  individual actions produced the outcome.
+- **Value decomposition:** Learn how VDN and QMIX connect individual action
+  values to a team-level value.
+
+## How the ideas build
+
+<Progression steps={[
+  'Individual decisions',
+  'Joint outcomes',
+  'Team-aware learning',
+  'Decentralized coordination',
+]} />
+
+By the end of this chapter, you should be able to explain why shared rewards
+are not enough for coordination, and compare different ways of training agents
+to produce useful joint behaviour.

@@ -1,0 +1,174 @@
+---
+/**
+ * FOOTER
+ *
+ * Previous/next links plus a colophon.
+ *
+ * Starlight's own Pagination reads its sidebar config, which is deliberately
+ * empty here, so the pager is built from src/lib/nav.ts instead. That also
+ * means it walks the true reading order across section boundaries: the last
+ * page of Chapter 2 leads to the first page of Chapter 3.
+ */
+import { neighbours, slugFromPath } from '../../lib/nav';
+import Icon from '../ui/Icon.astro';
+
+const slug = slugFromPath(Astro.url.pathname);
+const { prev, next } = neighbours(slug);
+---
+
+<footer class="ft">
+  {
+    (prev || next) && (
+      <nav class="pager print:hidden" aria-label="Previous and next section">
+        {
+          prev ? (
+            <a class="pager__link pager__link--prev" href={`/${prev.slug}/`} rel="prev">
+              <Icon name="chevron-right" size={15} class="pager__arrow" />
+              <span class="pager__body">
+                <span class="pager__label">Previous</span>
+                <span class="pager__title">
+                  {prev.number && <span class="pager__num">{prev.number}</span>}
+                  {prev.title}
+                </span>
+              </span>
+            </a>
+          ) : (
+            <span />
+          )
+        }
+        {
+          next && (
+            <a class="pager__link pager__link--next" href={`/${next.slug}/`} rel="next">
+              <span class="pager__body">
+                <span class="pager__label">Next</span>
+                <span class="pager__title">
+                  {next.number && <span class="pager__num">{next.number}</span>}
+                  {next.title}
+                </span>
+              </span>
+              <Icon name="chevron-right" size={15} class="pager__arrow" />
+            </a>
+          )
+        }
+      </nav>
+    )
+  }
+
+  <div class="colophon">
+    <p>
+      <strong>Multi-Agent Reinforcement Learning for Cooperative Environments</strong>{' '}
+      · Learning to Coordinate, Communicate, and Adapt.
+    </p>
+    <p class="colophon__meta">&copy; MARL for Cooperative Environments, 2026</p>
+  </div>
+</footer>
+
+<style>
+  .ft {
+    margin-top: var(--s-8);
+    max-width: var(--measure);
+  }
+
+  /* ---- pager ---- */
+
+  .pager {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s-3);
+  }
+
+  .pager__link {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    color: var(--ink);
+    text-decoration: none;
+    transition:
+      border-color var(--dur-fast) var(--ease),
+      background-color var(--dur-fast) var(--ease);
+  }
+
+  .pager__link:hover {
+    border-color: var(--ui-edge);
+    background: var(--ui-tint);
+  }
+
+  .pager__link--next {
+    grid-column: 2;
+    text-align: right;
+    justify-content: flex-end;
+  }
+
+  .pager__link--prev .pager__arrow {
+    transform: rotate(180deg);
+  }
+
+  .pager__arrow {
+    color: var(--ink-faint);
+    flex: none;
+  }
+
+  .pager__body {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+
+  .pager__label {
+    font-size: var(--t-micro);
+    letter-spacing: var(--tr-label);
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .pager__title {
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    line-height: 1.35;
+    color: var(--ui);
+  }
+
+  .pager__num {
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+    margin-inline-end: 0.35rem;
+  }
+
+  /* ---- colophon ---- */
+
+  .colophon {
+    margin-top: var(--s-6);
+    padding-top: var(--s-4);
+    border-top: var(--hairline) solid var(--rule);
+  }
+
+  .colophon p {
+    margin: 0;
+    font-size: var(--t-small);
+    line-height: 1.55;
+    color: var(--ink-muted);
+  }
+
+  .colophon strong {
+    color: var(--ink);
+    font-weight: var(--w-semibold);
+  }
+
+  .colophon__meta {
+    margin-top: var(--s-2);
+    color: var(--ink-faint);
+  }
+
+  @media (max-width: 40rem) {
+    .pager {
+      grid-template-columns: 1fr;
+    }
+    .pager__link--next {
+      grid-column: 1;
+    }
+  }
+</style>

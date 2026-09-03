@@ -1,0 +1,162 @@
+---
+title: "Coordinate Worksheet"
+description: "Five concise activities on coordination approaches, joint-action growth, VDN, scaling, and the CTDE trade-off."
+related:
+  - slug: coordinate/vdn-qmix
+    icon: cycle
+  - slug: coordinate/lab
+    icon: beaker
+  - slug: communicate/communication-in-marl
+    icon: message
+---
+
+import Question from '../../../components/worksheet/Question.astro';
+import Match from '../../../components/worksheet/Match.astro';
+import Explore from '../../../components/worksheet/Explore.astro';
+import Objectives from '../../../components/worksheet/Objectives.astro';
+import AnswerKey from '../../../components/worksheet/AnswerKey.astro';
+import Answer from '../../../components/worksheet/Answer.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+This five-part digital activity consolidates the chapter's central coordination
+ideas. You will first match learning approaches to their applications, then
+calculate a joint-action-space size and a VDN team value. An interactive graph
+shows how joint-action counts grow with the number of agents. The final prompt
+asks you to weigh the training benefits of CTDE against its additional
+complexity. Every item except that trade-off response is automatically
+checkable.
+
+<Objectives items={[
+  'Match common MARL training approaches to the problems they address. <strong>Understand</strong>',
+  'Calculate the size and value of simple joint-action problems. <strong>Apply</strong>',
+  'Interpret how coordination difficulty changes as agents are added. <strong>Analyse</strong>',
+  'Compare coordination approaches for a given deployment constraint. <strong>Evaluate</strong>',
+]} />
+
+## 1 · Match Approaches to Applications
+
+<Match
+  id="co-ws-match"
+  blocks={['Independent learning', 'CTDE', 'Centralized critic', 'VDN', 'QMIX']}
+  items={[
+    { text: 'Each agent learns using only its own experience.', block: 0 },
+    { text: 'Global information is available during training, but agents act from local observations at deployment.', block: 1 },
+    { text: 'A value function uses global information during training while the actor stays decentralized.', block: 2 },
+    { text: 'Individual action values are added to produce a team value.', block: 3 },
+    { text: 'Individual values are combined by a monotonic mixing function.', block: 4 },
+  ]}
+/>
+
+## 2 · Calculate the Joint-Action Space
+
+<Question id="co-ws-ja1" n="2.1" numeric={625} notes={false} unit="joint actions">
+Four agents each have five possible actions. How many joint actions are
+possible?
+
+<Fragment slot="hint">
+Every choice by agent 1 combines with every choice by agent 2, and so on. The
+count is a product, not a sum.
+</Fragment>
+</Question>
+
+<Question id="co-ws-ja2" n="2.2" numeric={15625} notes={false} unit="joint actions">
+Now six agents, still five actions each.
+
+<Fragment slot="hint">
+$5^6$. Two more agents multiplied the previous answer by 25.
+</Fragment>
+</Question>
+
+## 3 · Calculate a VDN Team Value
+
+Under VDN the team value is the sum of the individual values,
+$Q_{\text{tot}} = \sum_i Q_i$.
+
+<Question id="co-ws-vdn1" n="3.1" numeric={9.9} tolerance={0.05} notes={false}>
+Given $Q_1 = 3.2$, $Q_2 = 2.6$ and $Q_3 = 4.1$, calculate $Q_{\text{tot}}$.
+</Question>
+
+<Question id="co-ws-vdn2" n="3.2" numeric={10.7} tolerance={0.05} notes={false}>
+Agent 2 switches to an action with $Q_2 = 3.4$. What is the new team value?
+
+<Fragment slot="hint">
+Only one term changed. You do not need to add all three again.
+</Fragment>
+</Question>
+
+## 4 · Explore Joint-Action Growth
+
+Each agent has five actions. Drag the slider to add agents.
+
+<Explore
+  id="co-ws-scale"
+  kind="bars"
+  labels={['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']}
+  values={[5, 25, 125, 625, 3125, 15625, 78125, 390625, 1953125, 9765625]}
+  xLabel="Number of agents"
+  yLabel="Joint actions"
+  slider
+  readout="{x} agents → {y} joint actions"
+/>
+
+<Question id="co-ws-growth2" n="4.1" numeric={9765625} notes={false} unit="joint actions">
+At ten agents, how many joint actions are there?
+</Question>
+
+## 5 · Evaluate the CTDE Trade-off
+
+> Ten warehouse robots must act independently at deployment. During training,
+> the simulator provides the complete warehouse state.
+
+<Question id="co-ws-decide" n="5.1" rows={4} placeholder="Two or three sentences.">
+Would you prefer fully independent learning or CTDE here? What is the main
+trade-off in your choice?
+</Question>
+
+<AnswerKey>
+
+<Answer n="1">
+Independent learning · CTDE · centralized critic · VDN · QMIX.
+
+If one tripped you up it is probably **CTDE** against **centralized critic**:
+CTDE is the paradigm that permits global information during training, and a
+centralized critic is one way of using it.
+</Answer>
+
+<Answer n="2.1">
+$5^4 = 625$.
+</Answer>
+
+<Answer n="2.2">
+$5^6 = 15{,}625$. Two extra agents multiply by $5^2 = 25$, not by 2.
+</Answer>
+
+<Answer n="3.1">
+$3.2 + 2.6 + 4.1 = 9.9$.
+</Answer>
+
+<Answer n="3.2">
+$9.9 - 2.6 + 3.4 = 10.7$. Under a plain sum, one agent changing action moves
+the team value by exactly its own change.
+</Answer>
+
+<Answer n="4.1">
+$5^{10} = 9{,}765{,}625$. The tenth agent added more joint actions than the
+first nine combined.
+</Answer>
+
+<Answer n="5.1">
+No single right answer. A good one names what it gives up.
+
+**CTDE** is the strong default: the simulator's state costs nothing during
+training, execution is local either way, so refusing it buys nothing. Price:
+one more component to train and debug.
+
+**Independent learning** is defensible under time pressure. It needs no new
+algorithm, keeps per-agent cost flat as the fleet grows, and is the baseline
+CTDE has to beat. Price: non-stationarity and high variance across seeds.
+</Answer>
+
+</AnswerKey>

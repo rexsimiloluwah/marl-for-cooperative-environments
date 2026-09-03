@@ -1,0 +1,185 @@
+---
+title: "States, Observations, and Actions"
+description: "The distinction between environment state, local observations, and the information used to select actions."
+related:
+  - slug: background/partial-observability
+    icon: lightbulb
+  - slug: background/joint-actions-policies
+    icon: chart
+  - slug: coordinate/ctde
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import StateVsObservation from '../../../components/diagrams/StateVsObservation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+What can an agent know at the moment it has to choose an action?
+</Callout>
+
+A state records everything relevant that is true in the environment, whereas an observation contains only the information available to one agent.
+
+<Objectives>
+
+- Define the environment state
+- Write an observation function for one agent
+- Identify what a local view discards
+- Explain why a decentralized policy conditions on an observation and not on the state
+
+</Objectives>
+
+## Environment State
+
+$\st$ is everything: both agents' positions, everything they hold, the state
+of every ingredient, how cooked the pot is, what the order needs.
+
+The environment's rules are written on $\st$. The transition function uses it,
+the reward function uses it, and nothing in either of them cares whether
+anybody can see it. The kitchen is in a definite condition regardless of who
+is looking.
+
+## Local Observations
+
+Each agent receives its own, generally smaller, view:
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\tone{observe}{\obs{\ag}} = O_{\ag}\bigl(\tone{observe}{\st}\bigr)`}
+  terms={[
+    { tex: String.raw`\obs{i}`, is: 'agent i’s observation at step t: what it actually receives', tone: 'observe' },
+    { tex: String.raw`O_{i}`, is: 'agent i’s observation function; each agent has its own' },
+    { tex: String.raw`\st`, is: 'the true state, which the agent never receives directly', tone: 'observe' },
+  ]}
+  caption="An observation is a filter applied to the truth. The agent sees the output, never the input."
+/>
+
+For agent 1 in the kitchen, $O_1$ might keep
+
+- the counter directly in front of it,
+- what it is currently holding,
+- a partner, if that partner is nearby,
+- whatever the order ticket displays,
+
+and discards everything else. Note that $O_1$ is a function *of the state*, so
+the observation is always genuinely derived from what is true, the agent is
+not being misled. It is being given less.
+
+## State and Observation Diagram
+
+This is the diagram to remember.
+
+<StateVsObservation agent="Agent 1" />
+
+The lower panel is not a different picture of the kitchen. It is the same
+picture, at the same scale, with the same things in the same places, just
+less of it. That is what an observation function does.
+
+> **The state is what is true. An observation is what an agent gets to see.**
+
+Two consequences follow immediately, and they are the reason this section
+exists.
+
+**Each agent has its own $O_i$, so partners know different things.** In one
+and the same state, agent 1 may know the tomato is on the counter while agent
+2 knows the pot is nearly boiling, and neither knows the other's fact. There
+is no shared view to reason from, and there is no agent whose observation is
+the union of everybody's. Information in a multi-agent system is
+*distributed*, not merely incomplete.
+
+**What is unobserved still matters.** The hidden half of that diagram is not
+inert. The stove is still heating, agent 2 is still moving, and the reward at
+the end of the step will be computed from all of it. An agent is accountable
+for consequences it cannot see.
+
+<Callout variant="pitfall">
+It is very easy to write "the agent knows the state" without noticing. Any
+reasoning that begins "agent 1 can see that agent 2 is about to..." has
+quietly granted an agent access to $\st$, and conclusions drawn from it will
+not survive contact with a real decentralized system.
+
+A useful test: for every claim about what an agent does, check that the
+information it relies on is in $\obs{\ag}$.
+</Callout>
+
+## Observation-Conditioned Actions
+
+The state-observation distinction determines the information on which an agent
+can base its action.
+
+<Equation
+  label="Figure 2"
+  tex={String.raw`\tone{action}{\act{\ag}} \sim \tone{policy}{\pol{\ag}}\bigl(\act{\ag} \given \tone{observe}{\obs{\ag}}\bigr)`}
+  terms={[
+    { tex: String.raw`\act{i}`, is: 'the action agent i takes', tone: 'action' },
+    { tex: String.raw`\pol{i}`, is: 'agent i’s own policy', tone: 'policy' },
+    { tex: String.raw`\obs{i}`, is: 'the only thing the policy is given: this agent’s own observation', tone: 'observe' },
+  ]}
+  caption="Every agent decides alone, from its own partial view."
+/>
+
+Compare this with the single-agent policy $\pi(a_t \given \st)$ from section
+1.1. Two substitutions have happened, and both are restrictions:
+
+$\st \rightarrow \obs{\ag}$. The policy is a function of the observation, not
+the state. It cannot depend on facts the agent does not have.
+
+$\pi \rightarrow \pol{\ag}$. There is one policy per agent, not one policy for
+the system. Nothing evaluates a map from everybody's observations to
+everybody's actions.
+
+Together these are what <Term tone="policy">decentralized execution</Term>
+means, and it is the condition under which every method in this resource has
+to work. The team's behaviour has to be *produced* by separate agents reading
+separate observations, even if, during training, we allow ourselves to use
+more than that. *Centralized Training with Decentralized Execution* is about exactly that loophole.
+
+<KnowledgeCheck
+  id="bg-1-4-state-vs-obs"
+  type="choice"
+  question="Two agents are in the same kitchen at the same step. Which of these is guaranteed?"
+  options={[
+    {
+      text: 'They are in the same state, but may receive different observations.',
+      correct: true,
+      feedback: 'Correct. There is exactly one state per step, and each agent applies its own observation function to it. Same truth, different views, and that asymmetry is what makes communication worth studying.',
+    },
+    {
+      text: 'They receive the same observation, since the kitchen is the same.',
+      correct: false,
+      feedback: 'The kitchen is the same; the views are not. Each agent has its own O_i, and typically they keep different parts. If both agents always received the same observation, most of the Communicate chapter would be unnecessary.',
+    },
+    {
+      text: 'Between them, their observations cover the whole state.',
+      correct: false,
+      feedback: 'Nothing guarantees that. Both agents can be facing the counter while the pot boils over behind them. Even when their observations do jointly cover the state, no single agent holds that union.',
+    },
+    {
+      text: 'Each can infer the other’s observation from its own.',
+      correct: false,
+      feedback: 'Only with extra assumptions. An agent that knows the other’s observation function and the state could compute it, but it does not know the state. That is the premise. Estimating what a partner knows is a real technique, covered in Partial Observability, and it is inference rather than access.',
+    },
+  ]}
+>
+One state, several views. Holding that shape in mind prevents most of the
+mistakes in this subject.
+</KnowledgeCheck>
+
+## States, Observations, and Actions Summary
+
+- $\st$ is what is true. $\obs{\ag} = O_{\ag}(\st)$ is what agent $\ag$
+  receives. The environment's rules are written on the first; every agent's
+  decision is made from the second.
+- An observation is a **crop of the truth**, not a distortion of it.
+- Every agent has **its own** observation function, so partners in the same
+  state know different things and no agent holds the union.
+- What an agent cannot see still affects the reward it receives.
+- Policies are therefore local: $\act{\ag} \sim \pol{\ag}(\cdot \given
+  \obs{\ag})$. This is **decentralized execution**, and it is the constraint
+  every method here must satisfy.

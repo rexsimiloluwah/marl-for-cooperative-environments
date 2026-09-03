@@ -1,0 +1,147 @@
+---
+title: "Deliverables"
+description: "Requirements for the system diagram, design brief, evaluation plan, and optional implementation extension."
+related:
+  - slug: project/rubric
+    icon: award
+  - slug: project/evaluation
+    icon: chart
+  - slug: project/brief
+    icon: file-text
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+The final submission consists of three connected artifacts: a system diagram,
+a concise design brief, and an evaluation plan. This section specifies the content
+of each artifact, identifies work that is outside the required scope, and
+describes an optional implementation extension. Together, the artifacts should
+show what each agent knows and does, why the selected mechanisms address the
+stated cooperative problems, and how the resulting claims would be tested.
+
+## 1 · System diagram
+
+One diagram showing
+
+- your **agents**, by role,
+- the **environment**,
+- what each role **observes**,
+- what each role **does**,
+- the **communication links**, and who hears whom.
+
+Hand-drawn and photographed is fine. Boxes and arrows are fine. What matters
+is that a reader can see which information reaches which agent, because that
+is the claim the rest of the brief rests on.
+
+<Callout tone="observe" title="One thing to get right" icon="compass">
+Draw the observation arrows **from the environment to each agent
+individually**, not as one arrow to a box labelled "agents".
+
+A single shared arrow is how designs quietly become centralized. If your
+diagram cannot show that two agents receive different things, it is not
+showing a decentralized system.
+</Callout>
+
+## 2 · Design brief
+
+**Maximum two pages.** Five short sections, matching the five parts.
+
+<div class="table-scroll">
+
+| Section | Content |
+| --- | --- |
+| **System** | agents, observations, actions, reward, objective |
+| **Coordinate** | the one coordination problem, the training approach, why that approach for that problem |
+| **Communicate** | what is sent, to whom, in what representation, under which constraint |
+| **Adapt** | the unfamiliar condition, training strategy, adaptation mechanism, and the behavioural consequence |
+| **Evaluate** | metrics and test conditions, in prose or pointing at artifact 3 |
+</div>
+
+Two pages is a real constraint and it is there on purpose. Fitting a complete
+design into it requires having decided things.
+
+<Callout variant="pitfall">
+What loses marks in this brief, in order of frequency:
+
+**Naming mechanisms without connecting them to problems.** "We use CTDE with a
+centralized critic and value decomposition" says nothing unless the previous
+paragraph named the difficulty each one addresses.
+
+**An observation that is really the state.** If an agent knows where the
+survivors are, there is no search problem.
+
+**Adaptation with no behavioural consequence.** "The system adapts to new
+agents" is a claim, not a design. Say what an agent does differently.
+
+**A reward with eight terms.** Each additional term is another thing that can
+be maximised without doing the task.
+</Callout>
+
+## 3 · Evaluation plan
+
+One compact table. The experiments you would run, and what each one is for.
+
+<div class="table-scroll">
+
+| Test condition | Metric | What it would establish |
+| --- | --- | --- |
+| Familiar agents | survivors reached, duplicated coverage | baseline, and whether coordination is real |
+| Held-out agent | survivors reached, time to first assist | partner generalization |
+| 30% message loss | survivors reached, messages sent | communication robustness |
+| One agent fails at $t = 50$ | coverage, response time | adaptation |
+| Timestep-only policy | survivors reached | whether the task requires coordination at all |
+</div>
+
+That last row is the falsification test, and including something like it is
+the single clearest signal that you understood Part 5.
+
+## Excluded Work
+
+**No implementation.** You are not asked to train anything.
+
+**No report.** The two-page brief is the report.
+
+**No literature review.** Cite something if it helped you decide, and do not
+survey.
+
+**No use of every technique.** A design using independent learning, defended,
+beats one listing four methods without reasons.
+
+## Optional Implementation Extension
+
+For anyone who wants to go further. Explicitly optional, and the project is
+complete without it.
+
+Implement a **simplified version of one component**:
+
+- simulate communication loss and measure how your protocol degrades,
+- build a small partner classifier and check what it does with a stranger,
+- create a minimal grid world with two of your roles,
+- compare two candidate reward functions and show they produce different
+  behaviour.
+
+<Callout variant="takeaway">
+If you do the extension, the most valuable thing you can produce is a
+**negative result** about your own design.
+
+Finding that your protocol collapses at 20% message loss, or that your partner
+classifier labels every stranger as the same familiar type, is worth more than
+a plot showing your system working. Both labs in this resource were built
+around findings of exactly that kind.
+</Callout>
+
+The notebooks in this resource are reasonable starting points. The Adapt chapter
+lab is about a hundred lines of pure Python and demonstrates partner
+generalization end to end, which is a realistic scale for an optional
+extension.
+
+## Submission Package
+
+Save or submit the three artifacts together. A single PDF with the diagram,
+the brief and the table is ideal.
+
+The [Rubric](/project/rubric/) lists what each of the four criteria is looking
+for, and it is worth reading **before** you write rather than after.

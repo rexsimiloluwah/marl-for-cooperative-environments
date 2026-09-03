@@ -1,0 +1,275 @@
+---
+/**
+ * MANUAL JOINT-ACTION PANEL
+ *
+ * The learner picks one action for each agent and steps the environment. The
+ * point of choosing BOTH actions before stepping is that it makes the joint
+ * action a concrete object: you cannot advance the world with one agent's
+ * decision, which is the whole premise of the chapter.
+ */
+---
+
+<switch-grid-play class="cg not-content">
+  <div class="cg__layout">
+    <div class="cg__stage">
+      <svg class="cg__svg" role="img" aria-label="Two agents on a five by five grid with two switches"></svg>
+      <p class="cg__status" data-status aria-live="polite"></p>
+    </div>
+
+    <div class="cg__panel">
+      <fieldset class="cg__pick">
+        <legend>Agent A</legend>
+        <div class="cg__row" data-agent="0">
+          <button type="button" data-a="0" aria-label="Agent A up">↑</button>
+          <button type="button" data-a="1" aria-label="Agent A down">↓</button>
+          <button type="button" data-a="2" aria-label="Agent A left">←</button>
+          <button type="button" data-a="3" aria-label="Agent A right">→</button>
+          <button type="button" data-a="4">Stay</button>
+        </div>
+      </fieldset>
+
+      <fieldset class="cg__pick">
+        <legend>Agent B</legend>
+        <div class="cg__row" data-agent="1">
+          <button type="button" data-a="0" aria-label="Agent B up">↑</button>
+          <button type="button" data-a="1" aria-label="Agent B down">↓</button>
+          <button type="button" data-a="2" aria-label="Agent B left">←</button>
+          <button type="button" data-a="3" aria-label="Agent B right">→</button>
+          <button type="button" data-a="4">Stay</button>
+        </div>
+      </fieldset>
+
+      <div class="cg__actions">
+        <button class="cg__go" type="button" data-step>Take joint action</button>
+        <button class="cg__reset" type="button" data-reset>Reset</button>
+      </div>
+
+      <dl class="cg__meta">
+        <dt>Step</dt><dd data-t>0</dd>
+        <dt>Reward</dt><dd data-r>0.00</dd>
+        <dt>Return</dt><dd data-ret>0.00</dd>
+      </dl>
+    </div>
+  </div>
+</switch-grid-play>
+
+<script>
+  import { SwitchGrid, MAX_STEPS } from '../../../lib/marl/coordinate/environment';
+  import { createGridView } from './grid-view';
+  import type { Action, StepResult } from '../../../lib/marl/coordinate/types';
+
+  class SwitchGridPlay extends HTMLElement {
+    connectedCallback() {
+      const svg = this.querySelector('svg');
+      if (!svg) return;
+      const view = createGridView(svg as SVGSVGElement);
+      const env = new SwitchGrid();
+
+      const chosen: [Action, Action] = [4, 4];
+      let ret = 0;
+      let finished = false;
+
+      const status = this.querySelector('[data-status]');
+      const tEl = this.querySelector('[data-t]');
+      const rEl = this.querySelector('[data-r]');
+      const retEl = this.querySelector('[data-ret]');
+      const stepBtn = this.querySelector<HTMLButtonElement>('[data-step]');
+
+      // Painting from the StepResult rather than recomputing the switch test
+      // keeps one source of truth for where the switches are.
+      const paint = (res: StepResult) => {
+        view.update(res.positions, res.onSwitch);
+        if (tEl) tEl.textContent = String(res.t);
+        if (rEl) rEl.textContent = res.reward.toFixed(2);
+        if (retEl) retEl.textContent = ret.toFixed(2);
+        if (!status) return;
+        if (res.solved) {
+          status.textContent = `Both switches held on step ${res.t}. Reward +10.`;
+          status.className = 'cg__status is-good';
+        } else if (res.done) {
+          status.textContent = `Out of time after ${MAX_STEPS} steps. Reset to try again.`;
+          status.className = 'cg__status is-bad';
+        } else {
+          status.textContent = 'Pick an action for each agent, then take the joint action.';
+          status.className = 'cg__status';
+        }
+      };
+
+      // selecting an action highlights it, one per agent
+      this.querySelectorAll<HTMLElement>('.cg__row').forEach((row) => {
+        const agent = Number(row.dataset.agent) as 0 | 1;
+        row.querySelectorAll<HTMLButtonElement>('button').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            chosen[agent] = Number(btn.dataset.a) as Action;
+            row.querySelectorAll('button').forEach((b) => b.classList.remove('is-on'));
+            btn.classList.add('is-on');
+          });
+        });
+        // default to STAY so the control always has a valid selection
+        row.querySelector<HTMLButtonElement>('[data-a="4"]')?.classList.add('is-on');
+      });
+
+      stepBtn?.addEventListener('click', () => {
+        if (finished) return;
+        const res = env.step([chosen[0], chosen[1]]);
+        ret += res.reward;
+        finished = res.done;
+        if (stepBtn) stepBtn.disabled = finished;
+        paint(res);
+      });
+
+      this.querySelector('[data-reset]')?.addEventListener('click', () => {
+        ret = 0;
+        finished = false;
+        if (stepBtn) stepBtn.disabled = false;
+        paint(env.reset());
+      });
+
+      paint(env.reset());
+    }
+  }
+  if (!customElements.get('switch-grid-play')) {
+    customElements.define('switch-grid-play', SwitchGridPlay);
+  }
+</script>
+
+<style>
+  .cg {
+    display: block;
+    margin-block: var(--s-5);
+    padding: var(--s-4);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+
+  .cg__layout {
+    display: flex;
+    gap: var(--s-5);
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .cg__stage { flex: 0 0 auto; }
+
+  .cg__svg {
+    display: block;
+    width: 260px;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .cg__status {
+    margin: var(--s-2) 0 0;
+    max-width: 260px;
+    font-size: var(--t-meta);
+    line-height: 1.45;
+    color: var(--ink-muted);
+  }
+  .cg__status.is-good { color: var(--c-reward-ink); font-weight: var(--w-semibold); }
+  .cg__status.is-bad { color: var(--c-conflict-ink); }
+
+  .cg__panel { flex: 1 1 15rem; min-width: 0; }
+
+  .cg__pick {
+    margin: 0 0 var(--s-3);
+    padding: 0;
+    border: 0;
+  }
+  .cg__pick legend {
+    padding: 0;
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    color: var(--ink-muted);
+  }
+  .cg__row {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+  .cg__row button {
+    min-width: 2rem;
+    padding: 4px 8px;
+    font: inherit;
+    font-size: var(--t-small);
+    color: var(--ink);
+    background: var(--surface-sunken);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+  .cg__row button:hover { border-color: var(--ui); }
+  .cg__row button.is-on {
+    color: var(--surface);
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+
+  .cg__actions {
+    display: flex;
+    gap: var(--s-2);
+    margin-bottom: var(--s-3);
+    flex-wrap: wrap;
+  }
+  .cg__go,
+  .cg__reset {
+    padding: 6px 14px;
+    font: inherit;
+    font-size: var(--t-small);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+  .cg__go {
+    color: var(--surface);
+    background: var(--ui);
+    border: var(--hairline) solid var(--ui);
+  }
+  .cg__go:disabled { opacity: 0.45; cursor: default; }
+  .cg__reset {
+    color: var(--ink-muted);
+    background: transparent;
+    border: var(--hairline) solid var(--rule);
+  }
+
+  .cg__meta {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 2px var(--s-3);
+    margin: 0;
+    font-size: var(--t-meta);
+  }
+  .cg__meta dt { color: var(--ink-faint); }
+  .cg__meta dd { margin: 0; font-family: var(--font-mono); color: var(--ink); }
+
+  /* ---- grid interior, also used by the replay ---- */
+  .cg :global(.cg__tile) {
+    fill: var(--surface-sunken);
+    stroke: var(--rule);
+    stroke-width: 1;
+  }
+  .cg :global(.cg__switch) {
+    fill: none;
+    stroke-width: 2;
+    stroke-dasharray: 4 3;
+  }
+  .cg :global(.cg__switch--0) { stroke: var(--c-observe); }
+  .cg :global(.cg__switch--1) { stroke: var(--c-action); }
+  .cg :global(.cg__switch.is-active) { stroke-dasharray: none; stroke-width: 3; }
+  .cg :global(.cg__switchLabel) {
+    font: 600 11px / 1 var(--font-mono);
+    fill: var(--ink-faint);
+  }
+
+  .cg :global(.cg__agent) { transition: transform 0.18s ease-out; }
+  .cg :global(.cg__agent--0 .cg__agentBody) { fill: var(--c-observe); }
+  .cg :global(.cg__agent--1 .cg__agentBody) { fill: var(--c-action); }
+  .cg :global(.cg__agentLabel) {
+    font: 700 12px / 1 var(--font-sans);
+    fill: #fff;
+  }
+  .cg :global(.cg__svg.is-solved .cg__tile) { stroke: var(--c-reward-edge); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cg :global(.cg__agent) { transition: none; }
+  }
+</style>

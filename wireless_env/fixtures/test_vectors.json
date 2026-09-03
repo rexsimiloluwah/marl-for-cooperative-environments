@@ -1,0 +1,4514 @@
+{
+  "$schema_version": 1,
+  "generated_by": "python3 -m wireless_env.fixtures.generate_test_vectors",
+  "purpose": "Cross-validation vectors for the TypeScript port of wireless_env.physics and wireless_env.metrics, plus a reproducible environment rollout for the Three.js lab.",
+  "provenance": "Every value in this file is a computed output of the Python code in this repository, produced by running it. Nothing here is measured from a real network and nothing here is a published benchmark. The propagation model is a simplified educational wireless model in normalized units.",
+  "tolerance": 1e-09,
+  "rounded_to_decimals": 12,
+  "units": "All quantities are dimensionless / normalized: distances in a 10x10 box, powers in [0, 1], bandwidth 1 so rates are bits/s/Hz.",
+  "physics": {
+    "constants": {
+      "DEFAULT_EPSILON": 1.0,
+      "DEFAULT_PATH_LOSS_EXPONENT": 3.0,
+      "DEFAULT_BANDWIDTH": 1.0
+    },
+    "channel_gain": {
+      "equation": "g_iu = 1 / (d_iu + epsilon)^alpha",
+      "cases": [
+        {
+          "args": {
+            "distance": 0.0
+          },
+          "expect": 1.0
+        },
+        {
+          "args": {
+            "distance": 0.5
+          },
+          "expect": 0.296296296296
+        },
+        {
+          "args": {
+            "distance": 1.0
+          },
+          "expect": 0.125
+        },
+        {
+          "args": {
+            "distance": 2.0
+          },
+          "expect": 0.037037037037
+        },
+        {
+          "args": {
+            "distance": 3.0
+          },
+          "expect": 0.015625
+        },
+        {
+          "args": {
+            "distance": 7.5
+          },
+          "expect": 0.001628332994
+        },
+        {
+          "args": {
+            "distance": 1.0,
+            "epsilon": 0.5
+          },
+          "expect": 0.296296296296
+        },
+        {
+          "args": {
+            "distance": 1.0,
+            "epsilon": 2.0
+          },
+          "expect": 0.037037037037
+        },
+        {
+          "args": {
+            "distance": 2.0,
+            "alpha": 2.0
+          },
+          "expect": 0.111111111111
+        },
+        {
+          "args": {
+            "distance": 2.0,
+            "alpha": 4.0
+          },
+          "expect": 0.012345679012
+        },
+        {
+          "args": {
+            "distance": 2.0,
+            "epsilon": 0.1,
+            "alpha": 3.5
+          },
+          "expect": 0.074513071951
+        },
+        {
+          "args": {
+            "distance": [
+              0.0,
+              1.0,
+              2.0,
+              4.0
+            ]
+          },
+          "expect": [
+            1.0,
+            0.125,
+            0.037037037037,
+            0.008
+          ]
+        }
+      ],
+      "errors": [
+        {
+          "args": {
+            "distance": -1.0
+          },
+          "raises": "ValueError",
+          "why": "distance must be non-negative",
+          "message_contains": "distance must be non-negative, got -1"
+        },
+        {
+          "args": {
+            "distance": 1.0,
+            "epsilon": 0.0
+          },
+          "raises": "ValueError",
+          "why": "epsilon must be strictly positive or the gain diverges at d=0",
+          "message_contains": "epsilon must be strictly positive, got 0"
+        },
+        {
+          "args": {
+            "distance": 1.0,
+            "alpha": 0.0
+          },
+          "raises": "ValueError",
+          "why": "alpha must be strictly positive",
+          "message_contains": "alpha must be strictly positive, got 0"
+        },
+        {
+          "args": {
+            "distance": [
+              1.0,
+              -2.0
+            ]
+          },
+          "raises": "ValueError",
+          "why": "a negative entry anywhere in an array is rejected",
+          "message_contains": "distance must be non-negative, got -2"
+        }
+      ]
+    },
+    "euclidean_distance": {
+      "equation": "d = sqrt((ax - bx)^2 + (ay - by)^2)",
+      "cases": [
+        {
+          "args": {
+            "point_a": [
+              0.0,
+              0.0
+            ],
+            "point_b": [
+              3.0,
+              4.0
+            ]
+          },
+          "expect": 5.0
+        },
+        {
+          "args": {
+            "point_a": [
+              5.0,
+              8.0
+            ],
+            "point_b": [
+              5.0,
+              8.0
+            ]
+          },
+          "expect": 0.0
+        },
+        {
+          "args": {
+            "point_a": [
+              5.0,
+              8.0
+            ],
+            "point_b": [
+              2.401923788647,
+              3.5
+            ]
+          },
+          "expect": 5.196152422706
+        },
+        {
+          "args": {
+            "point_a": [
+              -1.5,
+              2.5
+            ],
+            "point_b": [
+              2.5,
+              -0.5
+            ]
+          },
+          "expect": 5.0
+        }
+      ],
+      "errors": [
+        {
+          "args": {
+            "point_a": [
+              0.0,
+              0.0
+            ],
+            "point_b": [
+              1.0,
+              2.0,
+              3.0
+            ]
+          },
+          "raises": "ValueError",
+          "why": "both points must have the same dimension",
+          "message_contains": "point_a has 2 coordinate(s) but point_b has 3"
+        }
+      ]
+    },
+    "pairwise_distances": {
+      "equation": "out[i][j] = euclidean_distance(a_i, b_j)",
+      "cases": [
+        {
+          "args": {
+            "points_a": [
+              [
+                0.0,
+                0.0
+              ],
+              [
+                3.0,
+                4.0
+              ]
+            ],
+            "points_b": [
+              [
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                3.0
+              ],
+              [
+                6.0,
+                8.0
+              ]
+            ]
+          },
+          "expect": [
+            [
+              0.0,
+              3.0,
+              10.0
+            ],
+            [
+              5.0,
+              3.162277660168,
+              5.0
+            ]
+          ]
+        },
+        {
+          "args": {
+            "points_a": [
+              [
+                5.0,
+                8.0
+              ],
+              [
+                2.401923788647,
+                3.5
+              ],
+              [
+                7.598076211353,
+                3.5
+              ]
+            ],
+            "points_b": [
+              [
+                5.0,
+                5.0
+              ],
+              [
+                4.0,
+                7.0
+              ],
+              [
+                8.0,
+                3.0
+              ]
+            ]
+          },
+          "expect": [
+            [
+              3.0,
+              1.414213562373,
+              5.830951894845
+            ],
+            [
+              3.0,
+              3.847576844885,
+              5.620360955323
+            ],
+            [
+              3.0,
+              5.019576916704,
+              0.641515963854
+            ]
+          ]
+        }
+      ],
+      "errors": []
+    },
+    "total_interference": {
+      "equation": "I_u = sum_j P_j * g_ju * 1[c_j == c_i]",
+      "cases": [
+        {
+          "args": {
+            "interferer_powers": [],
+            "interferer_gains": [],
+            "same_channel_mask": []
+          },
+          "expect": 0.0
+        },
+        {
+          "args": {
+            "interferer_powers": [
+              1.0,
+              1.0
+            ],
+            "interferer_gains": [
+              0.1,
+              0.5
+            ],
+            "same_channel_mask": [
+              0,
+              0
+            ]
+          },
+          "expect": 0.0
+        },
+        {
+          "args": {
+            "interferer_powers": [
+              1.0,
+              1.0
+            ],
+            "interferer_gains": [
+              0.1,
+              0.5
+            ],
+            "same_channel_mask": [
+              1,
+              0
+            ]
+          },
+          "expect": 0.1
+        },
+        {
+          "args": {
+            "interferer_powers": [
+              1.0,
+              1.0
+            ],
+            "interferer_gains": [
+              0.1,
+              0.5
+            ],
+            "same_channel_mask": [
+              1,
+              1
+            ]
+          },
+          "expect": 0.6
+        },
+        {
+          "args": {
+            "interferer_powers": [
+              0.2,
+              0.5,
+              1.0
+            ],
+            "interferer_gains": [
+              0.015625,
+              0.001953125,
+              0.008
+            ],
+            "same_channel_mask": [
+              1,
+              0,
+              1
+            ]
+          },
+          "expect": 0.011125
+        },
+        {
+          "args": {
+            "interferer_powers": [
+              0.0,
+              1.0
+            ],
+            "interferer_gains": [
+              0.9,
+              0.25
+            ],
+            "same_channel_mask": [
+              1,
+              1
+            ]
+          },
+          "expect": 0.25
+        }
+      ],
+      "errors": [
+        {
+          "args": {
+            "interferer_powers": [
+              1.0,
+              1.0
+            ],
+            "interferer_gains": [
+              0.1
+            ],
+            "same_channel_mask": [
+              1,
+              1
+            ]
+          },
+          "raises": "ValueError",
+          "why": "the three interferer lists must be the same length",
+          "message_contains": "interferer_powers has 2 entries, interferer_gains has 1 and same_channel_mask ha"
+        },
+        {
+          "args": {
+            "interferer_powers": [
+              1.0
+            ],
+            "interferer_gains": [
+              0.1
+            ],
+            "same_channel_mask": [
+              2
+            ]
+          },
+          "raises": "ValueError",
+          "why": "the mask is an indicator, not a channel index",
+          "message_contains": "same_channel_mask must contain only 0/1 (or False/True) values, got [2"
+        },
+        {
+          "args": {
+            "interferer_powers": [
+              -1.0
+            ],
+            "interferer_gains": [
+              0.1
+            ],
+            "same_channel_mask": [
+              1
+            ]
+          },
+          "raises": "ValueError",
+          "why": "powers cannot be negative",
+          "message_contains": "interferer_powers must be non-negative, got -1"
+        }
+      ]
+    },
+    "sinr": {
+      "equation": "SINR_u = P_i g_iu / (sigma^2 + sum_j P_j g_ju 1[c_j == c_i])",
+      "cases": [
+        {
+          "args": {
+            "serving_power": 1.0,
+            "serving_gain": 0.0625,
+            "interferer_powers": [
+              1.0
+            ],
+            "interferer_gains": [
+              0.01
+            ],
+            "same_channel_mask": [
+              0
+            ],
+            "noise_power": 0.001
+          },
+          "expect": 62.5
+        },
+        {
+          "args": {
+            "serving_power": 1.0,
+            "serving_gain": 0.0625,
+            "interferer_powers": [
+              1.0
+            ],
+            "interferer_gains": [
+              0.01
+            ],
+            "same_channel_mask": [
+              1
+            ],
+            "noise_power": 0.001
+          },
+          "expect": 5.681818181818
+        },
+        {
+          "args": {
+            "serving_power": 1.0,
+            "serving_gain": 0.0625,
+            "interferer_powers": [
+              1.0,
+              1.0
+            ],
+            "interferer_gains": [
+              0.01,
+              0.004
+            ],
+            "same_channel_mask": [
+              1,
+              1
+            ],
+            "noise_power": 0.001
+          },
+          "expect": 4.166666666667
+        },
+        {
+          "args": {
+            "serving_power": 0.2,
+            "serving_gain": 0.0625,
+            "interferer_powers": [
+              1.0
+            ],
+            "interferer_gains": [
+              0.01
+            ],
+            "same_channel_mask": [
+              1
+            ],
+            "noise_power": 0.001
+          },
+          "expect": 1.136363636364
+        },
+        {
+          "args": {
+            "serving_power": 1.0,
+            "serving_gain": 0.0625,
+            "interferer_powers": [],
+            "interferer_gains": [],
+            "same_channel_mask": [],
+            "noise_power": 0.031
+          },
+          "expect": 2.016129032258
+        },
+        {
+          "args": {
+            "serving_power": 0.0,
+            "serving_gain": 0.0625,
+            "interferer_powers": [
+              1.0
+            ],
+            "interferer_gains": [
+              0.01
+            ],
+            "same_channel_mask": [
+              1
+            ],
+            "noise_power": 0.001
+          },
+          "expect": 0.0
+        },
+        {
+          "args": {
+            "serving_power": 1.0,
+            "serving_gain": 0.0625,
+            "interferer_powers": [
+              1.0
+            ],
+            "interferer_gains": [
+              0.01
+            ],
+            "same_channel_mask": [
+              1
+            ],
+            "noise_power": 0.0
+          },
+          "expect": 6.25
+        }
+      ],
+      "errors": [
+        {
+          "args": {
+            "serving_power": 1.0,
+            "serving_gain": 0.0625,
+            "interferer_powers": [
+              1.0
+            ],
+            "interferer_gains": [
+              0.01
+            ],
+            "same_channel_mask": [
+              0
+            ],
+            "noise_power": 0.0
+          },
+          "raises": "ValueError",
+          "why": "zero noise with no co-channel interferer leaves a zero denominator",
+          "message_contains": "The SINR denominator (sigma^2 + interference) is zero, so the SINR is undefined "
+        },
+        {
+          "args": {
+            "serving_power": 1.0,
+            "serving_gain": 0.0625,
+            "interferer_powers": [],
+            "interferer_gains": [],
+            "same_channel_mask": [],
+            "noise_power": -0.001
+          },
+          "raises": "ValueError",
+          "why": "noise power cannot be negative",
+          "message_contains": "noise_power must be non-negative, got -0"
+        },
+        {
+          "args": {
+            "serving_power": 1.0,
+            "serving_gain": -0.5,
+            "interferer_powers": [],
+            "interferer_gains": [],
+            "same_channel_mask": [],
+            "noise_power": 0.001
+          },
+          "raises": "ValueError",
+          "why": "serving gain cannot be negative",
+          "message_contains": "serving_gain must be non-negative, got -0"
+        }
+      ]
+    },
+    "shannon_rate": {
+      "equation": "R_u = B * log2(1 + SINR_u)",
+      "cases": [
+        {
+          "args": {
+            "sinr_value": 0.0
+          },
+          "expect": 0.0
+        },
+        {
+          "args": {
+            "sinr_value": 1.0
+          },
+          "expect": 1.0
+        },
+        {
+          "args": {
+            "sinr_value": 3.0
+          },
+          "expect": 2.0
+        },
+        {
+          "args": {
+            "sinr_value": 7.0
+          },
+          "expect": 3.0
+        },
+        {
+          "args": {
+            "sinr_value": 62.5
+          },
+          "expect": 5.988684686772
+        },
+        {
+          "args": {
+            "sinr_value": 5.681818181818
+          },
+          "expect": 2.740240726199
+        },
+        {
+          "args": {
+            "sinr_value": 100.0,
+            "bandwidth": 2.0
+          },
+          "expect": 13.316422965504
+        },
+        {
+          "args": {
+            "sinr_value": 100.0,
+            "bandwidth": 0.0
+          },
+          "expect": 0.0
+        },
+        {
+          "args": {
+            "sinr_value": [
+              0.0,
+              1.0,
+              15.0
+            ]
+          },
+          "expect": [
+            0.0,
+            1.0,
+            4.0
+          ]
+        }
+      ],
+      "errors": [
+        {
+          "args": {
+            "sinr_value": -0.5
+          },
+          "raises": "ValueError",
+          "why": "SINR is a ratio of non-negative powers",
+          "message_contains": "sinr_value must be non-negative, got -0"
+        },
+        {
+          "args": {
+            "sinr_value": 1.0,
+            "bandwidth": -1.0
+          },
+          "raises": "ValueError",
+          "why": "bandwidth cannot be negative",
+          "message_contains": "bandwidth must be a finite non-negative number, got -1"
+        }
+      ]
+    },
+    "interference_to_noise_ratio": {
+      "equation": "INR = I_u / sigma^2",
+      "cases": [
+        {
+          "args": {
+            "interference": 0.0,
+            "noise_power": 0.001
+          },
+          "expect": 0.0
+        },
+        {
+          "args": {
+            "interference": 0.001,
+            "noise_power": 0.001
+          },
+          "expect": 1.0
+        },
+        {
+          "args": {
+            "interference": 0.0046,
+            "noise_power": 0.001
+          },
+          "expect": 4.6
+        },
+        {
+          "args": {
+            "interference": [
+              0.0,
+              0.002,
+              0.02
+            ],
+            "noise_power": 0.001
+          },
+          "expect": [
+            0.0,
+            2.0,
+            20.0
+          ]
+        }
+      ],
+      "errors": [
+        {
+          "args": {
+            "interference": 0.001,
+            "noise_power": 0.0
+          },
+          "raises": "ValueError",
+          "why": "the noise floor is the reference and must be positive",
+          "message_contains": "noise_power must be strictly positive, got 0"
+        },
+        {
+          "args": {
+            "interference": -0.001,
+            "noise_power": 0.001
+          },
+          "raises": "ValueError",
+          "why": "interference is a power and cannot be negative",
+          "message_contains": "interference must be non-negative, got -0"
+        }
+      ]
+    }
+  },
+  "metrics": {
+    "jain_fairness": {
+      "equation": "J = (sum_i x_i)^2 / (n * sum_i x_i^2)",
+      "notes": "Bounded in [1/n, 1]. Equals 1 exactly for equal rates and 1/n when one user has everything. All-zero input returns 1.0 by this package's documented convention.",
+      "cases": [
+        {
+          "args": {
+            "rates": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "expect": 1.0
+        },
+        {
+          "args": {
+            "rates": [
+              2.5,
+              2.5,
+              2.5,
+              2.5
+            ]
+          },
+          "expect": 1.0
+        },
+        {
+          "args": {
+            "rates": [
+              3.0,
+              0.0,
+              0.0
+            ]
+          },
+          "expect": 0.333333333333
+        },
+        {
+          "args": {
+            "rates": [
+              1.0,
+              0.0
+            ]
+          },
+          "expect": 0.5
+        },
+        {
+          "args": {
+            "rates": [
+              5.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "expect": 0.2
+        },
+        {
+          "args": {
+            "rates": [
+              4.0,
+              2.0
+            ]
+          },
+          "expect": 0.9
+        },
+        {
+          "args": {
+            "rates": [
+              6.0,
+              3.0,
+              1.0
+            ]
+          },
+          "expect": 0.724637681159
+        },
+        {
+          "args": {
+            "rates": [
+              0.0,
+              0.0
+            ]
+          },
+          "expect": 1.0
+        },
+        {
+          "args": {
+            "rates": [
+              7.5
+            ]
+          },
+          "expect": 1.0
+        },
+        {
+          "args": {
+            "rates": [
+              2.0,
+              4.0,
+              6.0,
+              8.0
+            ]
+          },
+          "expect": 0.833333333333
+        },
+        {
+          "args": {
+            "rates": [
+              4.0,
+              8.0,
+              12.0,
+              16.0
+            ]
+          },
+          "expect": 0.833333333333
+        }
+      ],
+      "errors": [
+        {
+          "args": {
+            "rates": [
+              1.0,
+              -1.0
+            ]
+          },
+          "raises": "ValueError",
+          "why": "rates cannot be negative",
+          "message_contains": "rates must be non-negative, got [1"
+        },
+        {
+          "args": {
+            "rates": []
+          },
+          "raises": "ValueError",
+          "why": "at least one user is required",
+          "message_contains": "rates is empty"
+        }
+      ]
+    },
+    "total_throughput": {
+      "equation": "sum_i x_i",
+      "cases": [
+        {
+          "args": {
+            "rates": [
+              1.5,
+              2.5,
+              0.0
+            ]
+          },
+          "expect": 4.0
+        },
+        {
+          "args": {
+            "rates": [
+              0.0,
+              0.0
+            ]
+          },
+          "expect": 0.0
+        },
+        {
+          "args": {
+            "rates": [
+              3.0,
+              3.0,
+              3.0,
+              3.0
+            ]
+          },
+          "expect": 12.0
+        }
+      ],
+      "errors": []
+    },
+    "mean_throughput": {
+      "equation": "(1/n) sum_i x_i",
+      "cases": [
+        {
+          "args": {
+            "rates": [
+              1.0,
+              2.0,
+              3.0
+            ]
+          },
+          "expect": 2.0
+        },
+        {
+          "args": {
+            "rates": [
+              4.0
+            ]
+          },
+          "expect": 4.0
+        },
+        {
+          "args": {
+            "rates": [
+              0.0,
+              5.0
+            ]
+          },
+          "expect": 2.5
+        }
+      ],
+      "errors": []
+    },
+    "worst_user_throughput": {
+      "equation": "min_i x_i",
+      "cases": [
+        {
+          "args": {
+            "rates": [
+              1.0,
+              2.0,
+              3.0
+            ]
+          },
+          "expect": 1.0
+        },
+        {
+          "args": {
+            "rates": [
+              2.0,
+              0.0,
+              3.0
+            ]
+          },
+          "expect": 0.0
+        },
+        {
+          "args": {
+            "rates": [
+              5.0
+            ]
+          },
+          "expect": 5.0
+        }
+      ],
+      "errors": []
+    },
+    "communication_overhead": {
+      "equation": "bits = messages_sent * bits_per_message",
+      "cases": [
+        {
+          "args": {
+            "messages_sent": 6,
+            "bits_per_message": 2
+          },
+          "expect": 12.0
+        },
+        {
+          "args": {
+            "messages_sent": 6,
+            "bits_per_message": 0
+          },
+          "expect": 0.0
+        },
+        {
+          "args": {
+            "messages_sent": 0,
+            "bits_per_message": 4
+          },
+          "expect": 0.0
+        },
+        {
+          "args": {
+            "messages_sent": 12,
+            "bits_per_message": 4
+          },
+          "expect": 48.0
+        }
+      ],
+      "errors": [
+        {
+          "args": {
+            "messages_sent": -1,
+            "bits_per_message": 2
+          },
+          "raises": "ValueError",
+          "why": "a message count cannot be negative",
+          "message_contains": "messages_sent must be a finite non-negative count, got -1"
+        },
+        {
+          "args": {
+            "messages_sent": 1,
+            "bits_per_message": -2
+          },
+          "raises": "ValueError",
+          "why": "a payload width cannot be negative",
+          "message_contains": "bits_per_message must be a finite non-negative width, got -2"
+        }
+      ]
+    },
+    "generalization_gap": {
+      "equation": "gap = familiar - unseen (positive means degradation)",
+      "cases": [
+        {
+          "args": {
+            "familiar_performance": 10.0,
+            "unseen_performance": 7.5
+          },
+          "expect": 2.5
+        },
+        {
+          "args": {
+            "familiar_performance": 10.0,
+            "unseen_performance": 10.0
+          },
+          "expect": 0.0
+        },
+        {
+          "args": {
+            "familiar_performance": 7.5,
+            "unseen_performance": 10.0
+          },
+          "expect": -2.5
+        },
+        {
+          "args": {
+            "familiar_performance": 0.946,
+            "unseen_performance": 0.677
+          },
+          "expect": 0.269
+        }
+      ],
+      "errors": []
+    },
+    "relative_generalization_gap": {
+      "equation": "(familiar - unseen) / familiar",
+      "cases": [
+        {
+          "args": {
+            "familiar_performance": 10.0,
+            "unseen_performance": 7.5
+          },
+          "expect": 0.25
+        },
+        {
+          "args": {
+            "familiar_performance": 40.0,
+            "unseen_performance": 38.0
+          },
+          "expect": 0.05
+        }
+      ],
+      "errors": [
+        {
+          "args": {
+            "familiar_performance": 0.0,
+            "unseen_performance": 1.0
+          },
+          "raises": "ValueError",
+          "why": "a relative gap against a zero baseline is undefined",
+          "message_contains": "familiar_performance is 0, so a *relative* generalization gap is undefined (divi"
+        }
+      ]
+    },
+    "robustness": {
+      "equation": "min over scenarios (optionally divided by a reference)",
+      "notes": "This package defines robustness as worst-case performance across an evaluation suite. Other definitions exist; report this one explicitly whenever you quote the number.",
+      "cases": [
+        {
+          "args": {
+            "scenario_results": {
+              "familiar": 10.0,
+              "surge": 6.0,
+              "failure": 4.0
+            }
+          },
+          "expect": 4.0
+        },
+        {
+          "args": {
+            "scenario_results": {
+              "familiar": 10.0,
+              "surge": 6.0,
+              "failure": 4.0
+            },
+            "reference": 10.0
+          },
+          "expect": 0.4
+        },
+        {
+          "args": {
+            "scenario_results": [
+              3.0,
+              3.0,
+              3.0
+            ]
+          },
+          "expect": 3.0
+        },
+        {
+          "args": {
+            "scenario_results": [
+              2.0
+            ]
+          },
+          "expect": 2.0
+        }
+      ],
+      "errors": [
+        {
+          "args": {
+            "scenario_results": []
+          },
+          "raises": "ValueError",
+          "why": "an empty suite has no worst case",
+          "message_contains": "scenario_results is empty, so there is no worst case to report"
+        },
+        {
+          "args": {
+            "scenario_results": [
+              1.0
+            ],
+            "reference": 0.0
+          },
+          "raises": "ValueError",
+          "why": "a zero reference makes the ratio undefined",
+          "message_contains": "reference is 0, so the normalized robustness ratio is undefined (division by zer"
+        }
+      ]
+    }
+  },
+  "actions": {
+    "equation": "action = channel * n_power_levels + power_level",
+    "n_channels": 3,
+    "n_power_levels": 3,
+    "power_labels": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "table": [
+      {
+        "action": 0,
+        "channel": 0,
+        "power_level": 0,
+        "power_label": "low",
+        "reencoded": 0
+      },
+      {
+        "action": 1,
+        "channel": 0,
+        "power_level": 1,
+        "power_label": "medium",
+        "reencoded": 1
+      },
+      {
+        "action": 2,
+        "channel": 0,
+        "power_level": 2,
+        "power_label": "high",
+        "reencoded": 2
+      },
+      {
+        "action": 3,
+        "channel": 1,
+        "power_level": 0,
+        "power_label": "low",
+        "reencoded": 3
+      },
+      {
+        "action": 4,
+        "channel": 1,
+        "power_level": 1,
+        "power_label": "medium",
+        "reencoded": 4
+      },
+      {
+        "action": 5,
+        "channel": 1,
+        "power_level": 2,
+        "power_label": "high",
+        "reencoded": 5
+      },
+      {
+        "action": 6,
+        "channel": 2,
+        "power_level": 0,
+        "power_label": "low",
+        "reencoded": 6
+      },
+      {
+        "action": 7,
+        "channel": 2,
+        "power_level": 1,
+        "power_label": "medium",
+        "reencoded": 7
+      },
+      {
+        "action": 8,
+        "channel": 2,
+        "power_level": 2,
+        "power_label": "high",
+        "reencoded": 8
+      }
+    ],
+    "errors": [
+      {
+        "args": {
+          "action": 9
+        },
+        "raises": "ValueError",
+        "why": "action index out of range",
+        "message_contains": "action must be in [0, 9), got 9"
+      },
+      {
+        "args": {
+          "action": -1
+        },
+        "raises": "ValueError",
+        "why": "action index out of range",
+        "message_contains": "action must be in [0, 9), got -1"
+      },
+      {
+        "args": {
+          "channel": 3,
+          "power_level": 0
+        },
+        "raises": "ValueError",
+        "why": "channel index out of range",
+        "message_contains": "channel must be in [0, 3), got 3"
+      },
+      {
+        "args": {
+          "channel": 0,
+          "power_level": 3
+        },
+        "raises": "ValueError",
+        "why": "power level index out of range",
+        "message_contains": "power_level must be in [0, 3), got 3"
+      }
+    ]
+  },
+  "reward": {
+    "equation": "r = w_thr * mean(served) + w_fair * jain(served) - w_int * mean(interference)/noise - lambda * communication_bits",
+    "default_weights": {
+      "throughput": 1.0,
+      "fairness": 0.5,
+      "interference": 0.1,
+      "communication": 0.02
+    },
+    "cases": [
+      {
+        "args": {
+          "served_rates": [
+            2.0,
+            2.0
+          ],
+          "interference": [
+            0.0,
+            0.0
+          ],
+          "communication_bits": 0.0,
+          "noise_power": 0.001,
+          "weights": {
+            "throughput": 1.0,
+            "fairness": 0.5,
+            "interference": 0.1,
+            "communication": 0.02
+          }
+        },
+        "expect": {
+          "reward": 2.5,
+          "terms": {
+            "throughput": 2.0,
+            "fairness": 0.5,
+            "interference": 0.0,
+            "communication": 0.0
+          }
+        }
+      },
+      {
+        "args": {
+          "served_rates": [
+            4.0,
+            4.0,
+            4.0
+          ],
+          "interference": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "communication_bits": 0.0,
+          "noise_power": 0.001,
+          "weights": {
+            "throughput": 1.0,
+            "fairness": 0.5,
+            "interference": 0.1,
+            "communication": 0.02
+          }
+        },
+        "expect": {
+          "reward": 4.5,
+          "terms": {
+            "throughput": 4.0,
+            "fairness": 0.5,
+            "interference": 0.0,
+            "communication": 0.0
+          }
+        }
+      },
+      {
+        "args": {
+          "served_rates": [
+            6.0,
+            2.0,
+            1.0
+          ],
+          "interference": [
+            0.002,
+            0.0,
+            0.004
+          ],
+          "communication_bits": 0.0,
+          "noise_power": 0.001,
+          "weights": {
+            "throughput": 1.0,
+            "fairness": 0.5,
+            "interference": 0.1,
+            "communication": 0.02
+          }
+        },
+        "expect": {
+          "reward": 3.129268292683,
+          "terms": {
+            "throughput": 3.0,
+            "fairness": 0.329268292683,
+            "interference": -0.2,
+            "communication": 0.0
+          }
+        }
+      },
+      {
+        "args": {
+          "served_rates": [
+            6.0,
+            2.0,
+            1.0
+          ],
+          "interference": [
+            0.002,
+            0.0,
+            0.004
+          ],
+          "communication_bits": 12.0,
+          "noise_power": 0.001,
+          "weights": {
+            "throughput": 1.0,
+            "fairness": 0.5,
+            "interference": 0.1,
+            "communication": 0.02
+          }
+        },
+        "expect": {
+          "reward": 2.889268292683,
+          "terms": {
+            "throughput": 3.0,
+            "fairness": 0.329268292683,
+            "interference": -0.2,
+            "communication": -0.24
+          }
+        }
+      },
+      {
+        "args": {
+          "served_rates": [
+            3.0,
+            3.0
+          ],
+          "interference": [
+            0.001,
+            0.001
+          ],
+          "communication_bits": 24.0,
+          "noise_power": 0.001,
+          "weights": {
+            "throughput": 1.0,
+            "fairness": 0.5,
+            "interference": 0.1,
+            "communication": 0.02
+          }
+        },
+        "expect": {
+          "reward": 2.92,
+          "terms": {
+            "throughput": 3.0,
+            "fairness": 0.5,
+            "interference": -0.1,
+            "communication": -0.48
+          }
+        }
+      },
+      {
+        "args": {
+          "served_rates": [
+            5.0,
+            0.0
+          ],
+          "interference": [
+            0.0,
+            0.01
+          ],
+          "communication_bits": 0.0,
+          "noise_power": 0.001,
+          "weights": {
+            "throughput": 1.0,
+            "fairness": 0.5,
+            "interference": 0.1,
+            "communication": 0.02
+          }
+        },
+        "expect": {
+          "reward": 2.25,
+          "terms": {
+            "throughput": 2.5,
+            "fairness": 0.25,
+            "interference": -0.5,
+            "communication": 0.0
+          }
+        }
+      },
+      {
+        "args": {
+          "served_rates": [
+            4.0,
+            4.0
+          ],
+          "interference": [
+            0.0,
+            0.0
+          ],
+          "communication_bits": 0.0,
+          "noise_power": 0.001,
+          "weights": {
+            "throughput": 1.0,
+            "fairness": 0.0,
+            "interference": 0.0,
+            "communication": 0.0
+          }
+        },
+        "expect": {
+          "reward": 4.0,
+          "terms": {
+            "throughput": 4.0,
+            "fairness": 0.0,
+            "interference": 0.0,
+            "communication": 0.0
+          }
+        }
+      },
+      {
+        "args": {
+          "served_rates": [
+            6.0,
+            2.0
+          ],
+          "interference": [
+            0.005,
+            0.005
+          ],
+          "communication_bits": 6.0,
+          "noise_power": 0.001,
+          "weights": {
+            "throughput": 0.5,
+            "fairness": 2.0,
+            "interference": 0.05,
+            "communication": 0.1
+          }
+        },
+        "expect": {
+          "reward": 2.75,
+          "terms": {
+            "throughput": 2.0,
+            "fairness": 1.6,
+            "interference": -0.25,
+            "communication": -0.6
+          }
+        }
+      }
+    ]
+  },
+  "observation_layout": {
+    "notes": "Block offsets for the fixture rollout's configuration. The interference block is one step stale by construction, and the message block is a fixed width regardless of bits_per_message.",
+    "max_users_per_station": 4,
+    "n_channels": 3,
+    "n_power_levels": 3,
+    "n_message_slots": 2,
+    "max_message_bits": 4,
+    "message_bit_names": [
+      "high_interference_alert",
+      "high_demand_alert",
+      "channel_bit_high",
+      "channel_bit_low"
+    ],
+    "size": 36,
+    "blocks": [
+      {
+        "name": "demand",
+        "start": 0,
+        "stop": 4,
+        "width": 4
+      },
+      {
+        "name": "user_mask",
+        "start": 4,
+        "stop": 8,
+        "width": 4
+      },
+      {
+        "name": "serving_gain",
+        "start": 8,
+        "stop": 12,
+        "width": 4
+      },
+      {
+        "name": "interference",
+        "start": 12,
+        "stop": 15,
+        "width": 3
+      },
+      {
+        "name": "channel_quality",
+        "start": 15,
+        "stop": 18,
+        "width": 3
+      },
+      {
+        "name": "previous_channel",
+        "start": 18,
+        "stop": 21,
+        "width": 3
+      },
+      {
+        "name": "previous_power",
+        "start": 21,
+        "stop": 24,
+        "width": 3
+      },
+      {
+        "name": "operational",
+        "start": 24,
+        "stop": 25,
+        "width": 1
+      },
+      {
+        "name": "time",
+        "start": 25,
+        "stop": 26,
+        "width": 1
+      },
+      {
+        "name": "messages",
+        "start": 26,
+        "stop": 36,
+        "width": 10
+      }
+    ]
+  },
+  "rollout_deterministic": {
+    "python_only": false,
+    "notes": "No random number generator is consulted in this rollout: station positions, user counts, user positions and demands are pinned, demand volatility is 0, mobility is off and message dropout is 0. A TypeScript port must reproduce every number here to within the fixture tolerance.",
+    "config": {
+      "name": "fixture_deterministic",
+      "description": "Fully pinned fixture configuration: no RNG is consulted anywhere, so a TypeScript port can reproduce this rollout exactly.",
+      "n_base_stations": 3,
+      "n_channels": 3,
+      "users_per_station_range": [
+        2,
+        4
+      ],
+      "area_size": 10.0,
+      "station_layout": "triangle",
+      "station_positions": [
+        [
+          5.0,
+          8.0
+        ],
+        [
+          2.401923788647,
+          3.5
+        ],
+        [
+          7.598076211353,
+          3.5
+        ]
+      ],
+      "users_per_station": [
+        2,
+        2,
+        2
+      ],
+      "user_positions": [
+        [
+          4.2,
+          7.1
+        ],
+        [
+          6.05,
+          9.3
+        ],
+        [
+          1.6,
+          2.4
+        ],
+        [
+          3.9,
+          4.6
+        ],
+        [
+          8.4,
+          4.1
+        ],
+        [
+          6.3,
+          2.2
+        ]
+      ],
+      "user_radius": 2.5,
+      "max_base_stations": null,
+      "regenerate_topology_on_reset": false,
+      "power_levels": [
+        0.2,
+        0.5,
+        1.0
+      ],
+      "path_loss_exponent": 3.0,
+      "path_loss_epsilon": 1.0,
+      "noise_power": 0.001,
+      "bandwidth": 1.0,
+      "channel_extra_noise": null,
+      "demand_mean": 4.0,
+      "demand_min": 1.0,
+      "demand_max": 8.0,
+      "demand_volatility": 0.0,
+      "demand_persistence": 0.8,
+      "burst_probability": 0.0,
+      "burst_multiplier": 2.0,
+      "initial_demands": [
+        5.0,
+        3.0,
+        6.0,
+        4.0,
+        5.0,
+        2.0
+      ],
+      "demand_limited": true,
+      "user_mobility": false,
+      "user_speed": 0.3,
+      "failed_stations": [],
+      "failure_step": null,
+      "failure_mode": "orphan",
+      "communication": true,
+      "bits_per_message": 2,
+      "comm_dropout_probability": 0.0,
+      "interference_alert_threshold": 1.0,
+      "reward_weights": {
+        "throughput": 1.0,
+        "fairness": 0.5,
+        "interference": 0.1,
+        "communication": 0.02
+      },
+      "max_steps": 10,
+      "seed": 0
+    },
+    "agents": [
+      "bs_0",
+      "bs_1",
+      "bs_2"
+    ],
+    "observation_dimension": 36,
+    "initial_observations": {
+      "bs_0": [
+        0.625,
+        0.375,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.093383677304,
+        0.052473559976,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bs_1": [
+        0.75,
+        0.5,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.07595525682,
+        0.042811419815,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bs_2": [
+        0.625,
+        0.25,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.124711751938,
+        0.043789289892,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "episode_return": 34.253927622372,
+    "trace": [
+      {
+        "step": 1,
+        "actions": {
+          "bs_0": 2,
+          "bs_1": 5,
+          "bs_2": 8
+        },
+        "decoded_actions": {
+          "bs_0": {
+            "channel": 0,
+            "power_level": 2
+          },
+          "bs_1": {
+            "channel": 1,
+            "power_level": 2
+          },
+          "bs_2": {
+            "channel": 2,
+            "power_level": 2
+          }
+        },
+        "reward": 4.379565217391,
+        "reward_terms": {
+          "throughput": 4.166666666667,
+          "fairness": 0.452898550725,
+          "interference": 0.0,
+          "communication": -0.24
+        },
+        "terminations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "truncations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "metrics": {
+          "step": 1,
+          "total_throughput": 25.0,
+          "mean_throughput": 4.166666666667,
+          "worst_user_throughput": 2.0,
+          "jain_fairness": 0.905797101449,
+          "jain_fairness_satisfaction": 1.0,
+          "total_capacity": 36.479459946167,
+          "total_demand": 25.0,
+          "mean_satisfaction": 1.0,
+          "total_interference": 0.0,
+          "mean_interference_to_noise": 0.0,
+          "messages_sent": 6,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 12.0,
+          "n_users": 6,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            1,
+            1,
+            1
+          ],
+          "n_colliding_stations": 0,
+          "reward": 4.379565217391
+        },
+        "user_sinr": [
+          93.383676955517,
+          52.473560620169,
+          75.955256216171,
+          42.811421626934,
+          124.711750917312,
+          43.789288581559
+        ],
+        "user_capacity": [
+          6.560465471301,
+          5.740753838915,
+          6.265947964105,
+          5.453235123994,
+          6.973975701886,
+          5.485081845966
+        ],
+        "user_served_rate": [
+          5.0,
+          3.0,
+          6.0,
+          4.0,
+          5.0,
+          2.0
+        ],
+        "user_interference": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "observations": {
+          "bs_0": [
+            0.625,
+            0.375,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.093383677304,
+            0.052473559976,
+            0.0,
+            0.0,
+            0.0,
+            4.975674152374,
+            3.828954458237,
+            1.0,
+            0.167345136404,
+            0.207084164023,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.10000000149,
+            1.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_1": [
+            0.75,
+            0.5,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.07595525682,
+            0.042811419815,
+            0.0,
+            0.0,
+            6.387787342072,
+            0.0,
+            5.758667469025,
+            0.135358527303,
+            1.0,
+            0.147958159447,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.10000000149,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_2": [
+            0.625,
+            0.25,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.124711751938,
+            0.043789289892,
+            0.0,
+            0.0,
+            3.617933511734,
+            5.189470767975,
+            0.0,
+            0.216547086835,
+            0.161564707756,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.10000000149,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      {
+        "step": 2,
+        "actions": {
+          "bs_0": 2,
+          "bs_1": 2,
+          "bs_2": 2
+        },
+        "decoded_actions": {
+          "bs_0": {
+            "channel": 0,
+            "power_level": 2
+          },
+          "bs_1": {
+            "channel": 0,
+            "power_level": 2
+          },
+          "bs_2": {
+            "channel": 0,
+            "power_level": 2
+          }
+        },
+        "reward": 2.126458005837,
+        "reward_terms": {
+          "throughput": 2.898541228421,
+          "fairness": 0.459866353551,
+          "interference": -0.991949576134,
+          "communication": -0.24
+        },
+        "terminations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "truncations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "metrics": {
+          "step": 2,
+          "total_throughput": 17.391247370526,
+          "mean_throughput": 2.898541228421,
+          "worst_user_throughput": 1.642504819568,
+          "jain_fairness": 0.919732707101,
+          "jain_fairness_satisfaction": 0.920654259421,
+          "total_capacity": 17.947753498276,
+          "total_demand": 25.0,
+          "mean_satisfaction": 0.739253267067,
+          "total_interference": 0.059516974568,
+          "mean_interference_to_noise": 9.919495761342,
+          "messages_sent": 6,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 12.0,
+          "n_users": 6,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            3,
+            0,
+            0
+          ],
+          "n_colliding_stations": 3,
+          "reward": 2.126458005837
+        },
+        "user_sinr": [
+          6.850398277358,
+          8.778665545918,
+          12.413867769555,
+          2.122074187863,
+          15.339855520221,
+          3.812773497865
+        ],
+        "user_capacity": [
+          2.972765848679,
+          3.289637599979,
+          3.745653380408,
+          1.642504819568,
+          4.030323321873,
+          2.266868527771
+        ],
+        "user_served_rate": [
+          2.972765848679,
+          3.0,
+          3.745653380408,
+          1.642504819568,
+          4.030323321873,
+          2.0
+        ],
+        "user_interference": [
+          0.012631860977,
+          0.004977396034,
+          0.00511858106,
+          0.019174328434,
+          0.007129916918,
+          0.010484891144
+        ],
+        "observations": {
+          "bs_0": [
+            0.625,
+            0.375,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.093383677304,
+            0.052473559976,
+            0.0,
+            0.0,
+            8.804628372192,
+            0.0,
+            0.0,
+            0.10199264437,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.20000000298,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_1": [
+            0.75,
+            0.5,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.07595525682,
+            0.042811419815,
+            0.0,
+            0.0,
+            12.146454811096,
+            0.0,
+            0.0,
+            0.07606613636,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.20000000298,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_2": [
+            0.625,
+            0.25,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.124711751938,
+            0.043789289892,
+            0.0,
+            0.0,
+            8.807403564453,
+            0.0,
+            0.0,
+            0.10196378082,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.20000000298,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      {
+        "step": 3,
+        "actions": {
+          "bs_0": 0,
+          "bs_1": 3,
+          "bs_2": 6
+        },
+        "decoded_actions": {
+          "bs_0": {
+            "channel": 0,
+            "power_level": 0
+          },
+          "bs_1": {
+            "channel": 1,
+            "power_level": 0
+          },
+          "bs_2": {
+            "channel": 2,
+            "power_level": 0
+          }
+        },
+        "reward": 3.774601135127,
+        "reward_terms": {
+          "throughput": 3.545022718359,
+          "fairness": 0.469578416767,
+          "interference": 0.0,
+          "communication": -0.24
+        },
+        "terminations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "truncations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "metrics": {
+          "step": 3,
+          "total_throughput": 21.270136310156,
+          "mean_throughput": 3.545022718359,
+          "worst_user_throughput": 2.0,
+          "jain_fairness": 0.939156833534,
+          "jain_fairness_satisfaction": 0.982810534783,
+          "total_capacity": 23.079599187232,
+          "total_demand": 25.0,
+          "mean_satisfaction": 0.880498478123,
+          "total_interference": 0.0,
+          "mean_interference_to_noise": 0.0,
+          "messages_sent": 6,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 12.0,
+          "n_users": 6,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            1,
+            1,
+            1
+          ],
+          "n_colliding_stations": 0,
+          "reward": 3.774601135127
+        },
+        "user_sinr": [
+          18.676735391103,
+          10.494712124034,
+          15.191051243234,
+          8.562284325387,
+          24.942350183462,
+          8.757857716312
+        ],
+        "user_capacity": [
+          4.298418974825,
+          3.522898430241,
+          4.01712475404,
+          3.257355303482,
+          4.697237277809,
+          3.286564446836
+        ],
+        "user_served_rate": [
+          4.298418974825,
+          3.0,
+          4.01712475404,
+          3.257355303482,
+          4.697237277809,
+          2.0
+        ],
+        "user_interference": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "observations": {
+          "bs_0": [
+            0.625,
+            0.375,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.093383677304,
+            0.052473559976,
+            0.0,
+            0.0,
+            0.0,
+            0.99513477087,
+            0.765790939331,
+            1.0,
+            0.501219272614,
+            0.566318452358,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.300000011921,
+            1.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_1": [
+            0.75,
+            0.5,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.07595525682,
+            0.042811419815,
+            0.0,
+            0.0,
+            1.277557492256,
+            0.0,
+            1.151733517647,
+            0.4390668571,
+            1.0,
+            0.464741557837,
+            0.0,
+            1.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.300000011921,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_2": [
+            0.625,
+            0.25,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.124711751938,
+            0.043789289892,
+            0.0,
+            0.0,
+            0.723586678505,
+            1.037894129753,
+            0.0,
+            0.580185472965,
+            0.490702629089,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.300000011921,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      {
+        "step": 4,
+        "actions": {
+          "bs_0": 2,
+          "bs_1": 5,
+          "bs_2": 5
+        },
+        "decoded_actions": {
+          "bs_0": {
+            "channel": 0,
+            "power_level": 2
+          },
+          "bs_1": {
+            "channel": 1,
+            "power_level": 2
+          },
+          "bs_2": {
+            "channel": 1,
+            "power_level": 2
+          }
+        },
+        "reward": 3.482892083991,
+        "reward_terms": {
+          "throughput": 3.637815309264,
+          "fairness": 0.450014714389,
+          "interference": -0.364937939662,
+          "communication": -0.24
+        },
+        "terminations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "truncations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "metrics": {
+          "step": 4,
+          "total_throughput": 21.826891855582,
+          "mean_throughput": 3.637815309264,
+          "worst_user_throughput": 2.0,
+          "jain_fairness": 0.900029428778,
+          "jain_fairness_satisfaction": 0.968905864301,
+          "total_capacity": 26.799680378135,
+          "total_demand": 25.0,
+          "mean_satisfaction": 0.890108360311,
+          "total_interference": 0.02189627638,
+          "mean_interference_to_noise": 3.649379396618,
+          "messages_sent": 6,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 12.0,
+          "n_users": 6,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            1,
+            2,
+            0
+          ],
+          "n_colliding_stations": 2,
+          "reward": 3.482892083991
+        },
+        "user_sinr": [
+          93.383676955517,
+          52.473560620169,
+          20.00809768183,
+          4.403964627111,
+          32.13615090888,
+          5.152765842033
+        ],
+        "user_capacity": [
+          6.560465471301,
+          5.740753838915,
+          4.392873624378,
+          2.434018231203,
+          5.050334123905,
+          2.621235088433
+        ],
+        "user_served_rate": [
+          5.0,
+          3.0,
+          4.392873624378,
+          2.434018231203,
+          5.0,
+          2.0
+        ],
+        "user_interference": [
+          0.0,
+          0.0,
+          0.002796225779,
+          0.00872110933,
+          0.002880730809,
+          0.007498210461
+        ],
+        "observations": {
+          "bs_0": [
+            0.625,
+            0.375,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.093383677304,
+            0.052473559976,
+            0.0,
+            0.0,
+            0.0,
+            8.804628372192,
+            0.0,
+            1.0,
+            0.10199264437,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.40000000596,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_1": [
+            0.75,
+            0.5,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.07595525682,
+            0.042811419815,
+            0.0,
+            0.0,
+            6.387787342072,
+            5.758667469025,
+            0.0,
+            0.135358527303,
+            0.147958159447,
+            1.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.40000000596,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_2": [
+            0.625,
+            0.25,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.124711751938,
+            0.043789289892,
+            0.0,
+            0.0,
+            3.617933511734,
+            5.189470767975,
+            0.0,
+            0.216547086835,
+            0.161564707756,
+            1.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.40000000596,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      {
+        "step": 5,
+        "actions": {
+          "bs_0": 8,
+          "bs_1": 8,
+          "bs_2": 8
+        },
+        "decoded_actions": {
+          "bs_0": {
+            "channel": 2,
+            "power_level": 2
+          },
+          "bs_1": {
+            "channel": 2,
+            "power_level": 2
+          },
+          "bs_2": {
+            "channel": 2,
+            "power_level": 2
+          }
+        },
+        "reward": 2.126458005837,
+        "reward_terms": {
+          "throughput": 2.898541228421,
+          "fairness": 0.459866353551,
+          "interference": -0.991949576134,
+          "communication": -0.24
+        },
+        "terminations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "truncations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "metrics": {
+          "step": 5,
+          "total_throughput": 17.391247370526,
+          "mean_throughput": 2.898541228421,
+          "worst_user_throughput": 1.642504819568,
+          "jain_fairness": 0.919732707101,
+          "jain_fairness_satisfaction": 0.920654259421,
+          "total_capacity": 17.947753498276,
+          "total_demand": 25.0,
+          "mean_satisfaction": 0.739253267067,
+          "total_interference": 0.059516974568,
+          "mean_interference_to_noise": 9.919495761342,
+          "messages_sent": 6,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 12.0,
+          "n_users": 6,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            0,
+            0,
+            3
+          ],
+          "n_colliding_stations": 3,
+          "reward": 2.126458005837
+        },
+        "user_sinr": [
+          6.850398277358,
+          8.778665545918,
+          12.413867769555,
+          2.122074187863,
+          15.339855520221,
+          3.812773497865
+        ],
+        "user_capacity": [
+          2.972765848679,
+          3.289637599979,
+          3.745653380408,
+          1.642504819568,
+          4.030323321873,
+          2.266868527771
+        ],
+        "user_served_rate": [
+          2.972765848679,
+          3.0,
+          3.745653380408,
+          1.642504819568,
+          4.030323321873,
+          2.0
+        ],
+        "user_interference": [
+          0.012631860977,
+          0.004977396034,
+          0.00511858106,
+          0.019174328434,
+          0.007129916918,
+          0.010484891144
+        ],
+        "observations": {
+          "bs_0": [
+            0.625,
+            0.375,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.093383677304,
+            0.052473559976,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            8.804628372192,
+            1.0,
+            1.0,
+            0.10199264437,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.5,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_1": [
+            0.75,
+            0.5,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.07595525682,
+            0.042811419815,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            12.146454811096,
+            1.0,
+            1.0,
+            0.07606613636,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.5,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_2": [
+            0.625,
+            0.25,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.124711751938,
+            0.043789289892,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            8.807403564453,
+            1.0,
+            1.0,
+            0.10196378082,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.5,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      {
+        "step": 6,
+        "actions": {
+          "bs_0": 1,
+          "bs_1": 4,
+          "bs_2": 7
+        },
+        "decoded_actions": {
+          "bs_0": {
+            "channel": 0,
+            "power_level": 1
+          },
+          "bs_1": {
+            "channel": 1,
+            "power_level": 1
+          },
+          "bs_2": {
+            "channel": 2,
+            "power_level": 1
+          }
+        },
+        "reward": 4.267043305824,
+        "reward_terms": {
+          "throughput": 4.047429066057,
+          "fairness": 0.459614239767,
+          "interference": 0.0,
+          "communication": -0.24
+        },
+        "terminations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "truncations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "metrics": {
+          "step": 6,
+          "total_throughput": 24.28457439634,
+          "mean_throughput": 4.047429066057,
+          "worst_user_throughput": 2.0,
+          "jain_fairness": 0.919228479534,
+          "jain_fairness_satisfaction": 0.997948661199,
+          "total_capacity": 30.615868503944,
+          "total_demand": 25.0,
+          "mean_satisfaction": 0.980127066565,
+          "total_interference": 0.0,
+          "mean_interference_to_noise": 0.0,
+          "messages_sent": 6,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 12.0,
+          "n_users": 6,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            1,
+            1,
+            1
+          ],
+          "n_colliding_stations": 0,
+          "reward": 4.267043305824
+        },
+        "user_sinr": [
+          46.691838477759,
+          26.236780310085,
+          37.977628108086,
+          21.405710813467,
+          62.355875458656,
+          21.89464429078
+        ],
+        "user_capacity": [
+          5.575670493296,
+          4.767484265741,
+          5.28457439634,
+          4.485794591108,
+          5.985406512233,
+          4.516938245227
+        ],
+        "user_served_rate": [
+          5.0,
+          3.0,
+          5.28457439634,
+          4.0,
+          5.0,
+          2.0
+        ],
+        "user_interference": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "observations": {
+          "bs_0": [
+            0.625,
+            0.375,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.093383677304,
+            0.052473559976,
+            0.0,
+            0.0,
+            0.0,
+            2.487837076187,
+            1.914477229118,
+            1.0,
+            0.286710649729,
+            0.343114703894,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            1.0,
+            0.600000023842,
+            1.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_1": [
+            0.75,
+            0.5,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.07595525682,
+            0.042811419815,
+            0.0,
+            0.0,
+            3.193893671036,
+            0.0,
+            2.879333734512,
+            0.23844191432,
+            1.0,
+            0.257776230574,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            1.0,
+            0.600000023842,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_2": [
+            0.625,
+            0.25,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.124711751938,
+            0.043789289892,
+            0.0,
+            0.0,
+            1.808966755867,
+            2.594735383987,
+            0.0,
+            0.356002807617,
+            0.278184592724,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            1.0,
+            0.0,
+            1.0,
+            0.600000023842,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      {
+        "step": 7,
+        "actions": {
+          "bs_0": 2,
+          "bs_1": 8,
+          "bs_2": 5
+        },
+        "decoded_actions": {
+          "bs_0": {
+            "channel": 0,
+            "power_level": 2
+          },
+          "bs_1": {
+            "channel": 2,
+            "power_level": 2
+          },
+          "bs_2": {
+            "channel": 1,
+            "power_level": 2
+          }
+        },
+        "reward": 4.379565217391,
+        "reward_terms": {
+          "throughput": 4.166666666667,
+          "fairness": 0.452898550725,
+          "interference": 0.0,
+          "communication": -0.24
+        },
+        "terminations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "truncations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "metrics": {
+          "step": 7,
+          "total_throughput": 25.0,
+          "mean_throughput": 4.166666666667,
+          "worst_user_throughput": 2.0,
+          "jain_fairness": 0.905797101449,
+          "jain_fairness_satisfaction": 1.0,
+          "total_capacity": 36.479459946167,
+          "total_demand": 25.0,
+          "mean_satisfaction": 1.0,
+          "total_interference": 0.0,
+          "mean_interference_to_noise": 0.0,
+          "messages_sent": 6,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 12.0,
+          "n_users": 6,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            1,
+            1,
+            1
+          ],
+          "n_colliding_stations": 0,
+          "reward": 4.379565217391
+        },
+        "user_sinr": [
+          93.383676955517,
+          52.473560620169,
+          75.955256216171,
+          42.811421626934,
+          124.711750917312,
+          43.789288581559
+        ],
+        "user_capacity": [
+          6.560465471301,
+          5.740753838915,
+          6.265947964105,
+          5.453235123994,
+          6.973975701886,
+          5.485081845966
+        ],
+        "user_served_rate": [
+          5.0,
+          3.0,
+          6.0,
+          4.0,
+          5.0,
+          2.0
+        ],
+        "user_interference": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "observations": {
+          "bs_0": [
+            0.625,
+            0.375,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.093383677304,
+            0.052473559976,
+            0.0,
+            0.0,
+            0.0,
+            3.828954458237,
+            4.975674152374,
+            1.0,
+            0.207084164023,
+            0.167345136404,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.699999988079,
+            1.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_1": [
+            0.75,
+            0.5,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.07595525682,
+            0.042811419815,
+            0.0,
+            0.0,
+            6.387787342072,
+            5.758667469025,
+            0.0,
+            0.135358527303,
+            0.147958159447,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.699999988079,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_2": [
+            0.625,
+            0.25,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.124711751938,
+            0.043789289892,
+            0.0,
+            0.0,
+            3.617933511734,
+            0.0,
+            5.189470767975,
+            0.216547086835,
+            1.0,
+            0.161564707756,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.699999988079,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      {
+        "step": 8,
+        "actions": {
+          "bs_0": 0,
+          "bs_1": 0,
+          "bs_2": 8
+        },
+        "decoded_actions": {
+          "bs_0": {
+            "channel": 0,
+            "power_level": 0
+          },
+          "bs_1": {
+            "channel": 0,
+            "power_level": 0
+          },
+          "bs_2": {
+            "channel": 2,
+            "power_level": 2
+          }
+        },
+        "reward": 3.211321427746,
+        "reward_terms": {
+          "throughput": 3.077692472838,
+          "fairness": 0.44938536257,
+          "interference": -0.075756407662,
+          "communication": -0.24
+        },
+        "terminations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "truncations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "metrics": {
+          "step": 8,
+          "total_throughput": 18.466154837027,
+          "mean_throughput": 3.077692472838,
+          "worst_user_throughput": 1.914713214224,
+          "jain_fairness": 0.89877072514,
+          "jain_fairness_satisfaction": 0.923002369181,
+          "total_capacity": 24.000141276938,
+          "total_demand": 25.0,
+          "mean_satisfaction": 0.778674721292,
+          "total_interference": 0.00454538446,
+          "mean_interference_to_noise": 0.757564076619,
+          "messages_sent": 6,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 12.0,
+          "n_users": 6,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            2,
+            0,
+            1
+          ],
+          "n_colliding_stations": 2,
+          "reward": 3.211321427746
+        },
+        "user_sinr": [
+          7.247132645517,
+          7.426472951139,
+          10.373063489176,
+          2.770388573415,
+          124.711750917312,
+          43.789288581559
+        ],
+        "user_capacity": [
+          3.043892611827,
+          3.074928892059,
+          3.507549010977,
+          1.914713214224,
+          6.973975701886,
+          5.485081845966
+        ],
+        "user_served_rate": [
+          3.043892611827,
+          3.0,
+          3.507549010977,
+          1.914713214224,
+          5.0,
+          2.0
+        ],
+        "user_interference": [
+          0.001577120677,
+          0.000413148906,
+          0.000464471056,
+          0.002090643821,
+          0.0,
+          0.0
+        ],
+        "observations": {
+          "bs_0": [
+            0.625,
+            0.375,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.093383677304,
+            0.052473559976,
+            0.0,
+            0.0,
+            0.99513477087,
+            0.0,
+            3.828954458237,
+            0.501219272614,
+            1.0,
+            0.207084164023,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.800000011921,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_1": [
+            0.75,
+            0.5,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.07595525682,
+            0.042811419815,
+            0.0,
+            0.0,
+            1.277557492256,
+            0.0,
+            5.758667469025,
+            0.4390668571,
+            1.0,
+            0.147958159447,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.800000011921,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_2": [
+            0.625,
+            0.25,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.124711751938,
+            0.043789289892,
+            0.0,
+            0.0,
+            1.761480808258,
+            0.0,
+            0.0,
+            0.362124562263,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.800000011921,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      {
+        "step": 9,
+        "actions": {
+          "bs_0": 5,
+          "bs_1": 5,
+          "bs_2": 5
+        },
+        "decoded_actions": {
+          "bs_0": {
+            "channel": 1,
+            "power_level": 2
+          },
+          "bs_1": {
+            "channel": 1,
+            "power_level": 2
+          },
+          "bs_2": {
+            "channel": 1,
+            "power_level": 2
+          }
+        },
+        "reward": 2.126458005837,
+        "reward_terms": {
+          "throughput": 2.898541228421,
+          "fairness": 0.459866353551,
+          "interference": -0.991949576134,
+          "communication": -0.24
+        },
+        "terminations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "truncations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "metrics": {
+          "step": 9,
+          "total_throughput": 17.391247370526,
+          "mean_throughput": 2.898541228421,
+          "worst_user_throughput": 1.642504819568,
+          "jain_fairness": 0.919732707101,
+          "jain_fairness_satisfaction": 0.920654259421,
+          "total_capacity": 17.947753498276,
+          "total_demand": 25.0,
+          "mean_satisfaction": 0.739253267067,
+          "total_interference": 0.059516974568,
+          "mean_interference_to_noise": 9.919495761342,
+          "messages_sent": 6,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 12.0,
+          "n_users": 6,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            0,
+            3,
+            0
+          ],
+          "n_colliding_stations": 3,
+          "reward": 2.126458005837
+        },
+        "user_sinr": [
+          6.850398277358,
+          8.778665545918,
+          12.413867769555,
+          2.122074187863,
+          15.339855520221,
+          3.812773497865
+        ],
+        "user_capacity": [
+          2.972765848679,
+          3.289637599979,
+          3.745653380408,
+          1.642504819568,
+          4.030323321873,
+          2.266868527771
+        ],
+        "user_served_rate": [
+          2.972765848679,
+          3.0,
+          3.745653380408,
+          1.642504819568,
+          4.030323321873,
+          2.0
+        ],
+        "user_interference": [
+          0.012631860977,
+          0.004977396034,
+          0.00511858106,
+          0.019174328434,
+          0.007129916918,
+          0.010484891144
+        ],
+        "observations": {
+          "bs_0": [
+            0.625,
+            0.375,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.093383677304,
+            0.052473559976,
+            0.0,
+            0.0,
+            0.0,
+            8.804628372192,
+            0.0,
+            1.0,
+            0.10199264437,
+            1.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.899999976158,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_1": [
+            0.75,
+            0.5,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.07595525682,
+            0.042811419815,
+            0.0,
+            0.0,
+            0.0,
+            12.146454811096,
+            0.0,
+            1.0,
+            0.07606613636,
+            1.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.899999976158,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_2": [
+            0.625,
+            0.25,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.124711751938,
+            0.043789289892,
+            0.0,
+            0.0,
+            0.0,
+            8.807403564453,
+            0.0,
+            1.0,
+            0.10196378082,
+            1.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.899999976158,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      {
+        "step": 10,
+        "actions": {
+          "bs_0": 8,
+          "bs_1": 5,
+          "bs_2": 2
+        },
+        "decoded_actions": {
+          "bs_0": {
+            "channel": 2,
+            "power_level": 2
+          },
+          "bs_1": {
+            "channel": 1,
+            "power_level": 2
+          },
+          "bs_2": {
+            "channel": 0,
+            "power_level": 2
+          }
+        },
+        "reward": 4.379565217391,
+        "reward_terms": {
+          "throughput": 4.166666666667,
+          "fairness": 0.452898550725,
+          "interference": 0.0,
+          "communication": -0.24
+        },
+        "terminations": {
+          "bs_0": false,
+          "bs_1": false,
+          "bs_2": false
+        },
+        "truncations": {
+          "bs_0": true,
+          "bs_1": true,
+          "bs_2": true
+        },
+        "metrics": {
+          "step": 10,
+          "total_throughput": 25.0,
+          "mean_throughput": 4.166666666667,
+          "worst_user_throughput": 2.0,
+          "jain_fairness": 0.905797101449,
+          "jain_fairness_satisfaction": 1.0,
+          "total_capacity": 36.479459946167,
+          "total_demand": 25.0,
+          "mean_satisfaction": 1.0,
+          "total_interference": 0.0,
+          "mean_interference_to_noise": 0.0,
+          "messages_sent": 6,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 12.0,
+          "n_users": 6,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            1,
+            1,
+            1
+          ],
+          "n_colliding_stations": 0,
+          "reward": 4.379565217391
+        },
+        "user_sinr": [
+          93.383676955517,
+          52.473560620169,
+          75.955256216171,
+          42.811421626934,
+          124.711750917312,
+          43.789288581559
+        ],
+        "user_capacity": [
+          6.560465471301,
+          5.740753838915,
+          6.265947964105,
+          5.453235123994,
+          6.973975701886,
+          5.485081845966
+        ],
+        "user_served_rate": [
+          5.0,
+          3.0,
+          6.0,
+          4.0,
+          5.0,
+          2.0
+        ],
+        "user_interference": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "observations": {
+          "bs_0": [
+            0.625,
+            0.375,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.093383677304,
+            0.052473559976,
+            0.0,
+            0.0,
+            3.828954458237,
+            4.975674152374,
+            0.0,
+            0.207084164023,
+            0.167345136404,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_1": [
+            0.75,
+            0.5,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.07595525682,
+            0.042811419815,
+            0.0,
+            0.0,
+            5.758667469025,
+            0.0,
+            6.387787342072,
+            0.147958159447,
+            1.0,
+            0.135358527303,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bs_2": [
+            0.625,
+            0.25,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.124711751938,
+            0.043789289892,
+            0.0,
+            0.0,
+            0.0,
+            5.189470767975,
+            3.617933511734,
+            1.0,
+            0.161564707756,
+            0.216547086835,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    ]
+  },
+  "rollout_seeded_numpy": {
+    "python_only": true,
+    "notes": "This rollout depends on numpy's PCG64 bit stream (topology draw, demand process, random policy), which is not reasonably reproducible in TypeScript. It exists as a Python regression lock on environment behaviour, not as a cross-language fixture.",
+    "config": {
+      "name": "familiar_topology",
+      "description": "Familiar deployment: 3 base stations on an equilateral triangle, 3 channels, 2-4 users each, static topology, no communication. The reference condition for every other scenario.",
+      "n_base_stations": 3,
+      "n_channels": 3,
+      "users_per_station_range": [
+        2,
+        4
+      ],
+      "area_size": 10.0,
+      "station_layout": "triangle",
+      "station_positions": [
+        [
+          5.0,
+          8.0
+        ],
+        [
+          2.401923788647,
+          3.5
+        ],
+        [
+          7.598076211353,
+          3.5
+        ]
+      ],
+      "users_per_station": null,
+      "user_positions": null,
+      "user_radius": 2.5,
+      "max_base_stations": null,
+      "regenerate_topology_on_reset": false,
+      "power_levels": [
+        0.2,
+        0.5,
+        1.0
+      ],
+      "path_loss_exponent": 3.0,
+      "path_loss_epsilon": 1.0,
+      "noise_power": 0.001,
+      "bandwidth": 1.0,
+      "channel_extra_noise": null,
+      "demand_mean": 4.0,
+      "demand_min": 1.0,
+      "demand_max": 8.0,
+      "demand_volatility": 0.6,
+      "demand_persistence": 0.8,
+      "burst_probability": 0.0,
+      "burst_multiplier": 2.0,
+      "initial_demands": null,
+      "demand_limited": true,
+      "user_mobility": false,
+      "user_speed": 0.3,
+      "failed_stations": [],
+      "failure_step": null,
+      "failure_mode": "orphan",
+      "communication": false,
+      "bits_per_message": 2,
+      "comm_dropout_probability": 0.0,
+      "interference_alert_threshold": 1.0,
+      "reward_weights": {
+        "throughput": 1.0,
+        "fairness": 0.5,
+        "interference": 0.1,
+        "communication": 0.02
+      },
+      "max_steps": 10,
+      "seed": 0
+    },
+    "policy": "RandomPolicy(seed=0)",
+    "env_seed": 0,
+    "summary": {
+      "policy": "random",
+      "is_learned": false,
+      "scenario": "familiar_topology",
+      "seed": 0,
+      "steps": 10,
+      "episode_return": 38.562237286151,
+      "mean_reward": 3.856223728615,
+      "total_throughput": 35.756902233988,
+      "mean_throughput": 3.575690223399,
+      "worst_user_throughput": 1.945280631543,
+      "jain_fairness": 0.92469491389,
+      "total_interference": 0.018181395173,
+      "mean_interference_to_noise": 1.818139517286,
+      "communication_overhead_bits": 0.0,
+      "collision_steps": 9
+    },
+    "trace": [
+      {
+        "step": 1,
+        "actions": {
+          "bs_0": 7,
+          "bs_1": 5,
+          "bs_2": 4
+        },
+        "reward": 4.66942205684,
+        "metrics": {
+          "step": 1,
+          "total_throughput": 43.057620341431,
+          "mean_throughput": 4.305762034143,
+          "worst_user_throughput": 3.278742365377,
+          "jain_fairness": 0.978920094868,
+          "jain_fairness_satisfaction": 0.954084417851,
+          "total_capacity": 47.284473081884,
+          "total_demand": 55.186716191174,
+          "mean_satisfaction": 0.803689331906,
+          "total_interference": 0.012580002474,
+          "mean_interference_to_noise": 1.258000247372,
+          "messages_sent": 0,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 0.0,
+          "n_users": 10,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            0,
+            2,
+            1
+          ],
+          "n_colliding_stations": 2,
+          "reward": 4.66942205684,
+          "reward_terms": {
+            "throughput": 4.305762034143,
+            "fairness": 0.489460047434,
+            "interference": -0.125800024737,
+            "communication": 0.0
+          }
+        }
+      },
+      {
+        "step": 2,
+        "actions": {
+          "bs_0": 2,
+          "bs_1": 2,
+          "bs_2": 0
+        },
+        "reward": 3.264625380897,
+        "metrics": {
+          "step": 2,
+          "total_throughput": 33.004316573261,
+          "mean_throughput": 3.300431657326,
+          "worst_user_throughput": 1.593573563954,
+          "jain_fairness": 0.895811230146,
+          "jain_fairness_satisfaction": 0.872894179975,
+          "total_capacity": 33.655803064602,
+          "total_demand": 56.806452384883,
+          "mean_satisfaction": 0.605668303552,
+          "total_interference": 0.04837118915,
+          "mean_interference_to_noise": 4.83711891502,
+          "messages_sent": 0,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 0.0,
+          "n_users": 10,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            3,
+            0,
+            0
+          ],
+          "n_colliding_stations": 3,
+          "reward": 3.264625380897,
+          "reward_terms": {
+            "throughput": 3.300431657326,
+            "fairness": 0.447905615073,
+            "interference": -0.483711891502,
+            "communication": 0.0
+          }
+        }
+      },
+      {
+        "step": 3,
+        "actions": {
+          "bs_0": 0,
+          "bs_1": 0,
+          "bs_2": 1
+        },
+        "reward": 2.803941227647,
+        "metrics": {
+          "step": 3,
+          "total_throughput": 26.553644174604,
+          "mean_throughput": 2.65536441746,
+          "worst_user_throughput": 0.739631640891,
+          "jain_fairness": 0.837979382862,
+          "jain_fairness_satisfaction": 0.779391553828,
+          "total_capacity": 30.317011622365,
+          "total_demand": 51.904739981983,
+          "mean_satisfaction": 0.548598831553,
+          "total_interference": 0.027041288124,
+          "mean_interference_to_noise": 2.704128812439,
+          "messages_sent": 0,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 0.0,
+          "n_users": 10,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            3,
+            0,
+            0
+          ],
+          "n_colliding_stations": 3,
+          "reward": 2.803941227647,
+          "reward_terms": {
+            "throughput": 2.65536441746,
+            "fairness": 0.418989691431,
+            "interference": -0.270412881244,
+            "communication": 0.0
+          }
+        }
+      },
+      {
+        "step": 4,
+        "actions": {
+          "bs_0": 7,
+          "bs_1": 5,
+          "bs_2": 8
+        },
+        "reward": 3.957031627823,
+        "metrics": {
+          "step": 4,
+          "total_throughput": 38.65211163677,
+          "mean_throughput": 3.865211163677,
+          "worst_user_throughput": 1.027273607671,
+          "jain_fairness": 0.88061202243,
+          "jain_fairness_satisfaction": 0.885668093606,
+          "total_capacity": 44.99113938809,
+          "total_demand": 51.553739589051,
+          "mean_satisfaction": 0.77025074405,
+          "total_interference": 0.034848554707,
+          "mean_interference_to_noise": 3.484855470691,
+          "messages_sent": 0,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 0.0,
+          "n_users": 10,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            0,
+            1,
+            2
+          ],
+          "n_colliding_stations": 2,
+          "reward": 3.957031627823,
+          "reward_terms": {
+            "throughput": 3.865211163677,
+            "fairness": 0.440306011215,
+            "interference": -0.348485547069,
+            "communication": 0.0
+          }
+        }
+      },
+      {
+        "step": 5,
+        "actions": {
+          "bs_0": 4,
+          "bs_1": 5,
+          "bs_2": 8
+        },
+        "reward": 4.091858670158,
+        "metrics": {
+          "step": 5,
+          "total_throughput": 38.264848311718,
+          "mean_throughput": 3.826484831172,
+          "worst_user_throughput": 1.613151604617,
+          "jain_fairness": 0.924688855961,
+          "jain_fairness_satisfaction": 0.900437343191,
+          "total_capacity": 47.97920979749,
+          "total_demand": 50.903749185564,
+          "mean_satisfaction": 0.793732608228,
+          "total_interference": 0.019697058899,
+          "mean_interference_to_noise": 1.96970588994,
+          "messages_sent": 0,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 0.0,
+          "n_users": 10,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            0,
+            2,
+            1
+          ],
+          "n_colliding_stations": 2,
+          "reward": 4.091858670158,
+          "reward_terms": {
+            "throughput": 3.826484831172,
+            "fairness": 0.46234442798,
+            "interference": -0.196970588994,
+            "communication": 0.0
+          }
+        }
+      },
+      {
+        "step": 6,
+        "actions": {
+          "bs_0": 6,
+          "bs_1": 5,
+          "bs_2": 4
+        },
+        "reward": 4.101087080791,
+        "metrics": {
+          "step": 6,
+          "total_throughput": 37.385412407602,
+          "mean_throughput": 3.73854124076,
+          "worst_user_throughput": 2.698345232547,
+          "jain_fairness": 0.976691729537,
+          "jain_fairness_satisfaction": 0.932093727762,
+          "total_capacity": 42.306552210263,
+          "total_demand": 49.911760487813,
+          "mean_satisfaction": 0.788840912881,
+          "total_interference": 0.012580002474,
+          "mean_interference_to_noise": 1.258000247372,
+          "messages_sent": 0,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 0.0,
+          "n_users": 10,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            0,
+            2,
+            1
+          ],
+          "n_colliding_stations": 2,
+          "reward": 4.101087080791,
+          "reward_terms": {
+            "throughput": 3.73854124076,
+            "fairness": 0.488345864768,
+            "interference": -0.125800024737,
+            "communication": 0.0
+          }
+        }
+      },
+      {
+        "step": 7,
+        "actions": {
+          "bs_0": 5,
+          "bs_1": 8,
+          "bs_2": 2
+        },
+        "reward": 4.985159413793,
+        "metrics": {
+          "step": 7,
+          "total_throughput": 44.938346063186,
+          "mean_throughput": 4.493834606319,
+          "worst_user_throughput": 3.366287559081,
+          "jain_fairness": 0.982649614949,
+          "jain_fairness_satisfaction": 0.996218384602,
+          "total_capacity": 63.1667212337,
+          "total_demand": 46.992272004448,
+          "mean_satisfaction": 0.965217168314,
+          "total_interference": 0.0,
+          "mean_interference_to_noise": 0.0,
+          "messages_sent": 0,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 0.0,
+          "n_users": 10,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            1,
+            1,
+            1
+          ],
+          "n_colliding_stations": 0,
+          "reward": 4.985159413793,
+          "reward_terms": {
+            "throughput": 4.493834606319,
+            "fairness": 0.491324807475,
+            "interference": 0.0,
+            "communication": 0.0
+          }
+        }
+      },
+      {
+        "step": 8,
+        "actions": {
+          "bs_0": 7,
+          "bs_1": 6,
+          "bs_2": 0
+        },
+        "reward": 3.598175389588,
+        "metrics": {
+          "step": 8,
+          "total_throughput": 31.93243558295,
+          "mean_throughput": 3.193243558295,
+          "worst_user_throughput": 1.985427387515,
+          "jain_fairness": 0.939163418718,
+          "jain_fairness_satisfaction": 0.91545491106,
+          "total_capacity": 40.027790161927,
+          "total_demand": 43.149301083915,
+          "mean_satisfaction": 0.787224220821,
+          "total_interference": 0.006464987807,
+          "mean_interference_to_noise": 0.646498780659,
+          "messages_sent": 0,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 0.0,
+          "n_users": 10,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            1,
+            0,
+            2
+          ],
+          "n_colliding_stations": 2,
+          "reward": 3.598175389588,
+          "reward_terms": {
+            "throughput": 3.193243558295,
+            "fairness": 0.469581709359,
+            "interference": -0.064649878066,
+            "communication": 0.0
+          }
+        }
+      },
+      {
+        "step": 9,
+        "actions": {
+          "bs_0": 3,
+          "bs_1": 7,
+          "bs_2": 4
+        },
+        "reward": 3.627766549849,
+        "metrics": {
+          "step": 9,
+          "total_throughput": 33.647606781907,
+          "mean_throughput": 3.364760678191,
+          "worst_user_throughput": 0.832342479517,
+          "jain_fairness": 0.865378333667,
+          "jain_fairness_satisfaction": 0.876882813991,
+          "total_capacity": 39.503512401244,
+          "total_demand": 46.029173514086,
+          "mean_satisfaction": 0.754159280789,
+          "total_interference": 0.016968329518,
+          "mean_interference_to_noise": 1.696832951754,
+          "messages_sent": 0,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 0.0,
+          "n_users": 10,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            0,
+            2,
+            1
+          ],
+          "n_colliding_stations": 2,
+          "reward": 3.627766549849,
+          "reward_terms": {
+            "throughput": 3.364760678191,
+            "fairness": 0.432689166833,
+            "interference": -0.169683295175,
+            "communication": 0.0
+          }
+        }
+      },
+      {
+        "step": 10,
+        "actions": {
+          "bs_0": 0,
+          "bs_1": 6,
+          "bs_2": 6
+        },
+        "reward": 3.463169888765,
+        "metrics": {
+          "step": 10,
+          "total_throughput": 30.132680466448,
+          "mean_throughput": 3.013268046645,
+          "worst_user_throughput": 2.318030874263,
+          "jain_fairness": 0.965054455763,
+          "jain_fairness_satisfaction": 0.930510930105,
+          "total_capacity": 37.491196620635,
+          "total_demand": 41.347558700918,
+          "mean_satisfaction": 0.772364809395,
+          "total_interference": 0.003262538576,
+          "mean_interference_to_noise": 0.326253857613,
+          "messages_sent": 0,
+          "bits_per_message": 2,
+          "communication_overhead_bits": 0.0,
+          "n_users": 10,
+          "n_unserved_users": 0,
+          "n_operational_stations": 3,
+          "channel_occupancy": [
+            1,
+            0,
+            2
+          ],
+          "n_colliding_stations": 2,
+          "reward": 3.463169888765,
+          "reward_terms": {
+            "throughput": 3.013268046645,
+            "fairness": 0.482527227881,
+            "interference": -0.032625385761,
+            "communication": 0.0
+          }
+        }
+      }
+    ]
+  }
+}

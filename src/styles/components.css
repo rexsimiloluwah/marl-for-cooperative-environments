@@ -1,0 +1,228 @@
+/* ==========================================================================
+   SHARED COMPONENT PRIMITIVES
+   Small building blocks used across chapters, exercises and the lab. Anything
+   used in more than one component lives here; anything used once lives in
+   that component's own scoped style block.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   LABEL
+   The small tracked-out uppercase label. Used for figure numbers, Bloom
+   badges, exercise types, metric names, and legend entries. Takes its colour
+   from a semantic modifier so the label itself carries meaning.
+   -------------------------------------------------------------------------- */
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-family: var(--font-sans);
+  font-size: var(--t-micro);
+  font-weight: var(--w-semibold);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--ink-faint);
+}
+
+.label--action { color: var(--c-action-ink); }
+.label--observe { color: var(--c-observe-ink); }
+.label--policy { color: var(--c-policy-ink); }
+.label--comm { color: var(--c-comm-ink); }
+.label--reward { color: var(--c-reward-ink); }
+.label--conflict { color: var(--c-conflict-ink); }
+
+/* --------------------------------------------------------------------------
+   CHIP
+   A label on a tinted ground. Used for Bloom indicators and mode switches.
+   -------------------------------------------------------------------------- */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: 0.2rem 0.45rem;
+  border-radius: var(--r-sm);
+  border: var(--hairline) solid var(--rule);
+  background: var(--surface);
+  font-size: var(--t-micro);
+  font-weight: var(--w-medium);
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.chip--action { background: var(--c-action-tint); border-color: var(--c-action-edge); color: var(--c-action-ink); }
+.chip--observe { background: var(--c-observe-tint); border-color: var(--c-observe-edge); color: var(--c-observe-ink); }
+.chip--policy { background: var(--c-policy-tint); border-color: var(--c-policy-edge); color: var(--c-policy-ink); }
+.chip--comm { background: var(--c-comm-tint); border-color: var(--c-comm-edge); color: var(--c-comm-ink); }
+.chip--reward { background: var(--c-reward-tint); border-color: var(--c-reward-edge); color: var(--c-reward-ink); }
+.chip--conflict { background: var(--c-conflict-tint); border-color: var(--c-conflict-edge); color: var(--c-conflict-ink); }
+
+/* --------------------------------------------------------------------------
+   PANEL
+   A focused content surface: code editor, exercise, lab viewport, metric
+   readout. This is the only element allowed to lift off the page ground,
+   and it does so with a rule and a white fill, never a shadow.
+   -------------------------------------------------------------------------- */
+
+.panel {
+  background: var(--surface);
+  border: var(--hairline) solid var(--rule);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: var(--hairline) solid var(--rule);
+  background: var(--surface);
+}
+
+.panel__body {
+  padding: var(--s-4);
+}
+
+.panel__foot {
+  padding: var(--s-3) var(--s-4);
+  border-top: var(--hairline) solid var(--rule);
+  background: var(--surface);
+}
+
+/* --------------------------------------------------------------------------
+   BUTTON
+   Three intents. `primary` is the action accent because in this palette
+   orange means "do this". Secondary is neutral. Quiet is text-only.
+   -------------------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 2.25rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--r-md);
+  border: var(--hairline) solid var(--rule-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--t-meta);
+  font-weight: var(--w-medium);
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--surface-sunken);
+}
+
+.btn:disabled {
+  color: var(--ink-faint);
+  border-color: var(--rule);
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--ui);
+  border-color: var(--ui);
+  color: #fff;
+  font-weight: var(--w-semibold);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--ui-hover);
+  border-color: var(--ui-hover);
+}
+
+/* Orange is reserved for attention inside teaching content, so an
+   action-toned button takes ink rather than white: white on #fea82f is
+   1.9:1 and unreadable. */
+.btn--action {
+  background: var(--c-action);
+  border-color: var(--c-action);
+  color: #191919;
+  font-weight: var(--w-semibold);
+}
+
+.btn--quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-muted);
+  padding-inline: var(--s-2);
+}
+
+.btn--quiet:hover:not(:disabled) {
+  background: var(--surface-sunken);
+  color: var(--ink);
+}
+
+/* `.btn:disabled` sets a border colour, which would give a quiet button an
+   outline it never has when enabled. Keep it borderless in both states. */
+.btn--quiet:disabled {
+  border-color: transparent;
+  background: transparent;
+}
+
+/* Touch targets stay at least 44px on pointer-coarse devices. */
+@media (pointer: coarse) {
+  .btn {
+    min-height: 2.75rem;
+    padding-inline: var(--s-4);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   FIGURE
+   Every diagram is a numbered figure with a caption, as in a real textbook.
+   -------------------------------------------------------------------------- */
+
+.figure {
+  margin-block: var(--s-6);
+}
+
+.figure__frame {
+  background: var(--surface);
+  border: var(--hairline) solid var(--rule);
+  border-radius: var(--r-md);
+  padding: var(--s-5);
+}
+
+.figure__caption {
+  display: block;
+  margin-top: var(--s-3);
+  font-size: var(--t-small);
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+.figure__caption > .label {
+  margin-inline-end: var(--s-2);
+}
+
+/* --------------------------------------------------------------------------
+   VISUALLY HIDDEN
+   Text equivalents for Three.js scenes and SVG diagrams live in these, so
+   screen readers get the same information sighted learners do.
+   -------------------------------------------------------------------------- */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

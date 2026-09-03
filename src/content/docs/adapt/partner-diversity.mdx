@@ -1,0 +1,219 @@
+---
+title: "Training Partner Diversity"
+description: "Using behaviourally diverse training partners to reduce brittle co-adaptation and improve robustness."
+related:
+  - slug: adapt/agent-modelling
+    icon: lightbulb
+  - slug: adapt/partner-generalization
+    icon: cycle
+  - slug: adapt/research-zsc-eval
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+Does training against many partners make an agent robust?
+</Callout>
+
+Training partner diversity exposes an agent to several cooperative behaviours instead of allowing it to specialize around one fixed partner.
+
+<Objectives>
+
+- Contrast fixed-partner training with a partner population
+- Describe how population-based training varies interactions
+- Argue for behavioural coverage over the raw number of partners
+- Frame a partner change as distribution shift
+
+</Objectives>
+
+## Fixed-Partner Training
+
+The setup so far.
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\tone{policy}{\pi_A} \longleftrightarrow \tone{policy}{\pi_B}`}
+  terms={[
+    { tex: String.raw`\pi_A`, is: 'the learning agent\u2019s policy', tone: 'policy' },
+    { tex: String.raw`\pi_B`, is: 'the single fixed training-partner policy', tone: 'policy' },
+  ]}
+  caption="Fixed-partner training repeatedly exposes the learner to one behavioural pattern."
+/>
+
+Agent $A$ sees a single pattern of behaviour throughout training. Every
+regularity in $\pi_B$ is available to be exploited, and exploiting it is what
+maximising team return means. The narrow rule from *Partner Dependence* is not merely
+permitted here, it is *rewarded*.
+
+## Partner Populations
+
+Instead, draw the partner from a set.
+
+<Equation
+  label="Figure 2"
+  wide
+  tex={String.raw`\tone{policy}{\Pi} = \bigl\{\tone{policy}{\pi_B},\ \tone{policy}{\pi_C},\ \tone{policy}{\pi_D},\ \dots\bigr\}`}
+  terms={[
+    { tex: String.raw`\Pi`, is: 'a population of partners; each episode draws one', tone: 'policy' },
+  ]}
+  caption="Several partners rather than one, so no single set of habits is safe to assume."
+/>
+
+Members of $\Pi$ can differ in every dimension a convention can form over:
+
+- which **roles** they take,
+- their **movement** patterns and preferred side of the counter,
+- their **task preferences**, and what they do when idle,
+- their **communication conventions**, if there is a channel,
+- their **reaction speed**, and whether they commit early or wait.
+
+Now the narrow rule stops working. "My partner fetches, so I cook" fails on
+every population member that also cooks, so the agent has to find something
+that holds across the variation. Getting the ingredient collected *somehow*
+is such a rule; assuming who collects it is not.
+
+<Callout variant="takeaway">
+Diversity works by **removing** a shortcut rather than by adding a capability.
+
+The general rule was always available. What changed is that the narrow one
+stopped paying.
+</Callout>
+
+## Population-Based Training
+
+The general technique has a name. The textbook describes
+<Term tone="policy">population-based training</Term> as extending training
+from interaction with a single policy to interaction with a **distribution or
+population of policies**, and notes that policy populations can increase the
+diversity of interactions encountered during training. Murphy's survey
+describes the same idea: training against a population of different policies
+rather than a single one.
+
+That is the level of detail this resource needs. There is a substantial
+literature on *how* to build and maintain such a population, including
+self-play variants and methods that grow the population by repeatedly adding
+best responses. Those are worth knowing exist and are not required here,
+because the pedagogical content is entirely in what the population is *for*.
+
+## Behavioural Coverage
+
+Here is the mistake worth pre-empting.
+
+<div class="table-scroll">
+
+| | Population | Likely outcome |
+| --- | --- | --- |
+| **System A** | 10 partners from the same run, different seeds | little useful variation |
+| **System B** | 4 partners with genuinely different strategies | real pressure toward generality |
+</div>
+
+Ten partners that all fetch ingredients present one behavioural pattern ten
+times. The agent can co-adapt to that pattern exactly as it would to a single
+partner, and will, because nothing distinguishes the situation from
+fixed-partner training.
+
+<Equation
+  label="Figure 3"
+  tex={String.raw`\ubrace{conflict}{\text{number of partners}}{easy to count} \;\neq\; \ubrace{reward}{\text{behavioural diversity}}{what actually matters}`}
+  terms={[
+    { tex: String.raw`\text{number of partners}`, is: 'the population size', tone: 'conflict' },
+    { tex: String.raw`\text{behavioural diversity}`, is: 'the range of distinct cooperative strategies', tone: 'reward' },
+  ]}
+  caption="Population size alone does not measure behavioural coverage."
+/>
+
+This is also why "we trained against 50 partners" is not by itself a
+generalization claim. The question is what those 50 partners do differently,
+and answering it requires measuring their behaviour rather than counting them.
+
+## Partner Shift as Distribution Shift
+
+The population view gives the whole chapter a cleaner statement.
+
+<Equation
+  label="Figure 3b"
+  wide
+  tex={String.raw`\text{training:}\;\; \tone{policy}{\pi_{-\ag}} \sim \tone{policy}{p_{\text{train}}(\pi)} \qquad\qquad \text{deployment:}\;\; \tone{conflict}{\pi_{-\ag}} \sim \tone{conflict}{p_{\text{deploy}}(\pi)}`}
+  terms={[
+    { tex: String.raw`\pi_{-\ag}`, is: 'the policies of everyone other than agent i', tone: 'policy' },
+    { tex: String.raw`p_{\text{train}}`, is: 'the distribution partners are drawn from while learning', tone: 'policy' },
+    { tex: String.raw`p_{\text{deploy}}`, is: 'the distribution actually encountered afterwards', tone: 'conflict' },
+  ]}
+  caption="Two distributions over partners. Everything in this chapter is about the distance between them."
+/>
+
+Written this way, partner generalization is **distribution shift**, and every
+instinct from that literature transfers. The gap between $p_{\text{train}}$
+and $p_{\text{deploy}}$ is what determines whether an agent will cope, and
+widening $p_{\text{train}}$ is the direct intervention.
+
+This is how the modern zero-shot coordination literature frames it. ZSC-Eval,
+which *Partner Dependence*0 covers, describes zero-shot coordination as an
+out-of-distribution generalization problem arising from differences between
+training partners and deployment partners.
+
+<Callout variant="pitfall">
+Diversity is not free, and a good answer names the cost.
+
+Training against varied partners means no single partner's habits can be
+exploited, so performance **with any one of them** is typically lower than a
+co-adapted pair would achieve. You are trading peak performance with a
+familiar partner for competence across a range.
+
+Whether that trade is worth taking depends entirely on whether your agents
+will meet strangers. *Partner Dependence*1 measures it.
+</Callout>
+
+<KnowledgeCheck
+  id="ad-3-3-diversity"
+  type="choice"
+  question="Two teams train an agent against a population. Team X uses 20 partners generated by re-running the same algorithm with different seeds. Team Y uses 4 partners: one ingredient-first, one cooking-first, one that fills whichever role is empty, and one that waits before committing. Which is more likely to generalise?"
+  options={[
+    {
+      text: 'Team Y. Its four partners present genuinely different behaviour, so no single convention works across them.',
+      correct: true,
+      feedback: 'Right. Y’s population applies pressure that X’s does not. X’s 20 seeds may all adopt similar strategies, in which case the agent can co-adapt to that shared pattern exactly as it would to one partner.',
+    },
+    {
+      text: 'Team X. Twenty partners is five times the variation of four.',
+      correct: false,
+      feedback: 'This counts partners rather than behaviours, which is the mistake the section exists to prevent. Twenty copies of one strategy present one strategy.',
+    },
+    {
+      text: 'Neither, since population size is what matters and both are small.',
+      correct: false,
+      feedback: 'Size is not what matters. A carefully chosen handful of genuinely distinct partners can apply more pressure toward generality than a large near-identical set.',
+    },
+    {
+      text: 'Team X, because different random seeds guarantee behavioural diversity.',
+      correct: false,
+      feedback: 'They do not guarantee it. Different seeds sometimes find different conventions and sometimes converge on similar ones, as the Communication Lab showed when two of six runs learned the same protocol. Diversity has to be verified, not assumed.',
+    },
+  ]}
+>
+Any population needs its diversity measured rather than asserted, which is
+exactly the argument of *Partner Dependence*0.
+</KnowledgeCheck>
+
+## Training Partner Diversity Summary
+
+- **Fixed-partner training** rewards co-adaptation: exploiting a partner's
+  regularities is what maximising team return means.
+- Training against a **population** $\Pi$ removes that shortcut, because no
+  single set of habits is safe to assume.
+- **Population-based training** extends learning from one policy to a
+  distribution over policies, increasing the diversity of interactions.
+- **Number of partners is not behavioural diversity.** Ten near-identical
+  partners present one pattern.
+- Partner generalization is **distribution shift**: $p_{\text{train}}$ against
+  $p_{\text{deploy}}$.
+- Diversity costs peak performance with any single familiar partner. That is
+  the trade being made.

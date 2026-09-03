@@ -1,0 +1,129 @@
+---
+title: Equation annotation gallery
+description: Reference fixture for the annotated-equation components. Not part of the course.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
+head:
+  - tag: meta
+    attrs:
+      name: robots
+      content: noindex
+---
+
+import Equation from '../../../components/equations/Equation.astro';
+import EquationSequence from '../../../components/equations/EquationSequence.astro';
+
+A reference fixture, not a lesson. It lives in the content collection but is
+absent from the sidebar, so it gets the full site chrome and the Markdown
+pipeline (heading anchors, table of contents) without appearing in the course
+navigation. Every equation component is exercised below, so a regression shows
+up here first.
+
+## 1. The reference annotation
+
+The house style this project is calibrated against: labels outside the formula,
+each connected to one term, each coloured by what that term *is*. Reproduced
+here as the API's acceptance test.
+
+<Equation
+  label="Fixture 1"
+  tex={String.raw`\mathcal{L}_{\text{SFT}}(\theta) = -\frac{1}{\mark{T}{T}} \sum_{t=1}^{T} \log \mark{pi}{\pi_{\theta}} \mark{prob}{(x_t \given x_{<t})}`}
+  annotations={[
+    { term: 'pi', side: 'above', tone: 'policy', label: 'current policy', reads: 'pi subscript theta' },
+    { term: 'T', side: 'below', tone: 'observe', label: 'tokens in the sequence', reads: 'capital T in the denominator' },
+    { term: 'prob', side: 'below', tone: 'reward', label: 'probability of token t', reads: 'x subscript t given x subscript less than t' },
+  ]}
+  caption="The supervised fine-tuning objective. Colour is doing work here: violet marks a learned component, blue marks a quantity you are given, green marks the quantity being maximised."
+/>
+
+## 2. Progressive reveal
+
+The same machinery with a stepper. Stepping is discrete, so it doubles as the
+reduced-motion form of progressive disclosure rather than an animation that has
+to be switched off.
+
+<Equation
+  label="Fixture 2"
+  steps
+  tex={String.raw`\mark{a}{\act{i}} \sim \mark{pi}{\pol{i}}\!\left(\act{i} \given \mark{o}{\obs{i}}\right)`}
+  annotations={[
+    { term: 'a', side: 'above', tone: 'action', label: 'the action agent i takes', reads: 'a superscript i subscript t' },
+    { term: 'pi', side: 'above', tone: 'policy', label: "agent i's own policy", reads: 'pi subscript i' },
+    { term: 'o', side: 'below', tone: 'observe', label: 'only what agent i can see', reads: 'o superscript i subscript t' },
+  ]}
+  caption="A decentralized policy. Every symbol carries the index i, and nothing in the expression refers to the global state: that is the whole content of the word decentralized."
+/>
+
+## 3. Braces and coloured terms, done in LaTeX
+
+KaTeX draws better braces than a hand-positioned SVG, so bracing stays in LaTeX
+via `\ubrace{tone}{term}{label}`, and `\tone{tone}{term}` colours a term in
+place. The annotation engine handles only what LaTeX cannot: labels outside the
+formula with drawn connectors.
+
+<Equation
+  label="Fixture 3"
+  wide
+  tex={String.raw`\mark{sinr}{\sinr_u} = \frac{\ubrace{reward}{\pow{i}\,\gain{i}{u}}{signal you want}}{\ubrace{observe}{\noise}{noise} + \ubrace{conflict}{\sum_{j \neq i} \pow{j}\,\gain{j}{u}\,\mathbb{1}[\chan{j} = \chan{i}]}{others on your channel}}`}
+  annotations={[
+    { term: 'sinr', side: 'above', tone: 'reward', label: 'what user u actually gets' },
+  ]}
+  caption="Signal to interference plus noise ratio for user u. The indicator function is the pedagogical heart of it: interference is summed only over stations transmitting on the same channel, which is exactly why two agents choosing the same channel hurt each other."
+/>
+
+## 4. Progressive formalization
+
+<EquationSequence
+  label="Fixture 4"
+  steps={[
+    { tex: String.raw`\text{Action} \leftarrow \text{Policy}(\text{Observation})`,
+      note: 'In words. What the agent does follows from what it sees.' },
+    { tex: String.raw`\act{i} \leftarrow \pol{i}(\obs{i})`,
+      note: 'The same sentence in symbols. Agent i, at time t.' },
+    { tex: String.raw`\act{i} \sim \pol{i}(\act{i} \given \obs{i})`,
+      note: 'One real change: the policy returns a distribution, and the action is sampled from it rather than read off it.' },
+  ]}
+  caption="By the third line the formal notation is a restatement of something already understood, not a new object to decode."
+/>
+
+## 5. Underline shape
+
+The `underline` shape rules the term's full width as well as pointing at it,
+which removes the ambiguity about how much of a wide expression a label refers
+to.
+
+<Equation
+  label="Fixture 5"
+  wide
+  tex={String.raw`\rew' = \mark{base}{\rew} - \mark{cost}{\lambda c_t}`}
+  annotations={[
+    { term: 'base', side: 'below', tone: 'reward', label: 'what the team earned', shape: 'underline', reads: 'r subscript t' },
+    { term: 'cost', side: 'below', tone: 'comm', label: 'what the talking cost them', shape: 'underline', reads: 'lambda times c subscript t' },
+  ]}
+  caption="Reward net of communication cost. The lambda term is what stops more communication from always looking better."
+/>
+
+## 6. Edge cases
+
+An equation with no annotations renders as a plain figure, with no label layer
+built at all.
+
+<Equation
+  label="Fixture 6"
+  tex={String.raw`J(x_1, \dots, x_n) = \frac{\left(\sum_{i=1}^{n} \tone{reward}{x_i}\right)^{2}}{n \sum_{i=1}^{n} \tone{reward}{x_i}^{2}}`}
+  caption="Jain's fairness index, with the rate terms coloured in place by \tone."
+/>
+
+Two labels wide enough to collide, which forces the lane assignment to stack
+them rather than overlap them.
+
+<Equation
+  label="Fixture 7"
+  tex={String.raw`\mark{lhs}{\rew} = R\!\left(\st, \mark{rhs}{\jointact}\right)`}
+  annotations={[
+    { term: 'lhs', side: 'below', tone: 'reward', label: 'one reward, whole team' },
+    { term: 'rhs', side: 'below', tone: 'action', label: 'what everyone did' },
+  ]}
+  caption="Two labels wide enough to collide, stacked into separate lanes."
+/>

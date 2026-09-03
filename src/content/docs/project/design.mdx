@@ -1,0 +1,248 @@
+---
+title: "Parts 2 to 4: Coordinate, Communicate, Adapt"
+description: "Select and justify linked coordination, communication, and adaptation mechanisms for the proposed system."
+related:
+  - slug: project/evaluation
+    icon: chart
+  - slug: project/system
+    icon: box
+  - slug: adapt/worksheet
+    icon: cycle
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+The central project design combines three linked decisions. First, identify one
+coordination failure and select a training approach that addresses it. Second,
+specify useful message content, recipients, representation, and at least one
+communication constraint. Third, define a partner or environment change and
+choose a strategy for adaptation. Each choice must follow from the system
+formulation and state a behavioural consequence that the evaluation can later
+measure.
+
+---
+
+## Part 2 · Coordinate
+
+### Identify one coordination problem
+
+Name **one**, specifically. Examples of the right grain:
+
+- multiple drones searching the same area while another region goes uncovered,
+- two ground robots attempting the same rescue,
+- agents blocking one another in a corridor,
+- nobody maintaining the communication relay because every role is more
+  urgent,
+- a poor division of roles when several agents could do several jobs.
+
+"Coordination is hard" is not a coordination problem. Neither is a list of
+five. Pick the one that would most damage your system and describe how it
+arises from the observations and actions you defined in Part 1.
+
+### Choose a training approach
+
+Then answer:
+
+> **How should your training approach encourage coordinated behaviour?**
+
+Choose and justify **one**:
+
+<div class="table-scroll">
+
+| Approach | Choose it when | Accept that |
+| --- | --- | --- |
+| Independent learning | simplicity and scale matter; you need a baseline | non-stationarity, high variance across seeds |
+| Centralized critic | learning is unstable because partner behaviour confounds the signal | one more component to train |
+| Value decomposition | credit assignment is the bottleneck, and rewards are common | the mixer grows with agent count |
+| Centralized execution | the team is small and genuinely co-located | an exponential joint action space, and no decentralized deployment |
+</div>
+
+<Callout variant="takeaway">
+The Challenge Lab is the argument for choosing rather than accumulating.
+
+There, value decomposition improved reward by **0.06** while communication
+improved it by **1.43**, on the same problem. Coordination machinery was the
+wrong tool because the bottleneck was missing information, not credit.
+
+So the justification you need is not "value decomposition is good". It is
+**"the coordination problem in my system formulation is a credit assignment problem,
+and here is why"**, or the equivalent for whichever you pick.
+</Callout>
+
+You do not have to use every technique in this resource. Saying which you
+rejected, and why, is worth more than using all of them.
+
+---
+
+## Part 3 · Communicate
+
+Four decisions, and Part 1 should already have told you what the first one is.
+
+### What should be communicated?
+
+Look back at the informational awkwardness you identified in Part 1: the
+decision an agent cannot make well from its own observation. What would fix
+it?
+
+Candidates in this domain: discovered survivors, hazards, an intended route,
+task status, remaining battery.
+
+Apply the three tests from *Message Content* to each:
+
+- Does the receiver **already know** it?
+- Can the receiver **act** on it?
+- Would it **choose differently** having heard it?
+
+A message that fails any of the three is costing bandwidth for nothing.
+
+### Who receives it?
+
+Broadcast to all, nearby agents only, or specified recipients such as relay
+agents. Say which, and note that range makes communication depend on the
+state.
+
+### Message representation
+
+Discrete symbols, a small vector, or a structured status message. If discrete,
+say how many, because that is your capacity and it decides which situations
+must **merge**.
+
+### Choose at least one constraint
+
+<div class="table-scroll">
+
+| Constraint | What it forces you to think about |
+| --- | --- |
+| Bandwidth | which distinctions to keep and which to merge |
+| Message loss | whether silence carries meaning in your protocol |
+| Range | whether the protocol survives agents moving apart |
+| Cost | whether each message is worth its price |
+</div>
+
+Then answer:
+
+> **What information is important enough to justify communication?**
+
+<Callout variant="pitfall">
+The Challenge Lab's communication result is the thing to bear in mind here.
+
+The same four messages raised throughput from **7.62 to 7.70** and lowered the
+team reward from **7.56 to 7.43**. The information was real and the price was
+higher, so the protocol was a net loss on the objective while looking like a
+win on the task measure.
+
+Communication is not valuable in itself, and it is not valuable merely because
+it carries useful information. It is valuable when the change it produces
+exceeds what the channel costs. Say what your protocol would have to buy to
+justify its price, and if your Part 1 observations are broadly symmetric,
+consider whether your system needs a channel at all. That would be a
+defensible and unusually honest answer.
+</Callout>
+
+---
+
+## Part 4 · Adapt
+
+Now deployment uncertainty. Your system must handle at least **one unfamiliar
+condition involving other agents**.
+
+### Choose the condition
+
+- a new rescue drone joins mid-operation,
+- one agent fails and stops responding,
+- robots from another organisation arrive,
+- an agent follows a policy you did not train,
+- the number of active agents changes.
+
+The last two are the harder and more interesting ones. The first three can
+sometimes be handled by ordinary robustness.
+
+### Training strategy
+
+> **How will the system avoid depending on one fixed group of agents?**
+
+Options, with what each costs:
+
+<div class="table-scroll">
+
+| Strategy | Cost |
+| --- | --- |
+| Diverse partner policies | peak performance with any one partner |
+| Population-based training | compute, and the work of building the population |
+| Randomised roles during training | slower convergence |
+| Behaviour variation across episodes | you must decide what to vary, and verify it varies |
+
+</div>
+
+The warning from *Training Partner Diversity* applies: **the number of
+partners is not behavioural diversity**. Ten near-identical partners present
+one pattern. Say how you would check that yours actually differ.
+
+### Adaptation mechanism
+
+Will your agent
+
+- infer other agents' behaviour from observation,
+- maintain a partner representation,
+- react to observed actions without identifying anyone,
+- or rely on a shared communication convention?
+
+<Equation
+  label="Figure 1"
+  wide
+  tex={String.raw`\ubrace{observe}{\text{observed behaviour}}{what I have seen} \rightarrow \ubrace{policy}{\text{representation}}{who I think you are} \rightarrow \ubrace{action}{\text{my action}}{what I do about it}`}
+  terms={[
+    { tex: String.raw`\text{observed behaviour}`, is: 'locally available evidence about another agent', tone: 'observe' },
+    { tex: String.raw`\text{representation}`, is: 'the inferred behavioural summary', tone: 'policy' },
+    { tex: String.raw`\text{my action}`, is: 'the policy response conditioned on that summary', tone: 'action' },
+  ]}
+  caption="An adaptation mechanism maps local behavioural evidence to a conditioned action."
+/>
+
+### Name the behavioural consequence
+
+This is the part most often skipped, and it is where the marks are.
+
+> **How would the system behave differently after observing the unfamiliar
+> agent?**
+
+An actual difference in action, not a statement that the system "adapts".
+Something of this shape:
+
+> After three steps in which the new drone repeatedly enters sector B, my
+> agents' partner representation shifts toward *area-focused*, and their
+> policy reallocates from sector B to sector D, leaving the new drone to
+> finish B alone.
+
+<Callout variant="takeaway">
+Two failure modes to avoid, both measured earlier in this resource.
+
+**Committing once and never revising.** In the Adapt Lab, the adaptive
+agent identified its partner after four steps and never reconsidered, which
+made it the *weakest* of three arms when the partner changed mid-episode.
+
+**Assuming a stranger resembles someone known.** The same agent scored 25 on a
+held-out partner near its training set and 2 on one outside it. A partner
+model fails confidently, not gracefully.
+</Callout>
+
+---
+
+## Integrated Design Check
+
+You should now have exactly:
+
+- **one** coordination problem, and one training approach that addresses it
+- **one** communication design: content, recipients, representation,
+  constraint
+- **one** unfamiliar condition, a training strategy, an adaptation mechanism,
+  and a concrete behavioural consequence
+
+If you have several of each, cut. A design that commits is assessable; a
+survey is not.
+
+Next: [Part 5](/project/evaluation/).

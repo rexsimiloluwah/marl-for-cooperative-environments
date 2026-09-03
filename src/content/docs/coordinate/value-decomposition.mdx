@@ -1,0 +1,203 @@
+---
+title: "Value Decomposition"
+description: "Factoring a centralized team value into local utilities that preserve compatible greedy action selection."
+related:
+  - slug: coordinate/vdn-qmix
+    icon: lightbulb
+  - slug: coordinate/credit-assignment
+    icon: cycle
+  - slug: coordinate/scaling-coordination
+    icon: chart
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+How can a single team value drive separate local decisions?
+</Callout>
+
+Value decomposition represents a centralized team value through per-agent utilities that can guide decentralized action selection.
+
+<Objectives>
+
+- Write the centralized joint-action value
+- Introduce per-agent utilities and say what they are not
+- State the Individual-Global-Max condition and why it matters
+- Connect the factorization back to credit assignment
+
+</Objectives>
+
+## Centralized Team Value
+
+Suppose we learn a value for the whole team.
+
+<Equation
+  label="Figure 1"
+  wide
+  tex={String.raw`\tone{reward}{Q_{\text{tot}}\bigl(\tone{observe}{h},\ \tone{comm}{z},\ \tone{action}{\jointact}\bigr)}`}
+  terms={[
+    { tex: String.raw`Q_{\text{tot}}`, is: 'the team value: how good this joint action is here', tone: 'reward' },
+    { tex: String.raw`h`, is: 'the agents’ histories', tone: 'observe' },
+    { tex: String.raw`z`, is: 'centralized information, available at training time', tone: 'comm' },
+    { tex: String.raw`\jointact`, is: 'the joint action being evaluated', tone: 'action' },
+  ]}
+  caption="One value for what the team did together, exactly the form that can tell combinations apart."
+/>
+
+This is a good object to have. It is the joint-action value from *Coordination*,
+so it can distinguish (collect, prepare) from (collect, collect) rather than
+averaging them into one uninformative number.
+
+The trouble is using it to *act*.
+
+<Equation
+  label="Figure 2"
+  wide
+  tex={String.raw`\jointact^{*} = \arg\max_{\tone{action}{\jointact}} \; \tone{reward}{Q_{\text{tot}}\bigl(h, z, \tone{action}{\jointact}\bigr)}`}
+  terms={[
+    { tex: String.raw`\arg\max_{\jointact}`, is: 'search over EVERY joint action, the exponentially large set', tone: 'action' },
+  ]}
+  caption="Choosing the best joint action means searching a space that multiplies with every agent added."
+/>
+
+Two things are wrong with that expression, and only one of them is about cost.
+
+**It is expensive.** The search is over $m^\nag$ entries. This is the wall
+from *Centralized and Decentralized Learning*, arriving again.
+
+**Nobody can evaluate it.** Even given infinite compute, the $\arg\max$ needs
+$z$ and returns a joint action, so it describes a central controller. At
+execution time there is no such thing. Each agent has its own observation and
+must produce its own action.
+
+This is precisely the motivation the textbook gives for value decomposition:
+centralized values are useful, but **decentralized and efficient action
+selection remains difficult** as the joint action space grows.
+
+## Individual Utilities
+
+So we want per-agent values, which each agent can maximise by itself:
+
+<Equation
+  label="Figure 3"
+  tex={String.raw`\tone{policy}{Q_\ag\bigl(\tone{observe}{h^\ag},\ \tone{action}{\act{\ag}}\bigr)}`}
+  terms={[
+    { tex: String.raw`Q_\ag`, is: 'a value over agent i’s own actions, computable from its own history', tone: 'policy' },
+  ]}
+  caption="Something each agent can hold, and maximise, entirely on its own."
+/>
+
+Each agent takes $\arg\max$ over its own $m$ actions. Cheap, local,
+deployable. But nothing so far connects these to the team value, and without
+that connection, agents maximising their own $Q_\ag$ have no reason to end up
+anywhere good together.
+
+That connection is the whole idea.
+
+## Individual-Global-Max
+
+<Callout variant="definition" title="The IGM property">
+> **The actions that look best to the individual agents should combine into
+> the action that looks best to the team.**
+</Callout>
+
+Written out:
+
+<Equation
+  label="Figure 4"
+  wide
+  tex={String.raw`\arg\max_{\tone{action}{\jointact}} \tone{reward}{Q_{\text{tot}}} \;=\; \Bigl(\; \arg\max_{\act{1}} \tone{policy}{Q_1},\ \dots,\ \arg\max_{\act{\nag}} \tone{policy}{Q_\nag} \;\Bigr)`}
+  terms={[
+    { tex: String.raw`\arg\max_{\jointact} Q_{\text{tot}}`, is: 'the best joint action according to the team value', tone: 'reward' },
+    { tex: String.raw`\arg\max_{\act{\ag}} Q_\ag`, is: 'each agent’s own greedy choice, made locally and independently', tone: 'policy' },
+  ]}
+  caption="Everybody choosing greedily and alone lands exactly on the team's best joint action."
+/>
+
+Read the equality carefully, because it is doing something remarkable. The
+left side requires a search over the exponential joint space using
+centralized information. The right side is $\nag$ independent searches over
+$m$ actions each, using only local information. IGM says these give the
+**same answer**.
+
+If you can arrange for that, you get the best of both moments: the team value
+guides learning, and action selection is local and cheap.
+
+<Callout tone="observe" title="What IGM does and does not require" icon="compass">
+IGM constrains only the **arg max**, which joint action comes out on top. It
+does not require the individual values to add up to the team value, or to
+match it numerically anywhere.
+
+That is why $Q_\ag$ is best read as a *utility* rather than as agent $\ag$'s
+share of the return. It is a quantity whose ordering produces the right
+choice; it is not a claim about how much agent $\ag$ earned.
+</Callout>
+
+## Value Decomposition and Credit Assignment
+
+Worth pausing on, because it is easy to miss.
+
+Learning a factored $Q_{\text{tot}}$ means learning what each $Q_\ag$ has to
+be for the factorisation to explain the team's returns. An agent whose
+actions consistently coincide with good outcomes acquires a $Q_\ag$ that
+reflects it.
+
+So value decomposition does not merely make action selection tractable. It
+distributes a signal derived from the shared team reward back to individual
+agents, which is the credit assignment problem, approached from the other
+end. That is why the two sections sit next to each other, and why value
+decomposition belongs to the common-reward setting specifically: without one
+shared return, there is nothing to decompose.
+
+<KnowledgeCheck
+  id="co-1-7-igm"
+  type="choice"
+  question="Why is the IGM property the thing that makes value decomposition work, rather than just a technical detail?"
+  options={[
+    {
+      text: 'Without it, agents maximising their own values could jointly select an action the team value considers poor.',
+      correct: true,
+      feedback: 'Exactly. Per-agent values are only useful if acting greedily on them produces a good joint action. IGM is precisely the guarantee that local greedy selection and centralized greedy selection agree, which is what lets you train centrally and act locally.',
+    },
+    {
+      text: 'It guarantees the individual values sum to the team value.',
+      correct: false,
+      feedback: 'It does not. IGM constrains only which joint action comes out on top. Summation is one particular way to satisfy it, VDN’s way, not what the property says.',
+    },
+    {
+      text: 'It makes the joint action space smaller.',
+      correct: false,
+      feedback: 'The joint action space is unchanged; it is still m to the power n. What changes is that nobody has to search it, each agent searches its own m actions instead.',
+    },
+    {
+      text: 'It ensures each agent receives the reward it earned.',
+      correct: false,
+      feedback: 'Appealing, and stronger than what IGM claims. The individual values are utilities whose ordering yields the right joint choice, not accounting statements about earned reward.',
+    },
+  ]}
+>
+IGM is the bridge between the two moments. Everything in the next section is a
+way of building it.
+</KnowledgeCheck>
+
+## Value Decomposition Summary
+
+- A centralized team value $Q_{\text{tot}}(h, z, \jointact)$ can tell
+  combinations apart, but selecting from it needs an exponential search and
+  centralized information, so no agent can act on it.
+- We want per-agent values $Q_\ag(h^\ag, \act{\ag})$ that each agent can
+  maximise locally.
+- The **Individual-Global-Max (IGM)** property is the required link: each
+  agent's own greedy action, taken together, equals the team value's best
+  joint action.
+- IGM constrains the **arg max only**. Individual values are utilities, not
+  shares of the return.
+- Value decomposition is also a **credit assignment** mechanism, which is why
+  it belongs specifically to the common-reward setting.

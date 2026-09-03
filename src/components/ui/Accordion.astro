@@ -1,0 +1,106 @@
+---
+/**
+ * ACCORDION
+ *
+ * A `<details>` panel for a scannable list of sections. Used on the Tutorial
+ * Structure page, where the whole point is that the shape of the tutorial fits
+ * on one screen and detail is one click away.
+ *
+ * Native `<details>`, deliberately: it is keyboard accessible, works before
+ * hydration, is findable by the browser's own in-page search, and needs no
+ * JavaScript. The only script here keeps the chevron in sync, which CSS
+ * already does on its own.
+ *
+ * WHY not-content
+ * Starlight styles `<summary>` with `display: block`, a negative
+ * `margin-inline-start` and its own marker. Those rules are guarded by
+ * `:not(:where(.not-content *))`, so the opt-out class is what stops the
+ * heading acquiring a stray indent and a second chevron.
+ */
+interface Props {
+  title: string;
+  /** Open on load. For the one section a reader should see expanded. */
+  open?: boolean;
+}
+const { title, open = false } = Astro.props;
+---
+
+<details class="acc not-content" open={open}>
+  <summary class="acc__head">
+    <span class="acc__title">{title}</span>
+    <svg class="acc__chevron" viewBox="0 0 16 16" aria-hidden="true" width="16" height="16">
+      <path d="M4 6 L8 10 L12 6" fill="none" stroke="currentColor"
+        stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </summary>
+  <div class="acc__body"><slot /></div>
+</details>
+
+<style>
+  .acc {
+    display: block;
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+
+  .acc__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+    margin-inline-start: 0;
+    cursor: pointer;
+    list-style: none;
+  }
+  .acc__head::-webkit-details-marker { display: none; }
+  .acc__head:hover .acc__title { color: var(--ui); }
+  .acc__head:focus-visible {
+    outline: 2px solid var(--ui);
+    outline-offset: -2px;
+    border-radius: var(--r-md);
+  }
+
+  .acc__title {
+    font-family: var(--font-sans);
+    font-size: var(--t-body);
+    font-weight: var(--w-semibold);
+    line-height: 1.35;
+    color: var(--ink);
+  }
+
+  .acc__chevron {
+    flex: none;
+    color: var(--ink-muted);
+    transition: transform 120ms ease;
+  }
+  .acc[open] .acc__chevron { transform: rotate(180deg); }
+  @media (prefers-reduced-motion: reduce) {
+    .acc__chevron { transition: none; }
+  }
+
+  .acc__body {
+    padding: var(--s-3) var(--s-4) var(--s-4);
+    border-top: var(--hairline) solid var(--rule);
+  }
+
+  /* Doubled class: `.sl-markdown-content ul` is class plus type and would
+     otherwise outrank a single-class rule under Astro's :where() scoping. */
+  .acc__body.acc__body :global(> :first-child) { margin-top: 0; }
+  .acc__body.acc__body :global(> :last-child) { margin-bottom: 0; }
+  .acc__body.acc__body :global(ul) {
+    margin-block: var(--s-2);
+    padding-left: 1.15em;
+  }
+  .acc__body.acc__body :global(li) {
+    margin-block: var(--s-1);
+    font-size: var(--t-body);
+    line-height: var(--lh-body);
+  }
+  .acc__body.acc__body :global(p) {
+    margin-block: var(--s-2);
+    font-size: var(--t-body);
+    line-height: var(--lh-body);
+  }
+</style>

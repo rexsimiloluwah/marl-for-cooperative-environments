@@ -1,0 +1,209 @@
+---
+title: "Joint Actions and Policies"
+description: "How individual actions and local policies combine into joint actions, joint policies, and constrained team behaviour."
+related:
+  - slug: background/cooperative-rewards
+    icon: lightbulb
+  - slug: coordinate/coordination
+    icon: chart
+  - slug: coordinate/ctde
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import CodeExercise from '../../../components/code/CodeExercise.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+Why can two sensible individual policies still make a poor team?
+</Callout>
+
+A joint action combines the individual choices that reach the environment at one time step, while a joint policy combines the local decision rules that produce those choices.
+
+<Objectives>
+
+- Write an individual policy that reads only its own observation
+- Assemble individual policies into a joint policy
+- Compute how a joint-action space grows with the number of agents
+- Identify team behaviour that separate local policies cannot represent
+
+</Objectives>
+
+## Individual Policies
+
+Each agent carries its own policy, and that policy sees only that agent's
+observation.
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\tone{action}{\act{\ag}} \sim \tone{policy}{\pol{\ag}}\bigl(\act{\ag} \given \tone{observe}{\obs{\ag}}\bigr)`}
+  terms={[
+    { tex: String.raw`\pol{i}`, is: 'agent i’s policy: its own decision rule, learned separately', tone: 'policy' },
+    { tex: String.raw`\obs{i}`, is: 'the only input it gets: this agent’s own observation', tone: 'observe' },
+    { tex: String.raw`\act{i}`, is: 'the action it produces', tone: 'action' },
+  ]}
+  caption="One question, asked privately by each agent: given what I know, what should I do?"
+/>
+
+That is the entire decision-making apparatus of one agent. Notice how little
+it has: no partner's observation, no partner's intended action, no view of
+the state. The chopping agent decides to chop knowing only what is on its own
+counter.
+
+## Joint Actions and Joint Policies
+
+An individual policy can only be judged by the company it keeps. "Fetch the
+tomato" is an excellent rule when your partner is heating the pan and a waste
+of a step when your partner is also fetching the tomato, and the policy
+itself is identical in both cases.
+
+So the interesting object is not $\pol{1}$ or $\pol{2}$ but what they produce
+between them.
+
+<Equation
+  label="Figure 2"
+  tex={String.raw`\boldsymbol{\pi} = \bigl(\tone{policy}{\pol{1}}, \tone{policy}{\pol{2}}, \dots, \tone{policy}{\pol{\nag}}\bigr)`}
+  terms={[
+    { tex: String.raw`\boldsymbol{\pi}`, is: 'the joint policy: the team’s behaviour, in bold', tone: 'policy' },
+    { tex: String.raw`\pol{i}`, is: 'one agent’s local policy, unchanged and still local', tone: 'policy' },
+  ]}
+  caption="A team's behaviour is a bundle of separate decision rules, not one big decision rule."
+/>
+
+This is the sentence to hold onto: **team behaviour is not designed; it is
+produced.** Nobody writes down "agent 1 fetches while agent 2 heats". Two
+policies are learned separately, they run separately, and the division of
+labour is whatever falls out of them.
+
+<Callout variant="definition" title="Decentralized execution">
+At execution time, each agent samples its own action from its own policy on
+its own observation. No agent, and no component anywhere in the system,
+evaluates a mapping from everybody's observations to everybody's actions.
+
+Every method in this resource has to work under that constraint. What we are
+allowed to do during *training* is a separate question, and *Centralized Training with Decentralized Execution* is
+about exactly that gap.
+</Callout>
+
+<CodeExercise
+  id="bg-joint-action"
+  title="Build a joint action"
+  starter={`def joint_action(actions):\n    """Combine a list of per-agent actions into one joint action.\n\n    actions[i] is the action chosen by agent i + 1.\n    Return a tuple, so the result is ordered and cannot be modified.\n    """\n    # TODO\n    return None\n\n\nprint(joint_action([0, 2, 1]))\n`}
+  tests={`
+expect("three agents", joint_action([0, 2, 1]), (0, 2, 1),
+       "Order matters, so the result should keep the agents in the order they were given.")
+expect("returns a tuple, not a list", type(joint_action([0, 1])), tuple,
+       "A joint action is a fixed-length ordered record, so a tuple is the right type. A list would suggest it can be appended to or reordered.")
+expect("two agents", joint_action([1, 1]), (1, 1),
+       "Two agents choosing the same action is perfectly legal, and in a cooperative task it is often exactly the duplicated effort the team needs to learn to avoid.")
+expect("one agent", joint_action([3]), (3,),
+       "A single-agent joint action is a one-element tuple. Note the trailing comma in Python's notation for it.")
+`}
+  hints={[
+    'The result should keep the order it was given, but not be modifiable afterwards.',
+    'Python names the conversion function after the type you want. Apply it to `actions` and return that.',
+  ]}
+  solution={`def joint_action(actions):\n    return tuple(actions)\n`}
+>
+Worth doing once so the notation stops being abstract. Note what the function
+does *not* do: it makes no decisions. It only records what the agents
+separately chose.
+</CodeExercise>
+
+## Limits of Separate Decision Rules
+
+Here is the consequence that makes this more than bookkeeping.
+
+Take reactive local policies, each sampling privately, with nothing
+correlating the draws. Then the probability of any particular joint action is
+just the product of the individual probabilities.
+
+<Equation
+  label="Figure 3"
+  wide
+  tex={String.raw`\Pr\bigl(\tone{action}{\jointact} \given \tone{observe}{\mathbf{o}_t}\bigr) = \prod_{i=1}^{\nag} \ubrace{policy}{\pol{i}\bigl(\act{i} \given \obs{i}\bigr)}{one agent, local input}`}
+  terms={[
+    { tex: String.raw`\mathbf{o}_t`, is: 'all the observations at step t, one per agent', tone: 'observe' },
+    { tex: String.raw`\pol{i}`, is: "agent i's own policy, a distribution over its own actions", tone: 'policy' },
+    { tex: String.raw`\prod_{i=1}^{\nag}`, is: 'multiply across agents; this needs more than decentralization, namely that each agent samples privately with nothing correlating the draws' },
+  ]}
+  caption="Everyone deciding alone, at the same moment, multiplies out."
+/>
+
+The actions are conditionally independent *given* the observations. Stop
+conditioning on them and the actions need not be independent at all, because
+the observations come from one shared state and can carry common information.
+
+<Callout tone="observe" title="Why the product form is a restriction" icon="compass">
+At a fixed observation, not every distribution over joint actions can be
+written as a product. Here is the smallest example. Two agents, two stoves,
+and you want them to split: half the time agent 1 takes the left stove, half
+the time the right, and never both on the same one.
+
+No pair of independent per-agent distributions produces that. If agent 1 picks
+the left stove with probability $\tfrac{1}{2}$ and agent 2 does likewise, then
+all four combinations get probability $\tfrac{1}{4}$, and they collide a
+quarter of the time.
+
+Fixed roles *do* avoid collisions: send agent 1 left always and agent 2 right
+always, and that is a perfectly good product of local policies. What a product
+cannot do is randomise **which** agent takes the left stove while still
+guaranteeing exactly one does.
+
+That needs a signal that varies and that both agents can read before choosing:
+a shared random draw they both see, or a message that arrives in time to act
+on. the Communicate chapter is largely about the second option.
+</Callout>
+
+<KnowledgeCheck
+  id="bg-1-5-joint-policy"
+  type="choice"
+  question="Three agents, 9 actions each. Which best describes what the joint policy is doing at one step?"
+  options={[
+    {
+      text: 'Three separate choices among 9, which together land on one of 729 outcomes.',
+      correct: true,
+      feedback: 'Yes. Nobody chooses among 729. Each agent chooses among its own 9, on its own information, and the joint action is what those three choices amount to when combined.',
+    },
+    {
+      text: 'One choice among 729, made by the joint policy.',
+      correct: false,
+      feedback: 'That describes a centralized controller, which is a legitimate but different setup. Here the joint policy is a tuple of local policies, and nothing evaluates a mapping from the joint observation to a joint action. A centralized controller removes the need to coordinate separate selections, though it still has to work out which of the 729 is good.',
+    },
+    {
+      text: 'Three separate choices among 729, one per agent.',
+      correct: false,
+      feedback: 'Each agent’s own action set has 9 elements. 729 is the size of the combined space, which no individual agent selects from.',
+    },
+    {
+      text: 'Three choices among 9 that must be statistically independent of each other.',
+      correct: false,
+      feedback: 'Close, but the independence is conditional. Given their observations, and assuming each samples privately with nothing correlating the draws, the agents draw independently. Stop conditioning on the observations and the actions need not be independent, since those observations come from one shared state.',
+    },
+  ]}
+>
+Holding this distinction makes **centralized training with decentralized
+execution** read as an obvious idea rather than a trick: train with everything
+available, deploy with only what each agent can actually see.
+</KnowledgeCheck>
+
+## Joint Actions and Policies Summary
+
+- An individual policy $\pol{\ag}(\act{\ag} \given \obs{\ag})$ is local: its
+  only input is that agent's own observation.
+- A policy can only be judged **in combination**. The same rule is good or
+  wasteful depending on what a partner does at the same step.
+- The **joint policy** $\boldsymbol{\pi} = (\pol{1}, \dots, \pol{\nag})$ is
+  the team's behaviour. It is produced by separate policies, not designed as
+  one.
+- Under **decentralized execution** nothing evaluates a joint mapping. With
+  private independent sampling, the joint distribution is a product.
+- That product form is a genuine restriction: randomising *which* agent takes
+  a role, while guaranteeing exactly one does, needs a varying signal both can
+  read before choosing.

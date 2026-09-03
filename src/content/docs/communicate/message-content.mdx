@@ -1,0 +1,188 @@
+---
+title: "Message Content"
+description: "Observation, intention, and receiver-relevant messages for cooperative decision making."
+related:
+  - slug: communicate/communication-constraints
+    icon: lightbulb
+  - slug: communicate/communication-policies
+    icon: cycle
+  - slug: adapt/agent-modelling
+    icon: users-round
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+Out of everything an agent knows, what is worth sending?
+</Callout>
+
+Message content determines whether communication supplies information that changes a receiver's action.
+
+<Objectives>
+
+- Compare sending a raw observation
+- Compare sending an intended action
+- Construct a summary selected for the receiver
+- Tie message content to the receiver's uncertainty
+
+</Objectives>
+
+## Observation Messages
+
+The obvious option: tell your partner something about the world it cannot
+see.
+
+Agent 1 can read the order ticket. Agent 2 cannot.
+
+> "The next order needs soup."
+
+This is the most direct use of a channel, and it maps onto the asymmetry
+exactly. Agent 1 holds a fact, agent 2 needs it, so agent 1 says it.
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\tone{comm}{m^\ag_t} = f\bigl(\tone{observe}{\obs{\ag}}\bigr)`}
+  terms={[
+    { tex: String.raw`f`, is: 'whatever turns an observation into something sayable' },
+    { tex: String.raw`\obs{\ag}`, is: 'this agent’s own observation, the only thing it has to report', tone: 'observe' },
+  ]}
+  caption="Report the world. The message is a function of what this agent saw."
+/>
+
+## Intention Messages
+
+A different option, and often a better one: tell your partner what *you* are
+about to do.
+
+> "I am getting the tomato."
+
+Nothing about the kitchen is reported here. The message is about agent 1's own
+policy, and its value is that agent 2 can now stop considering the tomato and
+do something else.
+
+<Callout variant="takeaway">
+Reporting observations addresses **partial observability**: you know something
+I cannot see.
+
+Reporting intentions addresses **interdependence**: our actions collide, and
+one of us has to commit first.
+
+They solve the two different problems from Chapters 1 and 2, which is why a
+good protocol often carries both.
+</Callout>
+
+Intentions are also the direct answer to the duplication failure from Chapter
+1. "Both agents fetch the tomato" is unfixable from observations alone, since
+the kitchen looks identical to both of them and the correct action depends on a
+decision neither has made yet. One agent announcing its choice breaks the
+symmetry.
+
+<Callout tone="observe" title="Why announced intentions are not cheating" icon="compass">
+An announced intention is not the same as seeing a partner's action. The
+announcement is itself an action the sender chose, it can be wrong, and the
+sender is free to do something else afterwards.
+
+*Joint Actions and Policies* showed that independent local policies cannot
+randomise which agent takes a role while guaranteeing exactly one does. An
+intention message is one way to be the varying signal that fixes it.
+</Callout>
+
+## Receiver-Relevant Messages
+
+Now the question that turns this from a taxonomy into a design problem.
+
+Agent 1 could send its entire observation. Compare what that looks like with
+what agent 2 actually needs:
+
+<div class="table-scroll">
+
+| | Content |
+| --- | --- |
+| **Full observation** | `position=(4,2), tomato=(3,1), onion=(7,5), order=SOUP, timer=31, board=empty, holding=none` |
+| **What agent 2 needs** | `SOUP` |
+</div>
+
+Agent 2 controls the stove. It cannot reach the ingredient store, cannot chop,
+and has no use for agent 1's position or the onion's location. Of everything in
+that first row, one field changes what agent 2 will do.
+
+So the design question is not "what do I know?" but:
+
+> **What information does the receiver actually need in order to make a better
+> decision?**
+
+Three tests, which are worth applying to any protocol:
+
+**Does the receiver already know it?** Agent 2 can see the pot. Telling it the
+pot is hot is a wasted message.
+
+**Can the receiver act on it?** Agent 2 cannot chop. Telling it the board is
+free changes nothing it can do.
+
+**Would it choose differently?** If agent 2 heats the pot regardless of which
+dish is coming, then the dish identity, however privileged, is not worth
+sending.
+
+<Callout variant="pitfall">
+The failure this prevents is **sending everything**. It is tempting, it is
+easy to implement, and with a wide enough channel it even works.
+
+But it wastes bandwidth in proportion to how little is relevant, it makes the
+protocol impossible to inspect, and it means the team has learned nothing
+about what matters. It also fails immediately once the channel narrows, which
+is the next section.
+</Callout>
+
+<KnowledgeCheck
+  id="cm-2-3-content"
+  type="choice"
+  question="Agent 2 controls only the stove. Which message is most likely to be worth sending to it?"
+  options={[
+    {
+      text: '"Soup next", which names the dish, which changes when and how agent 2 should heat the pot.',
+      correct: true,
+      feedback: 'Yes. It passes all three tests: agent 2 cannot see the ticket, it can act on the information by timing the heat, and it would behave differently for a different dish.',
+    },
+    {
+      text: '"The pot is at temperature", a clear factual report about the kitchen.',
+      correct: false,
+      feedback: 'True and useless. Agent 2 controls the stove, so it already knows this. A message the receiver could have observed itself buys nothing.',
+    },
+    {
+      text: '"The chopping board is free", which tells agent 2 about a part of the kitchen it cannot see.',
+      correct: false,
+      feedback: 'It does clear the partial-observability test, and it fails the second one: agent 2 cannot reach or use the board, so nothing it might do changes on hearing this.',
+    },
+    {
+      text: 'The full observation vector, so agent 2 can decide for itself what matters.',
+      correct: false,
+      feedback: 'This is the tempting answer and it is what the section argues against. It costs bandwidth proportional to the irrelevant part, produces a protocol nobody can inspect, and collapses as soon as the channel is narrow.',
+    },
+  ]}
+>
+"What does the receiver need?" is a better design question than "what do I
+know?", and it produces much smaller protocols.
+</KnowledgeCheck>
+
+## Message Content Summary
+
+- Three kinds of content: **observations** (what I see and you cannot),
+  **intentions** (what I am about to do), and **relevant information** (the
+  one fact that changes your decision).
+- Observations address partial observability; intentions address
+  interdependence. A good protocol often needs both.
+- An announced intention is a chosen action, not a leak of a partner's
+  action, and it can serve as the varying signal that independent local
+  policies cannot produce by themselves.
+- The design question is **what the receiver needs**, not what the sender
+  knows. Test each candidate message: does the receiver already know it, can
+  it act on it, would it choose differently?
+- Sending the whole observation is easy, wasteful, uninspectable, and the
+  first thing to break when the channel narrows.

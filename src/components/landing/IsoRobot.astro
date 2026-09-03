@@ -1,0 +1,214 @@
+---
+/**
+ * ISOMETRIC AGENT
+ *
+ * One robot, drawn once and instanced. Built from stacked primitives with
+ * three tonal steps per form (lit face, shaded flank, cast shadow) and a
+ * single light source from the upper left, which is what makes flat SVG read
+ * as solid rather than as a cartoon outline.
+ *
+ * The held shape is the point, not decoration: each agent carries a different
+ * piece, so the hero says three agents contributing different things to one
+ * target rather than three copies of the same agent.
+ *
+ * All colour comes from `--t`, set per instance from the semantic palette, so
+ * an agent's identity colour is the same here as in every diagram.
+ */
+
+type Tone = 'observe' | 'action' | 'reward' | 'policy' | 'comm' | 'conflict';
+
+interface Props {
+  /** Ground contact point. */
+  x: number;
+  y: number;
+  scale?: number;
+  tone: Tone;
+  /** Which piece the agent is carrying. */
+  piece?: 'cube' | 'cone' | 'sphere';
+  /** Mirror the arm to the left, for agents on the right of the scene. */
+  flip?: boolean;
+  /**
+   * Drop the cast shadow. For an agent standing behind furniture, where a
+   * shadow on the floor would show through the object in front of it.
+   */
+  noShadow?: boolean;
+}
+
+const { x, y, scale = 1, tone, piece = 'cube', flip = false, noShadow = false } = Astro.props;
+const armDir = flip ? -1 : 1;
+---
+
+<g
+  class="ir"
+  transform={`translate(${x} ${y}) scale(${scale})`}
+  style={`--t: var(--c-${tone});`}
+>
+  <!-- cast shadow, widest and softest element so the robot sits on a plane -->
+  {!noShadow && <ellipse class="ir__cast" cx="0" cy="0" rx="34" ry="11" />}
+
+  <!-- ---------- tracked base ---------- -->
+  <rect class="ir__track" x="-27" y="-23" width="54" height="23" rx="11.5" />
+  <path class="ir__trackShade" d="M 12 -23 h 3.5 a 11.5 11.5 0 0 1 0 23 H 12 z" />
+  <circle class="ir__wheel" cx="-14" cy="-11.5" r="6.5" />
+  <circle class="ir__wheel" cx="14" cy="-11.5" r="6.5" />
+  <circle class="ir__hubcap" cx="-14" cy="-11.5" r="2.4" />
+  <circle class="ir__hubcap" cx="14" cy="-11.5" r="2.4" />
+
+  <!-- ---------- torso ---------- -->
+  <rect class="ir__body" x="-21" y="-54" width="42" height="35" rx="14" />
+  <!-- shaded right flank -->
+  <path
+    class="ir__shade2"
+    d="M 7 -54 h 0 a 14 14 0 0 1 14 14 v 7 a 14 14 0 0 1 -14 14 z"
+  />
+
+  <!-- arm and carried piece -->
+  <g transform={`scale(${armDir} 1)`}>
+    <path class="ir__arm" d="M 19 -42 C 30 -44, 36 -46, 42 -47" />
+    <circle class="ir__joint" cx="20" cy="-42" r="4.2" />
+    {
+      piece === 'cube' && (
+        <g transform="translate(53 -47)">
+          {/* isometric cube: top lit, left mid, right dark */}
+          <path class="ir__pieceTop" d="M 0 -11 L 11 -5 L 0 1 L -11 -5 Z" />
+          <path class="ir__pieceLeft" d="M -11 -5 L 0 1 L 0 12 L -11 6 Z" />
+          <path class="ir__pieceRight" d="M 11 -5 L 11 6 L 0 12 L 0 1 Z" />
+        </g>
+      )
+    }
+    {
+      piece === 'cone' && (
+        <g transform="translate(52 -46)">
+          <path class="ir__pieceLeft" d="M 0 -13 L -11 8 L 0 12 Z" />
+          <path class="ir__pieceRight" d="M 0 -13 L 11 8 L 0 12 Z" />
+          <ellipse class="ir__pieceTop" cx="0" cy="8" rx="11" ry="4.5" />
+        </g>
+      )
+    }
+    {
+      piece === 'sphere' && (
+        <g transform="translate(52 -47)">
+          <circle class="ir__pieceRight" cx="0" cy="0" r="11.5" />
+          <path class="ir__pieceTop" d="M 0 -11.5 a 11.5 11.5 0 0 0 0 23 a 8 11.5 0 0 0 0 -23 z" />
+          <ellipse class="ir__pieceSheen" cx="-3.6" cy="-4.4" rx="3.6" ry="2.4" transform="rotate(-32 -3.6 -4.4)" />
+        </g>
+      )
+    }
+  </g>
+
+  <!-- ---------- head ---------- -->
+  <circle class="ir__body" cx="0" cy="-72" r="24" />
+  <!-- shaded right crescent -->
+  <path
+    class="ir__shade1"
+    d="M 9 -94.6 a 24 24 0 0 1 0 45.2 a 19 24 0 0 0 0 -45.2 z"
+  />
+  <!-- side pods -->
+  <circle class="ir__pod" cx="-24" cy="-72" r="6" />
+  <circle class="ir__pod" cx="24" cy="-72" r="6" />
+  <!-- visor -->
+  <rect class="ir__visor" x="-17" y="-81" width="34" height="18" rx="9" />
+  <circle class="ir__eye" cx="-7.4" cy="-72" r="3.7" />
+  <circle class="ir__eye" cx="7.4" cy="-72" r="3.7" />
+  <!-- specular highlight, upper left, matching the light source -->
+  <ellipse
+    class="ir__sheen"
+    cx="-9"
+    cy="-86"
+    rx="8.5"
+    ry="4.2"
+    transform="rotate(-28 -9 -86)"
+  />
+
+  <!-- ---------- antenna ---------- -->
+  <line class="ir__ant" x1="0" y1="-95" x2="0" y2="-111" />
+  <circle class="ir__tip" cx="0" cy="-115" r="5.5" />
+</g>
+
+<style>
+  /* Light comes from the upper left throughout. Every shaded face below is on
+     the right or underside of its form; nothing is shaded arbitrarily. */
+
+  .ir__cast {
+    fill: var(--iso-cast);
+  }
+
+  /* ---- base ---- */
+  .ir__track {
+    fill: var(--iso-visor);
+  }
+  .ir__trackShade {
+    fill: rgba(0, 0, 0, 0.25);
+  }
+  .ir__wheel {
+    fill: var(--t);
+  }
+  .ir__hubcap {
+    fill: var(--iso-visor);
+    opacity: 0.55;
+  }
+
+  /* ---- shell ---- */
+  .ir__body {
+    fill: var(--iso-body);
+    stroke: var(--t);
+    stroke-width: 2;
+  }
+  .ir__shade1 {
+    fill: var(--iso-shade-1);
+  }
+  .ir__shade2 {
+    fill: var(--iso-shade-2);
+  }
+  .ir__sheen {
+    fill: var(--iso-sheen);
+  }
+
+  /* ---- face ---- */
+  .ir__visor {
+    fill: var(--iso-visor);
+  }
+  .ir__eye {
+    fill: var(--t);
+  }
+  .ir__pod {
+    fill: var(--t);
+  }
+
+  /* ---- antenna ---- */
+  .ir__ant {
+    stroke: var(--iso-visor);
+    stroke-width: 2.6;
+    stroke-linecap: round;
+  }
+  .ir__tip {
+    fill: var(--t);
+  }
+
+  /* ---- arm ---- */
+  .ir__arm {
+    fill: none;
+    stroke: var(--iso-visor);
+    stroke-width: 4.5;
+    stroke-linecap: round;
+  }
+  .ir__joint {
+    fill: var(--t);
+  }
+
+  /* ---- carried piece: three faces, three tones ---- */
+  .ir__pieceTop {
+    fill: var(--t);
+  }
+  .ir__pieceLeft {
+    fill: var(--t);
+    filter: brightness(0.84);
+  }
+  .ir__pieceRight {
+    fill: var(--t);
+    filter: brightness(0.7);
+  }
+  .ir__pieceSheen {
+    fill: var(--iso-sheen);
+  }
+</style>

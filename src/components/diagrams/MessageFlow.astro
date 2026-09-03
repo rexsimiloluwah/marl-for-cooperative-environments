@@ -1,0 +1,208 @@
+---
+/**
+ * COMMUNICATION AS A SECOND KIND OF ACTION
+ *
+ * An agent emits two things from one decision: an environment action and a
+ * message. They have DIFFERENT DESTINATIONS, and that is the whole content of
+ * the diagram.
+ *
+ * The environment action goes down, into the kitchen, and changes the state.
+ * The message goes sideways, into a teammate, and changes nothing about the
+ * world, only what that teammate knows before it chooses. Drawing the
+ * message on a horizontal track that never touches the environment box is the
+ * argument; a message arrow that terminated on the environment would teach
+ * exactly the wrong thing.
+ */
+interface Props {
+  /** Mark the channel as lossy, for the constraints section. */
+  lossy?: boolean;
+}
+const { lossy = false } = Astro.props;
+
+const W = 640;
+const H = 288;
+
+/* Agent columns, and the environment centred beneath them. */
+const L = 128;
+const R = 512;
+const MIDX = 320;
+---
+
+<figure class="mf not-content">
+  <div class="mf__frame">
+    <svg viewBox={`0 0 ${W} ${H}`} class="mf__svg" role="img" aria-labelledby="mf-t">
+      <title id="mf-t">
+        Agent 1 receives its own observation and produces two things: an
+        environment action that goes down into the kitchen, and a message that
+        goes sideways to agent 2. Agent 2 combines its own observation with
+        the received message to choose its own environment action, which also
+        goes into the kitchen.
+        {lossy ? ' The message channel is marked as unreliable, so the message may not arrive.' : ''}
+      </title>
+
+      <defs>
+        <marker id="mf-a" viewBox="0 0 10 10" refX="9" refY="5"
+          markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+        </marker>
+      </defs>
+
+      <!-- observations in -->
+      {
+        [L, R].map((x, i) => (
+          <>
+            <text class="mf__term mf__term--observe" x={x} y={26} text-anchor="middle">
+              o
+              <tspan class="mf__sup">{i + 1}</tspan>
+            </text>
+            <path class="mf__wire mf__wire--observe" d={`M ${x} 34 V 54`} marker-end="url(#mf-a)" />
+          </>
+        ))
+      }
+
+      <!-- the two agents -->
+      {
+        [L, R].map((x, i) => (
+          <g class="mf__agent">
+            <rect x={x - 62} y={58} width="124" height="40" rx="8" />
+            <text x={x} y={83} text-anchor="middle">Agent {i + 1}</text>
+          </g>
+        ))
+      }
+
+      <!-- the message: sideways, and it never reaches the environment -->
+      <path
+        class={`mf__wire mf__wire--comm${lossy ? ' is-lossy' : ''}`}
+        d={`M ${L + 66} 78 H ${R - 68}`}
+        marker-end="url(#mf-a)"
+      />
+      <text class="mf__term mf__term--comm" x={MIDX} y={68} text-anchor="middle">
+        m
+        <tspan class="mf__sup">1</tspan>
+      </text>
+      {
+        lossy && (
+          <>
+            <path class="mf__x" d={`M ${MIDX - 8} 70 L ${MIDX + 8} 86 M ${MIDX + 8} 70 L ${MIDX - 8} 86`} />
+            <text class="mf__note mf__note--bad" x={MIDX} y={106} text-anchor="middle">
+              may not arrive
+            </text>
+          </>
+        )
+      }
+      {
+        !lossy && (
+          <text class="mf__note" x={MIDX} y={100} text-anchor="middle">
+            changes what agent 2 knows, not the kitchen
+          </text>
+        )
+      }
+
+      <!-- environment actions: down -->
+      {
+        [
+          { x: L, tx: MIDX - 66, i: 1 },
+          { x: R, tx: MIDX + 66, i: 2 },
+        ].map((a) => (
+          <>
+            <path
+              class="mf__wire mf__wire--action"
+              d={`M ${a.x} 102 C ${a.x} 150, ${a.tx} 148, ${a.tx} 186`}
+              marker-end="url(#mf-a)"
+            />
+            <text
+              class="mf__term mf__term--action"
+              x={a.x + (a.i === 1 ? 22 : -22)}
+              y={132}
+              text-anchor="middle"
+            >
+              x
+              <tspan class="mf__sup">{a.i}</tspan>
+            </text>
+          </>
+        ))
+      }
+
+      <!-- the environment -->
+      <g class="mf__env">
+        <rect x={MIDX - 96} y={190} width="192" height="44" rx="8" />
+        <text x={MIDX} y={217} text-anchor="middle">The kitchen</text>
+      </g>
+
+      <path class="mf__wire mf__wire--reward" d={`M ${MIDX} 238 V 258`} marker-end="url(#mf-a)" />
+      <text class="mf__out" x={MIDX} y={276} text-anchor="middle">
+        next state, and one team reward
+      </text>
+    </svg>
+  </div>
+  <figcaption class="mf__caption"><slot /></figcaption>
+</figure>
+
+<style>
+  .mf { margin-block: var(--s-5); }
+
+  .mf__frame {
+    padding: var(--s-4) var(--s-3);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+    overflow-x: auto;
+  }
+  .mf__svg {
+    display: block;
+    width: 100%;
+    min-width: 26rem;
+    max-width: 36rem;
+    margin-inline: auto;
+    height: auto;
+  }
+
+  .mf__agent rect {
+    fill: var(--c-policy-tint);
+    stroke: var(--c-policy-edge);
+    stroke-width: 1.2;
+  }
+  .mf__agent text {
+    font: 500 12px / 1 var(--font-sans);
+    fill: var(--ink);
+  }
+
+  .mf__env rect {
+    fill: var(--surface-sunken);
+    stroke: var(--rule-strong, var(--rule));
+    stroke-width: 1.2;
+  }
+  .mf__env text {
+    font: 500 12px / 1 var(--font-sans);
+    fill: var(--ink);
+  }
+
+  .mf__term { font: italic 600 14px / 1 var(--font-mono); }
+  .mf__term--observe { fill: var(--c-observe-ink); }
+  .mf__term--action { fill: var(--c-action-ink); }
+  .mf__term--comm { fill: var(--c-comm-ink); }
+  .mf__sup { font-size: 9px; baseline-shift: super; }
+
+  .mf__wire { fill: none; stroke-width: 1.5; }
+  .mf__wire--observe { stroke: var(--c-observe); }
+  .mf__wire--action { stroke: var(--c-action); }
+  .mf__wire--comm { stroke: var(--c-comm); }
+  .mf__wire--comm.is-lossy { stroke-dasharray: 5 4; }
+  .mf__wire--reward { stroke: var(--c-reward); }
+
+  .mf__x { stroke: var(--c-conflict); stroke-width: 2; fill: none; }
+
+  .mf__note,
+  .mf__out {
+    font: 400 10.5px / 1 var(--font-sans);
+    fill: var(--ink-3);
+  }
+  .mf__note--bad { fill: var(--c-conflict-ink); }
+
+  .mf__caption {
+    margin-top: var(--s-3);
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+</style>

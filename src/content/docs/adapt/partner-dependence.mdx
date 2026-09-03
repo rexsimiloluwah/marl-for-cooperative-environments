@@ -1,0 +1,218 @@
+---
+title: "Partner Dependence"
+description: "How co-adaptation and partner-specific conventions separate familiar-partner performance from task competence."
+related:
+  - slug: adapt/partner-generalization
+    icon: lightbulb
+  - slug: communicate/worksheet
+    icon: cycle
+  - slug: adapt/evaluating-generalization
+    icon: chart
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KitchenScene from '../../../components/diagrams/KitchenScene.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+Is a high team reward evidence of cooperation, or of one partnership?
+</Callout>
+
+Adaptation asks whether an agent can continue to cooperate when its partners differ from those encountered during training.
+
+<Objectives>
+
+- Describe what changes when a familiar partner is replaced
+- Define co-adaptation between agents trained together
+- State the limits of familiar-partner performance as evidence
+- Identify the conventions an agent has learned about one partner
+
+</Objectives>
+
+## Partner Change in the Cooperative Kitchen
+
+Agent 1 has trained with agent 2 for a very long time. During training, a
+division of labour settled:
+
+> Agent 2 usually collects ingredients, so agent 1 learned to prepare and
+> cook.
+
+Their performance is excellent. Now replace agent 2 with agent 3, trained
+elsewhere, which learned:
+
+> My partner collects ingredients, so I prepare and cook.
+
+<KitchenScene>
+Two capable agents, each waiting for the other to fetch the tomato.
+</KitchenScene>
+
+The episode begins.
+
+<div class="table-scroll">
+
+| Step | Agent 1 | Agent 3 |
+| --- | --- | --- |
+| 1 | waits for the ingredient | waits for the ingredient |
+| 2 | waits for the ingredient | waits for the ingredient |
+| 3 | waits for the ingredient | waits for the ingredient |
+</div>
+
+Both agents are individually capable. Both performed excellently during
+training. Together they cannot serve a single order.
+
+<Callout variant="takeaway">
+The question this chapter is built on:
+
+> **Did agent 1 learn how to cooperate, or did it learn how to cooperate with
+> agent 2?**
+</Callout>
+
+## Co-Adaptation
+
+Here is the mechanism. When agents train together repeatedly, each policy
+adapts to the behaviour of the others, and there is nothing to stop that
+adaptation going further than the task requires.
+
+Agent 1 could have learned the general rule:
+
+> When an ingredient is needed, work out who should collect it.
+
+What it actually learned may be much narrower:
+
+> Agent 2 collects ingredients, so I prepare.
+
+Both rules produce identical behaviour throughout training. The narrow one is
+easier to learn, needs no reasoning about who should do what, and is
+indistinguishable from the general one **as long as agent 2 is present**.
+
+<Callout variant="pitfall">
+This is not a bug in the learning algorithm. The narrow rule is genuinely
+optimal for the training distribution, and nothing in the objective asked for
+anything else.
+
+An agent optimising team return with a fixed partner is *supposed* to exploit
+that partner's regularities. Calling the result overfitting is a statement
+about what we wanted, not about what we asked for.
+</Callout>
+
+## Limits of Familiar-Partner Performance
+
+Write the thing that was actually optimised.
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\tone{policy}{J\bigl(\pi_A,\ \pi_B\bigr)}`}
+  terms={[
+    { tex: String.raw`J(\pi_A, \pi_B)`, is: 'the team return of this particular pair of policies', tone: 'policy' },
+  ]}
+  caption="One number about one pairing. It says nothing about any other pairing."
+/>
+
+A high $J(\pi_A, \pi_B)$ tells you that this joint policy is good. It is
+evidence about **one point** in the space of possible pairings, and the space
+is large:
+
+<Equation
+  label="Figure 2"
+  wide
+  tex={String.raw`J(\pi_A, \tone{conflict}{\pi_C}), \quad J(\pi_A, \tone{conflict}{\pi_D}), \quad J(\pi_A, \tone{conflict}{\pi_E}), \quad \dots`}
+  terms={[
+    { tex: String.raw`\pi_C, \pi_D, \pi_E`, is: 'partners nobody measured', tone: 'conflict' },
+  ]}
+  caption="Every other pairing agent A might ever be put in. None of them was measured."
+/>
+
+This is the shape of the problem, and it is why the Adapt chapter spends a whole
+section on evaluation. The standard number reported for a cooperative team is
+its performance with itself, and that number is systematically optimistic
+about everything this chapter cares about.
+
+## Partner-Specific Conventions
+
+Co-adaptation produces <Term tone="policy">conventions</Term>: arbitrary
+agreements that work because both parties hold them. the Communicate chapter met one kind,
+where symbol `2` meant whatever the pair had settled on. Conventions form over
+much more than messages:
+
+- **roles**, who cooks and who fetches,
+- **task allocation**, which agent takes the left side,
+- **movement**, which way round the counter you walk,
+- **timing**, who commits first when both could act,
+- **message meanings**, as in the Communicate chapter.
+
+<div class="table-scroll">
+
+| | Team A + B settled on | Team C + D settled on |
+| --- | --- | --- |
+| ingredients | A | D |
+| cooking | B | C |
+</div>
+
+Neither convention is wrong. Nothing about the kitchen makes one correct: the
+assignment was decided by whichever accident happened first in training. Both
+teams serve every order.
+
+Pair A with C, and both cook.
+
+<Callout tone="observe" title="This is measured, not hypothetical" icon="compass">
+The Communication Lab put numbers on exactly this. Six independently trained
+sender/receiver pairs each scored **1.00** with their own partner and
+**0.300** on average across pairings, with some combinations at **0.00**,
+worse than guessing.
+
+Nothing was wrong with any of those twelve policies. The agreement was
+missing, and the agreement was never stored in either agent.
+</Callout>
+
+<KnowledgeCheck
+  id="ad-3-1-two-teams"
+  type="choice"
+  question="Two teams each reach 95% success with their training partners. What does this establish about the four agents' ability to coordinate?"
+  options={[
+    {
+      text: 'That each pair coordinates well together. It establishes nothing about whether any of them can coordinate with an agent it has not trained with.',
+      correct: true,
+      feedback: 'Correct, and the distinction is the point of the chapter. J(π_A, π_B) is one measurement about one pairing. Partner generalization is a claim about other pairings, and no amount of within-team performance is evidence for it.',
+    },
+    {
+      text: 'That all four have learned general coordination, since they each solved the task.',
+      correct: false,
+      feedback: 'They each solved the task with a specific partner. The narrow rule "my partner fetches, so I cook" solves the task perfectly and is not general coordination at all.',
+    },
+    {
+      text: 'That the task is easy, since two independent teams both solved it.',
+      correct: false,
+      feedback: 'The task may well be easy. That is compatible with cross-pairings failing completely, because the difficulty being measured here is compatibility rather than task difficulty.',
+    },
+    {
+      text: 'Nothing, because 95% is not high enough to draw conclusions.',
+      correct: false,
+      feedback: 'Too dismissive. 95% is strong evidence about the thing it measures, which is this pair working together. The problem is not the size of the number but what the number is about.',
+    },
+  ]}
+>
+Getting into the habit of asking "with which partner?" of every reported
+cooperative result is most of what this chapter teaches.
+</KnowledgeCheck>
+
+## Partner Dependence Summary
+
+- Agents trained together **co-adapt**: each policy adapts to the others,
+  often more narrowly than the task requires.
+- A narrow rule such as "my partner fetches, so I cook" is optimal on the
+  training distribution and indistinguishable from general competence while
+  that partner is present.
+- $J(\pi_A, \pi_B)$ measures **one pairing**. It is the number usually
+  reported, and it is silent about every other partner.
+- Co-adaptation produces **conventions** over roles, allocation, movement,
+  timing and message meanings. Conventions are arbitrary, and separately
+  trained teams settle on different ones.
+- Two individually excellent agents can fail together with nothing wrong in
+  either. The Communication Lab measured this: 1.00 within pairs, 0.300 across
+  them.

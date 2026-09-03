@@ -1,0 +1,304 @@
+---
+/**
+ * PROGRESS CARD
+ *
+ * Tracks which pages the reader has opened and shows a per-section summary.
+ * Entirely local: state lives in this browser's localStorage and never
+ * leaves the device, which is why the resource needs no backend.
+ *
+ * This is a reading tracker, not a score. It reports "you have opened these
+ * pages", never "you have understood them", and it deliberately has no
+ * points, streaks or rewards. Assessment belongs to the knowledge checks and
+ * the project rubric.
+ *
+ * Rendered server-side with zero progress so the layout is stable, then
+ * filled in on the client. Every storage access is guarded, because a
+ * private window or blocked site data makes localStorage throw on read.
+ */
+import { SECTION_PROGRESS, TOTAL_PAGES } from '../../lib/nav';
+import Icon from './Icon.astro';
+
+// Circumference of the ring, for the stroke-dashoffset animation.
+const R = 21;
+const C = 2 * Math.PI * R;
+---
+
+<aside class="prog" data-progress data-total={TOTAL_PAGES}>
+  <p class="prog__label">Your progress</p>
+
+  <div class="prog__body">
+    <div class="prog__ring">
+      <svg viewBox="0 0 52 52" width="52" height="52" aria-hidden="true">
+        <circle class="prog__track" cx="26" cy="26" r={R} />
+        <circle
+          class="prog__fill"
+          cx="26"
+          cy="26"
+          r={R}
+          stroke-dasharray={C}
+          stroke-dashoffset={C}
+          data-ring
+        />
+      </svg>
+      <div class="prog__readout">
+        <strong data-percent>0%</strong>
+        <span class="sr-only">of the course opened</span>
+      </div>
+    </div>
+
+    <ul class="prog__list">
+      {
+        SECTION_PROGRESS.map((section) => (
+          <li data-section={section.slugs.join(' ')}>
+            <span class="prog__dot" data-dot>
+              <Icon name="check" size={11} />
+            </span>
+            <span class="prog__name">{section.short}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+
+  <p class="prog__note" data-progress-note hidden>
+    Progress is stored in this browser only.
+  </p>
+</aside>
+
+<script>
+  const KEY = 'marl:visited:v1';
+
+  function read(): Set<string> {
+    try {
+      const raw = localStorage.getItem(KEY);
+      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+    } catch {
+      // Private window, blocked site data, or a preview context. The card
+      // still renders; it just cannot remember anything.
+      return new Set();
+    }
+  }
+
+  function write(visited: Set<string>) {
+    try {
+      localStorage.setItem(KEY, JSON.stringify([...visited]));
+    } catch {
+      /* nothing we can do, and nothing that should break the page */
+    }
+  }
+
+  function currentSlug(): string {
+    return location.pathname.replace(/^\/+|\/+$/g, '');
+  }
+
+  function render() {
+    const card = document.querySelector<HTMLElement>('[data-progress]');
+    if (!card) return;
+
+    const visited = read();
+    const total = Number(card.dataset.total || '0');
+
+    // Only count slugs that are actually part of the course, so a stale
+    // entry from a renamed page cannot push the total past 100%.
+    const known = new Set<string>();
+    card.querySelectorAll<HTMLElement>('[data-section]').forEach((li) => {
+      (li.dataset.section || '').split(' ').forEach((s) => s && known.add(s));
+    });
+    const counted = [...visited].filter((s) => known.has(s));
+
+    const pct = total ? Math.round((counted.length / total) * 100) : 0;
+    const percentEl = card.querySelector<HTMLElement>('[data-percent]');
+    if (percentEl) percentEl.textContent = `${pct}%`;
+
+    const ring = card.querySelector<SVGCircleElement>('[data-ring]');
+    if (ring) {
+      const circumference = Number(ring.getAttribute('stroke-dasharray')) || 0;
+      ring.setAttribute(
+        'stroke-dashoffset',
+        String(circumference * (1 - pct / 100))
+      );
+    }
+
+    card.querySelectorAll<HTMLElement>('[data-section]').forEach((li) => {
+      const slugs = (li.dataset.section || '').split(' ').filter(Boolean);
+      const seen = slugs.filter((s) => visited.has(s)).length;
+      const state = seen === 0 ? 'none' : seen === slugs.length ? 'done' : 'part';
+      li.dataset.state = state;
+      const dot = li.querySelector<HTMLElement>('[data-dot]');
+      if (dot) {
+        dot.setAttribute(
+          'aria-label',
+          state === 'done' ? 'complete' : state === 'part' ? 'in progress' : 'not started'
+        );
+      }
+    });
+  }
+
+  function markVisited() {
+    const slug = currentSlug();
+    if (!slug) return;
+    const visited = read();
+    if (!visited.has(slug)) {
+      visited.add(slug);
+      write(visited);
+    }
+  }
+
+  markVisited();
+  render();
+</script>
+
+<style>
+  /* Sticky rather than simply last: with 51 pages the sidebar is taller than
+     any viewport, so a card at the end of the flow would never be seen. */
+  .prog {
+    position: sticky;
+    bottom: 0;
+    margin: var(--s-4) var(--s-2) 0;
+    padding: var(--s-3) var(--s-3) calc(var(--s-3) + 2px);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    border-bottom: none;
+    box-shadow: 0 -8px 16px -12px rgba(0, 0, 0, 0.25);
+  }
+
+  .prog__label {
+    margin: 0 0 var(--s-2);
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    letter-spacing: var(--tr-label);
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .prog__body {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+  }
+
+  /* The card is pinned, so it overlays the nav while the reader scrolls
+     mid-list. Keeping it short is what stops it hiding sidebar entries. */
+
+  /* ---- ring ---- */
+
+  .prog__ring {
+    position: relative;
+    flex: none;
+    width: 52px;
+    height: 52px;
+  }
+
+  .prog__ring svg {
+    transform: rotate(-90deg);
+  }
+
+  .prog__track,
+  .prog__fill {
+    fill: none;
+    stroke-width: 5;
+  }
+
+  .prog__track {
+    stroke: var(--surface-sunken);
+  }
+
+  .prog__fill {
+    stroke: var(--ui);
+    stroke-linecap: round;
+    transition: stroke-dashoffset var(--dur-slow) var(--ease);
+  }
+
+  .prog__readout {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    text-align: center;
+    line-height: 1.05;
+  }
+
+  .prog__readout strong {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: var(--w-bold);
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- section list ---- */
+
+  .prog__list {
+    flex: 1;
+    min-width: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.1rem var(--s-2);
+  }
+
+  .prog__list li {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.625rem;
+    line-height: 1.45;
+    color: var(--ink-faint);
+    margin: 0;
+    min-width: 0;
+  }
+
+  .prog__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Three states, distinguished by shape as well as colour so the tracker
+     is readable without colour vision: empty ring, filled dot, tick. */
+  .prog__dot {
+    display: grid;
+    place-items: center;
+    width: 9px;
+    height: 9px;
+    flex: none;
+    border-radius: 50%;
+    border: 1.5px solid var(--rule-strong);
+    color: transparent;
+  }
+
+  .prog__dot :global(.icon) {
+    width: 7px;
+    height: 7px;
+  }
+
+  li[data-state='part'] .prog__dot {
+    background: var(--ui);
+    border-color: var(--ui);
+  }
+
+  li[data-state='part'] .prog__name {
+    color: var(--ink-muted);
+    font-weight: var(--w-medium);
+  }
+
+  li[data-state='done'] .prog__dot {
+    background: var(--c-reward);
+    border-color: var(--c-reward);
+    color: #fff;
+  }
+
+  li[data-state='done'] .prog__name {
+    color: var(--ink-muted);
+  }
+
+  .prog__note {
+    margin: var(--s-3) 0 0;
+    font-size: 0.625rem;
+    line-height: 1.4;
+    color: var(--ink-faint);
+  }
+</style>

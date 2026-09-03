@@ -1,0 +1,426 @@
+---
+/**
+ * TRAIN, COMPARE, REPLAY
+ *
+ * Trains both methods in the browser and puts their success curves on one
+ * axis, then lets the learner replay either policy on the same grid they
+ * played on themselves.
+ *
+ * Training runs in chunks driven by requestAnimationFrame rather than in a
+ * worker. A full 4000-episode run is about 16ms of compute, so a worker would
+ * add a bundle and a message protocol to solve a problem that does not exist;
+ * chunking keeps the curve visibly filling in without ever blocking input.
+ */
+---
+
+<coordinate-training class="ct not-content">
+  <div class="ct__bar">
+    <button class="ct__btn ct__btn--go" type="button" data-train="iql">Train independent agents</button>
+    <button class="ct__btn ct__btn--go" type="button" data-train="vdn">Train VDN</button>
+    <button class="ct__btn" type="button" data-reset>Reset training</button>
+    <label class="ct__pen">
+      Penalty for holding a switch alone
+      <select data-penalty>
+        <option value="0" selected>0 (as specified)</option>
+        <option value="-0.5">-0.5</option>
+        <option value="-1">-1</option>
+        <option value="-2">-2</option>
+      </select>
+    </label>
+    <p class="ct__phase" data-phase aria-live="polite"></p>
+  </div>
+
+  <div class="ct__grid">
+    <div class="ct__chartWrap">
+      <svg class="ct__chart" viewBox="0 0 440 190" role="img"
+           aria-label="Rolling success rate against training episode for both methods"></svg>
+      <ul class="ct__key">
+        <li class="ct__keyItem ct__keyItem--iql">independent</li>
+        <li class="ct__keyItem ct__keyItem--vdn">VDN</li>
+      </ul>
+    </div>
+
+    <div class="ct__side">
+      <div class="ct__tableWrap">
+        <table class="ct__table">
+          <thead>
+            <tr><th>Method</th><th>Success</th><th>Steps</th><th>Return</th></tr>
+          </thead>
+          <tbody data-rows>
+            <tr class="ct__empty"><td colspan="4">Train a method to see its numbers.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ct__replayBox">
+        <svg class="ct__replay cg__svg" role="img" aria-label="Replay of a trained episode"></svg>
+        <div class="ct__replayBar">
+          <button class="ct__btn" type="button" data-replay="iql" disabled>Replay independent</button>
+          <button class="ct__btn" type="button" data-replay="vdn" disabled>Replay VDN</button>
+        </div>
+        <p class="ct__replayNote" data-replaynote></p>
+      </div>
+    </div>
+  </div>
+</coordinate-training>
+
+<script>
+  import { Trainer } from '../../../lib/marl/coordinate/train';
+  import { DEFAULT_TRAIN } from '../../../lib/marl/coordinate/types';
+  import { createGridView } from './grid-view';
+  import type { Frame, Method, Progress, TrainResult } from '../../../lib/marl/coordinate/types';
+
+  const COLOUR: Record<Method, string> = { iql: 'var(--c-observe)', vdn: 'var(--c-reward)' };
+  const LABEL: Record<Method, string> = { iql: 'independent', vdn: 'VDN' };
+  const SVGNS = 'http://www.w3.org/2000/svg';
+
+  class CoordinateTraining extends HTMLElement {
+    private results: Partial<Record<Method, TrainResult>> = {};
+    private busy = false;
+
+    /** Prevents a second run starting on top of one already in flight. */
+    private setBusy(on: boolean) {
+      this.querySelectorAll<HTMLButtonElement>('[data-train]').forEach((b) => {
+        b.disabled = on;
+      });
+    }
+
+    connectedCallback() {
+      const chart = this.querySelector<SVGSVGElement>('.ct__chart');
+      const replaySvg = this.querySelector<SVGSVGElement>('.ct__replay');
+      const phase = this.querySelector('[data-phase]');
+      const rows = this.querySelector('[data-rows]');
+      const penalty = this.querySelector<HTMLSelectElement>('[data-penalty]');
+      if (!chart || !replaySvg) return;
+      const replayView = createGridView(replaySvg);
+
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      /* ---------- chart ---------- */
+      const PAD = { l: 34, r: 8, t: 10, b: 24 };
+      const W = 440, H = 190;
+      const px = (i: number, n: number) =>
+        PAD.l + (i / Math.max(1, n - 1)) * (W - PAD.l - PAD.r);
+      const py = (v: number) => PAD.t + (1 - v) * (H - PAD.t - PAD.b);
+
+      const drawAxes = () => {
+        chart.replaceChildren();
+        for (const v of [0, 0.5, 1]) {
+          const line = document.createElementNS(SVGNS, 'path');
+          line.setAttribute('d', `M ${PAD.l} ${py(v)} H ${W - PAD.r}`);
+          line.setAttribute('class', 'ct__grid');
+          chart.append(line);
+          const t = document.createElementNS(SVGNS, 'text');
+          t.setAttribute('x', String(PAD.l - 6));
+          t.setAttribute('y', String(py(v) + 3.5));
+          t.setAttribute('text-anchor', 'end');
+          t.setAttribute('class', 'ct__tick');
+          t.textContent = v.toFixed(1);
+          chart.append(t);
+        }
+        const xl = document.createElementNS(SVGNS, 'text');
+        xl.setAttribute('x', String(PAD.l + (W - PAD.l - PAD.r) / 2));
+        xl.setAttribute('y', String(H - 4));
+        xl.setAttribute('text-anchor', 'middle');
+        xl.setAttribute('class', 'ct__axisLab');
+        xl.textContent = 'training episode';
+        chart.append(xl);
+      };
+
+      const drawSeries = () => {
+        chart.querySelectorAll('.ct__line').forEach((n) => n.remove());
+        (Object.keys(this.results) as Method[]).forEach((m) => {
+          const curve = this.results[m]?.curve ?? [];
+          if (curve.length < 2) return;
+          const d = curve
+            .map((p, i) => `${i ? 'L' : 'M'} ${px(i, curve.length)} ${py(p.successRate)}`)
+            .join(' ');
+          const path = document.createElementNS(SVGNS, 'path');
+          path.setAttribute('d', d);
+          path.setAttribute('class', `ct__line ct__line--${m}`);
+          path.setAttribute('stroke', COLOUR[m]);
+          chart.append(path);
+        });
+      };
+
+      const renderTable = () => {
+        if (!rows) return;
+        const methods = Object.keys(this.results) as Method[];
+        if (!methods.length) {
+          rows.innerHTML =
+            '<tr class="ct__empty"><td colspan="4">Train a method to see its numbers.</td></tr>';
+          return;
+        }
+        rows.innerHTML = methods
+          .map((m) => {
+            const f = this.results[m]!.final;
+            return `<tr><th>${LABEL[m]}</th>` +
+              `<td>${(f.successRate * 100).toFixed(0)}%</td>` +
+              `<td>${f.meanSteps.toFixed(1)}</td>` +
+              `<td>${f.meanReturn.toFixed(2)}</td></tr>`;
+          })
+          .join('');
+      };
+
+      /* ---------- chunked training ---------- */
+      // Yielding with setTimeout rather than requestAnimationFrame: this is
+      // not animation, it is giving the event loop a turn. rAF also stops
+      // firing in a backgrounded tab, which would silently stall a run.
+      const runTraining = (method: Method) => {
+        if (this.busy) return;
+        this.busy = true;
+        const alonePenalty = Number(penalty?.value ?? 0);
+        const cfg = { ...DEFAULT_TRAIN, alonePenalty };
+        const trainer = new Trainer(method, cfg, 100);
+        const BATCH = Math.max(50, Math.ceil(cfg.episodes / 12));
+
+        this.setBusy(true);
+        if (phase) phase.textContent = `Training ${LABEL[method]}...`;
+
+        const pump = () => {
+          const more = trainer.run(BATCH);
+          // partial curve so the learner watches it fill in
+          this.results[method] = {
+            curve: trainer.curve,
+            final: { successRate: 0, meanSteps: 0, meanReturn: 0 },
+            replay: [],
+          };
+          drawSeries();
+          if (phase) {
+            phase.textContent =
+              `Training ${LABEL[method]}... ${trainer.episode} / ${cfg.episodes} episodes`;
+          }
+          if (more) {
+            window.setTimeout(pump, 0);
+            return;
+          }
+          this.results[method] = trainer.result();
+          this.busy = false;
+          this.setBusy(false);
+          drawSeries();
+          renderTable();
+          if (phase) {
+            phase.textContent = `${LABEL[method]} trained on ${cfg.episodes} episodes.`;
+          }
+          const btn = this.querySelector<HTMLButtonElement>(`[data-replay="${method}"]`);
+          if (btn) btn.disabled = false;
+        };
+        window.setTimeout(pump, 0);
+      };
+
+      /* ---------- replay ---------- */
+      let timer = 0;
+      const playReplay = (frames: Frame[], method: Method) => {
+        window.clearInterval(timer);
+        const note = this.querySelector('[data-replaynote]');
+        let i = 0;
+        const show = () => {
+          const f = frames[i];
+          replayView.update(f.positions, f.onSwitch);
+          if (note) {
+            note.textContent =
+              `${LABEL[method]}, step ${f.t} of ${frames.length}` +
+              (f.solved ? '. Both switches held.' : '');
+          }
+          i += 1;
+          if (i >= frames.length) window.clearInterval(timer);
+        };
+        if (reduced) {
+          const last = frames[frames.length - 1];
+          replayView.update(last.positions, last.onSwitch);
+          if (note) note.textContent = `${LABEL[method]}, final step ${last.t} of ${frames.length}.`;
+          return;
+        }
+        show();
+        timer = window.setInterval(show, 420);
+      };
+
+      /* ---------- wiring ---------- */
+      this.querySelectorAll<HTMLButtonElement>('[data-train]').forEach((btn) => {
+        btn.addEventListener('click', () => runTraining(btn.dataset.train as Method));
+      });
+      this.querySelectorAll<HTMLButtonElement>('[data-replay]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const m = btn.dataset.replay as Method;
+          const r = this.results[m];
+          if (r) playReplay(r.replay, m);
+        });
+      });
+      this.querySelector('[data-reset]')?.addEventListener('click', () => {
+        window.clearInterval(timer);
+        this.results = {};
+        this.busy = false;
+        drawAxes();
+        renderTable();
+        this.querySelectorAll<HTMLButtonElement>('[data-replay]').forEach((b) => {
+          b.disabled = true;
+        });
+        if (phase) phase.textContent = '';
+        const note = this.querySelector('[data-replaynote]');
+        if (note) note.textContent = '';
+        replayView.update(
+          [{ row: 0, col: 0 }, { row: 4, col: 4 }],
+          [false, false],
+        );
+      });
+      penalty?.addEventListener('change', () => {
+        if (phase) phase.textContent = 'Penalty changed. Reset training, then train again.';
+      });
+
+      drawAxes();
+      replayView.update([{ row: 0, col: 0 }, { row: 4, col: 4 }], [false, false]);
+    }
+  }
+  if (!customElements.get('coordinate-training')) {
+    customElements.define('coordinate-training', CoordinateTraining);
+  }
+</script>
+
+<style>
+  .ct {
+    display: block;
+    margin-block: var(--s-5);
+    padding: var(--s-4);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+
+  .ct__bar {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    margin-bottom: var(--s-4);
+    flex-wrap: wrap;
+  }
+  .ct__btn {
+    padding: 6px 12px;
+    font: inherit;
+    font-size: var(--t-small);
+    color: var(--ink-muted);
+    background: transparent;
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+  .ct__btn:hover:not(:disabled) { border-color: var(--ui); color: var(--ink); }
+  .ct__btn:disabled { opacity: 0.4; cursor: default; }
+  .ct__btn--go {
+    color: var(--surface);
+    background: var(--ui);
+    border-color: var(--ui);
+  }
+  .ct__btn--go:hover:not(:disabled) { color: var(--surface); opacity: 0.9; }
+
+  .ct__pen {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--t-micro);
+    color: var(--ink-faint);
+  }
+  .ct__pen select {
+    font: inherit;
+    font-size: var(--t-micro);
+    padding: 3px 5px;
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .ct__phase {
+    margin: 0;
+    font-size: var(--t-meta);
+    color: var(--ink-muted);
+  }
+
+  .ct__grid {
+    display: flex;
+    gap: var(--s-5);
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .ct__chartWrap { flex: 1 1 20rem; min-width: 0; }
+  .ct__chart { display: block; width: 100%; height: auto; }
+
+  .ct__key {
+    display: flex;
+    gap: var(--s-3);
+    margin: var(--s-2) 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--t-micro);
+    color: var(--ink-muted);
+  }
+  .ct__keyItem { display: flex; align-items: center; gap: 5px; }
+  .ct__keyItem::before {
+    content: '';
+    width: 14px;
+    height: 2.5px;
+    border-radius: 2px;
+  }
+  .ct__keyItem--iql::before { background: var(--c-observe); }
+  .ct__keyItem--vdn::before { background: var(--c-reward); }
+
+  .ct__side { flex: 0 0 15rem; }
+
+  .ct__tableWrap { overflow-x: auto; }
+  .ct__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--t-meta);
+  }
+  .ct__table th,
+  .ct__table td {
+    padding: 4px 6px;
+    text-align: right;
+    border-bottom: var(--hairline) solid var(--rule);
+  }
+  .ct__table thead th {
+    color: var(--ink-faint);
+    font-weight: var(--w-semibold);
+  }
+  .ct__table tbody th { text-align: left; font-weight: var(--w-regular); }
+  .ct__table td { font-family: var(--font-mono); }
+  .ct__empty td { text-align: left; color: var(--ink-faint); font-family: inherit; }
+
+  .ct__replayBox { margin-top: var(--s-4); }
+  .ct__replay { display: block; width: 170px; max-width: 100%; height: auto; }
+  .ct__replayBar {
+    display: flex;
+    gap: 4px;
+    margin-top: var(--s-2);
+    flex-wrap: wrap;
+  }
+  .ct__replayNote {
+    margin: var(--s-2) 0 0;
+    font-size: var(--t-micro);
+    color: var(--ink-muted);
+    min-height: 1.2em;
+  }
+
+  .ct :global(.ct__grid) { stroke: var(--rule); stroke-width: 1; }
+  .ct :global(.ct__line) { fill: none; stroke-width: 2; }
+  .ct :global(.ct__tick),
+  .ct :global(.ct__axisLab) {
+    font: 400 9px / 1 var(--font-mono);
+    fill: var(--ink-faint);
+  }
+  .ct :global(.ct__axisLab) { font-family: var(--font-sans); }
+
+  /* the replay grid reuses the play component's interior styles */
+  .ct :global(.cg__tile) { fill: var(--surface-sunken); stroke: var(--rule); stroke-width: 1; }
+  .ct :global(.cg__switch) { fill: none; stroke-width: 2; stroke-dasharray: 4 3; }
+  .ct :global(.cg__switch--0) { stroke: var(--c-observe); }
+  .ct :global(.cg__switch--1) { stroke: var(--c-action); }
+  .ct :global(.cg__switch.is-active) { stroke-dasharray: none; stroke-width: 3; }
+  .ct :global(.cg__switchLabel) { font: 600 9px / 1 var(--font-mono); fill: var(--ink-faint); }
+  .ct :global(.cg__agent) { transition: transform 0.18s ease-out; }
+  .ct :global(.cg__agent--0 .cg__agentBody) { fill: var(--c-observe); }
+  .ct :global(.cg__agent--1 .cg__agentBody) { fill: var(--c-action); }
+  .ct :global(.cg__agentLabel) { font: 700 10px / 1 var(--font-sans); fill: #fff; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ct :global(.cg__agent) { transition: none; }
+  }
+</style>

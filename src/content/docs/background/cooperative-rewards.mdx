@@ -1,0 +1,241 @@
+---
+title: "Cooperative Rewards"
+description: "Shared reward functions, the team objective, credit ambiguity, and principles for cooperative reward design."
+related:
+  - slug: background/joint-actions-policies
+    icon: lightbulb
+  - slug: coordinate/credit-assignment
+    icon: chart
+  - slug: coordinate/coordination
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import KitchenScene from '../../../components/diagrams/KitchenScene.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+What does a shared reward tell an agent, and what does it leave out?
+</Callout>
+
+Cooperative agents pursue one shared objective, represented here by a common reward.
+
+<Objectives>
+
+- Contrast per-agent payments with one shared team reward
+- Write the reward as a function of the state and the joint action
+- State the team objective as an expected discounted return
+- Separate aligned objectives from shared credit
+- Read a shaped cooperative reward term by term
+
+</Objectives>
+
+## Individual and Shared Rewards
+
+There are really only two options, and choosing between them decides what kind
+of problem you have.
+
+**Pay them separately.** Agent 1 earns per vegetable chopped. Agent 2 earns
+per minute the stove is at temperature. Both can now be measured alone, which
+is convenient, and immediately wrong. A chef who chops a mountain of onions
+nobody needs is doing beautifully by that measure. Neither number mentions the
+order going out.
+
+**Pay them once, together.** One payment arrives when the dish is served, and
+both of them receive it. Nobody can earn anything by looking productive. The
+only way to be paid is for the order to be complete.
+
+The second is the cooperative setting.
+
+<KitchenScene showReward>
+The cooperative reward, drawn. One ticket, both agents, paid only when the
+order is served. Neither agent has a score of its own.
+</KitchenScene>
+
+## The Shared Reward Function
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\tone{reward}{\rew} = R\bigl(\tone{observe}{\st},\ \tone{action}{\jointact}\bigr)`}
+  terms={[
+    { tex: String.raw`\rew`, is: 'the team reward at step t; every agent receives this same value', tone: 'reward' },
+    { tex: String.raw`R`, is: 'the reward function, defined on the state and the joint action together' },
+    { tex: String.raw`\st`, is: 'the state: the situation the environment is in at step t', tone: 'observe' },
+    { tex: String.raw`\jointact`, is: 'the joint action, which is why no per-agent reward exists', tone: 'action' },
+  ]}
+  caption="One number for the whole team, and it depends on what everybody did."
+/>
+
+Two features of that line carry the whole section.
+
+It is a function of $\jointact$, the joint action, not of any single agent's
+choice. There is no $R^i$ anywhere in the definition, so there is nothing to
+evaluate for one agent on its own. Ask "what did chopping earn?" and the
+question has no answer, because the reward function was never given one
+agent's action as an input.
+
+And every agent receives the identical value of $\rew$. In the
+game-theory vocabulary that makes it a
+<Term tone="reward">common-reward game</Term>, and it is a modelling choice
+rather than something discovered about the world. You are declaring that this
+team wins and loses together.
+
+Give every agent the same reward and their objectives are aligned: improving
+the team return benefits them all. This does *not* mean their actions will
+automatically be coordinated. Both kitchen agents want the order served, and
+they can still both reach for the same pan, or both wait for the other to
+start. Aligned objectives, interfering actions, the rest of this resource is
+mostly about that gap.
+
+<Callout tone="observe" title="What this rules out" icon="compass">
+Other settings are perfectly legitimate and simply not covered here. In a
+**competitive**, or **zero-sum**, setting the rewards sum to zero, so one
+agent's gain is exactly another's loss. In a **mixed** setting each agent has
+its own reward, partly aligned and partly not, which is where most of game
+theory lives. This resource stays with the fully cooperative case throughout.
+</Callout>
+
+## The Team Objective
+
+One serving is not the goal; a good service is. The team is not chasing the
+next reward but the discounted sum over the whole episode, and because both the
+environment and the policies can be random, what gets optimised is its
+expectation.
+
+<Equation
+  label="Figure 2"
+  wide
+  tex={String.raw`\tone{policy}{J(\boldsymbol{\pi})} = \E_{\boldsymbol{\pi}}\Bigl[\; \cbox{reward}{\sum_{t=0}^{T} \gamma^{t}\, \rew} \;\Bigr]`}
+  terms={[
+    { tex: String.raw`J(\boldsymbol{\pi})`, is: 'the team objective, a function of the whole joint policy', tone: 'policy' },
+    { tex: String.raw`\boldsymbol{\pi}`, is: 'the joint policy: the tuple of every agent’s policy', tone: 'policy' },
+    { tex: String.raw`\E_{\boldsymbol{\pi}}`, is: 'average over episodes run under that joint policy' },
+    { tex: String.raw`\sum_{t=0}^{T} \gamma^{t} \rew`, is: 'the boxed part: the discounted return of one episode, summed to the episode’s last step T', tone: 'reward' },
+  ]}
+  caption="One objective for the whole team, and it depends on every agent's policy at once."
+/>
+
+Read the left-hand side carefully, because it is doing something unusual. There
+is exactly one objective, and its argument is the whole joint policy
+$\boldsymbol{\pi}$.
+
+An agent that improves its own policy while its partners hold still has
+changed $J$. An agent that improves its own policy while its partners also
+change may have made $J$ worse. No agent can improve the team objective by
+itself, and there is no smaller objective that belongs to it alone. the Coordinate chapter
+is largely about living with this.
+
+$T$ is the episode's last step, so the sum is finite and $\gamma = 1$ would be
+legitimate here; a continuing task would be written with an infinite limit
+instead.
+
+## Shared Reward and Credit Assignment
+
+Here is the trap, and it is worth stating bluntly because it catches almost
+everyone.
+
+Every agent receives the same number. That number tells the team how it did.
+It does not tell any individual agent what *it* did.
+
+<Callout variant="predict">
+Three agents act. The team reward comes back low. Before reading on: how many
+different stories are consistent with that single number?
+
+**[exactly one]** &nbsp; **[one per agent]** &nbsp; **[more than three]**
+</Callout>
+
+More than three, and the count is not really the point, the *kinds* are.
+All three may have chosen badly. Two may have chosen well and one ruined it.
+Every choice may have been reasonable in isolation and the combination poor
+anyway. The single number does not distinguish these, because it was never a
+sum of per-agent contributions in the first place. Nothing was added up, so
+nothing can be taken apart.
+
+<Callout variant="pitfall">
+A shared reward gives agents a shared *goal*. It does not give them
+information about their individual contribution. An agent that improved
+things and an agent that made them worse can receive exactly the same
+feedback on the same step.
+
+This is the <Term tone="conflict">credit assignment</Term> problem, and
+*Credit Assignment* is devoted to it.
+</Callout>
+
+## Cooperative Reward Design
+
+Once you accept that $R$ is a choice, you have to make it. A reward function
+is where you write down what "good" means, and most of the difficulty in
+applying this material is there rather than in the algorithms.
+
+<Equation
+  label="Figure 3"
+  wide
+  tex={String.raw`\rew = \ubrace{reward}{10\,\mathbb{1}[\text{served}]}{task success} + \ubrace{reward}{\Delta p_t}{useful progress} - \ubrace{conflict}{0.5\,c_t}{conflicts} - \ubrace{conflict}{0.05}{time cost}`}
+  terms={[
+    { tex: String.raw`\mathbb{1}[\text{served}]`, is: '1 when the order is served on this step, otherwise 0', tone: 'reward' },
+    { tex: String.raw`\Delta p_t`, is: 'new task progress, such as completing a required preparation step', tone: 'reward' },
+    { tex: String.raw`c_t`, is: 'the number of collisions or duplicated actions on this step', tone: 'conflict' },
+  ]}
+  caption="A shaped kitchen reward that balances completion, progress, conflicts, and time."
+/>
+
+The serving bonus encodes the actual task, while the smaller progress terms
+make useful intermediate behaviour easier to learn. Conflict and time costs
+discourage waste. Changing any coefficient changes the behaviour that learning
+favours, so each term needs a reason tied to the objective rather than a value
+chosen only because it improves a training curve.
+
+<Callout tone="observe" title="Illustrative, not measured" icon="compass">
+These values are teaching defaults, chosen so the trade-offs are visible in a
+small kitchen. They are not benchmark measurements or universal settings.
+</Callout>
+
+<KnowledgeCheck
+  id="bg-1-5-shared-credit"
+  type="choice"
+  question="Two kitchen agents act, and the shared reward comes back low. What has each agent learned about its own action?"
+  options={[
+    {
+      text: 'That the team did badly. Nothing specific about its own contribution.',
+      correct: true,
+      feedback: 'Correct. The reward is a function of the joint action, not a sum of per-agent contributions, so the same low number is consistent with one agent disrupting a good plan or with both choosing poorly. *Credit Assignment* is about recovering individual signal from this.',
+    },
+    {
+      text: 'That its own action was bad, since it received a low reward.',
+      correct: false,
+      feedback: 'The reward measures the team outcome. An agent can act appropriately and still receive a low number because of what its partner did on the same step.',
+    },
+    {
+      text: 'That its action was bad in proportion to how much it contributed.',
+      correct: false,
+      feedback: 'That would require the reward to decompose into per-agent shares, and it does not. Duplicated work belongs to the joint action and cannot be split between agents by inspecting the total.',
+    },
+    {
+      text: 'Nothing at all, so the shared reward is useless for learning.',
+      correct: false,
+      feedback: 'Too pessimistic. It carries real information about the joint action, and over many episodes that is enough to learn from. It just does not arrive pre-labelled per agent, which is a problem to solve rather than a dead end.',
+    },
+  ]}
+>
+Distinguishing "shared goal" from "shared credit" is the single most useful
+thing to take from this section.
+</KnowledgeCheck>
+
+## Cooperative Rewards Summary
+
+- A **cooperative** problem gives every agent the same reward
+  $\rew = R(\st, \jointact)$. Their objectives are aligned; their actions are
+  not automatically coordinated.
+- The reward is a function of the **joint** action, so there is nothing to
+  evaluate for one agent alone.
+- The team maximises one objective $J(\boldsymbol{\pi})$, the expected
+  discounted return, and it depends on every agent's policy at once.
+- A shared reward is **not** shared credit. It says how the team did, not what
+  any individual did, and an agent that helped can receive the same number as
+  one that did not.

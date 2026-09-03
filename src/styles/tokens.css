@@ -1,0 +1,319 @@
+/* ==========================================================================
+   DESIGN TOKENS
+
+   Two colour systems, kept deliberately separate.
+
+   1. UI / INTERACTIVE — one blue. Navigation, links, active states, focus.
+      This is chrome. It says "this is clickable or you are here", never
+      anything about the subject matter.
+
+   2. SEMANTIC — six accents, each bound to one educational concept and used
+      for that concept everywhere: prose, annotated equations, SVG diagrams,
+      the Three.js lab, the Manim videos, the Quarto slides. A learner who
+      sees green in a diagram should already know it means reward.
+
+   Both palettes are defined for light and dark. Every text-bearing value was
+   measured for WCAG contrast against its own ground, not eyeballed; the
+   ratios are recorded inline so nobody later mistakes a graphics-only colour
+   for a text-safe one.
+
+   Starlight stamps `data-theme` on <html> from an inline script that runs
+   before first paint, so `:root[data-theme='dark']` is reliable and no
+   prefers-color-scheme duplicate of the dark block is needed. With
+   JavaScript disabled there is no toggle anyway and light is the fallback.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ---------------------------------------------------------------------
+     NEUTRALS
+     `--ground` is the application shell: header, sidebars, page gutter.
+     `--surface` is the article itself and anything that needs to lift off
+     the shell: code editors, exercise panels, the lab viewport.
+     --------------------------------------------------------------------- */
+  --ground: #f3f3f4;
+  --surface: #ffffff;
+  --surface-sunken: #ebebec;
+  --surface-hover: #e9e9eb;
+  /* Ruled writing areas in the worksheets. Faintly warm so a place to write
+     reads as paper rather than as another form field. */
+  --paper: #fffdf7;
+  /* Hint boxes. Deliberately outside the six semantic tones: a hint is
+     scaffolding for the reader, not a claim about actions or rewards, so it
+     must not borrow a colour that means something. */
+  --hint-tint: #fdf6d9;
+  --hint-edge: #ece0ab;
+
+  --ink: #191919;         /* body text, equations, structural elements     */
+  --ink-muted: #55565a;   /* captions, metadata, secondary labels   7.2:1  */
+  --ink-faint: #78797e;   /* section labels, placeholders           4.6:1  */
+
+  --rule: #dfdfe1;        /* hairlines, table borders, dividers            */
+  --rule-strong: #c3c3c6; /* emphasised borders, active outlines           */
+
+  /* ---------------------------------------------------------------------
+     UI / INTERACTIVE
+     --------------------------------------------------------------------- */
+  --ui: #1266d6;          /* links, active nav, focus            4.9:1  ✓  */
+  --ui-hover: #0f55b5;
+  --ui-tint: #e8f1fd;     /* active nav row background                     */
+  --ui-edge: #b9d4f7;
+
+  /* ---------------------------------------------------------------------
+     SEMANTIC ACCENTS
+
+     Per concept:
+       --c-<name>        saturated. Strokes, arrows, braces, fills, marks.
+                         Graphics need 3:1, which all six clear.
+       --c-<name>-ink    darkened, hue-matched. Small text only, >= 4.5:1.
+       --c-<name>-tint   callout and badge backgrounds.
+       --c-<name>-edge   borders on tinted surfaces.
+     --------------------------------------------------------------------- */
+
+  /* ACTION · decisions, choices, attention, "do this", intuition */
+  --c-action: #fea82f;
+  --c-action-ink: #8a5200;        /* 5.8:1  ✓  (saturated is 1.7:1 ✗ text) */
+  --c-action-tint: #fff5e6;
+  --c-action-edge: #f6d9a8;
+
+  /* OBSERVE · observations, state, information the learner is given */
+  --c-observe: #2191fb;
+  --c-observe-ink: #0b5ba8;       /* 6.2:1  ✓  (saturated is 3.4:1 ✗)      */
+  --c-observe-tint: #e4f2ff;
+  --c-observe-edge: #a8cdf5;
+
+  /* POLICY · agents, policies, learned components */
+  --c-policy: #5448c8;
+  --c-policy-ink: #5448c8;        /* 6.0:1  ✓  at full saturation          */
+  --c-policy-tint: #eae9f8;
+  --c-policy-edge: #bfbaea;
+
+  /* COMM · messages, channels, information flow between agents */
+  --c-comm: #20a4f3;
+  --c-comm-ink: #0a6da6;          /* 5.1:1  ✓  (saturated is 2.5:1 ✗)      */
+  --c-comm-tint: #e4f4fe;
+  --c-comm-edge: #a6dcf8;
+
+  /* REWARD · rewards, throughput, success, correct answers */
+  --c-reward: #5da271;
+  --c-reward-ink: #2e6b42;        /* 5.7:1  ✓  (saturated is 2.8:1 ✗)      */
+  --c-reward-tint: #ecf4ee;
+  --c-reward-edge: #b6d5c0;
+
+  /* CONFLICT · interference, collisions, errors, failure, warnings */
+  --c-conflict: #fc5130;
+  --c-conflict-ink: #c22d0f;      /* 5.2:1  ✓  (saturated is 3.0:1 ✗)      */
+  --c-conflict-tint: #ffeae6;
+  --c-conflict-edge: #f9bcae;
+
+  /* ---------------------------------------------------------------------
+     TYPOGRAPHY
+     Sans body, so KaTeX's serif maths reads as a distinct register.
+     --------------------------------------------------------------------- */
+  --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui,
+    -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono',
+    Menlo, Consolas, monospace;
+
+  --t-micro: 0.75rem;      /* 12px · section labels, badges, numbers  */
+  --t-small: 0.8125rem;    /* 13px · captions, code, table cells      */
+  --t-meta: 0.875rem;      /* 14px · nav, metadata, TOC               */
+  --t-body: 1.0625rem;     /* 17px · prose                            */
+  --t-lead: 1.1875rem;     /* 19px · section lead paragraph           */
+  --t-h3: 1.125rem;        /* 18px                                    */
+  --t-h2: 1.375rem;        /* 22px                                    */
+  --t-h1: 2rem;            /* 32px                                    */
+  --t-display: 2.5rem;     /* 40px · landing page only                */
+
+  --lh-tight: 1.2;
+  --lh-heading: 1.28;
+  --lh-body: 1.65;
+  --lh-loose: 1.72;
+
+  --w-regular: 400;
+  --w-medium: 500;
+  --w-semibold: 600;
+  --w-bold: 700;
+
+  --tr-display: -0.022em;
+  --tr-heading: -0.014em;
+  --tr-body: -0.003em;
+  --tr-label: 0.06em;
+
+  /* ---------------------------------------------------------------------
+     SPACING · 4px base
+     --------------------------------------------------------------------- */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2rem;
+  --s-7: 3rem;
+  --s-8: 4rem;
+  --s-9: 6rem;
+
+  /* ---------------------------------------------------------------------
+     LAYOUT
+     --------------------------------------------------------------------- */
+  --measure: 44rem;            /* 704px of article text            */
+  --measure-wide: 56rem;       /* breakout for figures and the lab */
+  --sidebar-w: 17.5rem;
+  --toc-w: 15rem;
+  --header-h: 4.25rem;
+
+  /* ---------------------------------------------------------------------
+     BORDERS AND ELEVATION
+     Small radii, near-absent shadows. Separation comes from rules and
+     space, not from floating boxes.
+     --------------------------------------------------------------------- */
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 10px;
+  --r-full: 999px;
+  --hairline: 1px;
+
+  --shadow-subtle: 0 1px 2px rgba(25, 25, 25, 0.05);
+
+  /* ---------------------------------------------------------------------
+     ILLUSTRATION SHADING
+     Isometric forms are built from flat faces, so depth comes from tonal
+     steps rather than gradients. These are fixed black and white alphas
+     rather than token-derived colours: an ink-derived shade would invert in
+     dark mode and light the wrong side of every object.
+     --------------------------------------------------------------------- */
+  --iso-body: #fcfcfd;      /* the lit face of a light-coloured object */
+  --iso-shade-1: rgba(15, 20, 30, 0.07);
+  --iso-shade-2: rgba(15, 20, 30, 0.14);
+  --iso-shade-3: rgba(15, 20, 30, 0.24);
+  --iso-sheen: rgba(255, 255, 255, 0.9);
+  --iso-cast: rgba(20, 28, 44, 0.13);   /* ground shadow */
+  --iso-visor: #232733;
+
+  /* ---------------------------------------------------------------------
+     MOTION · overridden to near-zero under prefers-reduced-motion
+     --------------------------------------------------------------------- */
+  --dur-fast: 120ms;
+  --dur-mid: 220ms;
+  --dur-slow: 420ms;
+  --ease: cubic-bezier(0.32, 0.08, 0.24, 1);
+}
+
+/* ==========================================================================
+   DARK
+   The light ground and the light ink swap roles: #191919 becomes the page
+   and #f3f3f4 becomes the text. Of the six saturated accents, five clear
+   4.5:1 on the dark ground as-is (orange 9.1, blue 5.5, comm 6.4, green
+   5.8, red 5.3) so they double as their own `-ink`. Only violet fails at
+   2.6:1, so it alone gets a lightened dark value.
+
+   Tints are mixed against the surface rather than hand-picked, which keeps
+   them consistent and avoids maintaining twelve more hex values.
+   ========================================================================== */
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --ground: #17181a;
+  --surface: #1f2023;
+  --surface-sunken: #141517;
+  --surface-hover: #292a2e;
+  --paper: #24252a;
+  --hint-tint: #2e2a1c;
+  --hint-edge: #4a4327;
+
+  --ink: #f3f3f4;
+  --ink-muted: #a9abb1;         /* 8.0:1 on --surface */
+  --ink-faint: #82848b;         /* 4.6:1 on --surface */
+
+  --rule: #2f3135;
+  --rule-strong: #43464c;
+
+  --ui: #6ba8ff;                /* 7.3:1 ✓ */
+  --ui-hover: #8fbeff;
+  --ui-tint: #17253c;
+  --ui-edge: #2c4a76;
+
+  --c-action-ink: #fea82f;      /* 9.1:1 ✓ saturated is text-safe here */
+  --c-observe-ink: #57a9fb;     /* 6.6:1 ✓ */
+  --c-policy: #8b80f0;          /* violet is the one accent that must lift */
+  --c-policy-ink: #8b80f0;      /* 5.4:1 ✓ */
+  --c-comm-ink: #20a4f3;        /* 6.4:1 ✓ */
+  --c-reward-ink: #7cc091;      /* 7.3:1 ✓ */
+  --c-conflict-ink: #ff7a5e;    /* 6.1:1 ✓ */
+
+  --c-action-tint: color-mix(in srgb, var(--c-action) 14%, var(--surface));
+  --c-observe-tint: color-mix(in srgb, var(--c-observe) 14%, var(--surface));
+  --c-policy-tint: color-mix(in srgb, var(--c-policy) 14%, var(--surface));
+  --c-comm-tint: color-mix(in srgb, var(--c-comm) 14%, var(--surface));
+  --c-reward-tint: color-mix(in srgb, var(--c-reward) 14%, var(--surface));
+  --c-conflict-tint: color-mix(in srgb, var(--c-conflict) 14%, var(--surface));
+
+  --c-action-edge: color-mix(in srgb, var(--c-action) 32%, var(--surface));
+  --c-observe-edge: color-mix(in srgb, var(--c-observe) 32%, var(--surface));
+  --c-policy-edge: color-mix(in srgb, var(--c-policy) 32%, var(--surface));
+  --c-comm-edge: color-mix(in srgb, var(--c-comm) 32%, var(--surface));
+  --c-reward-edge: color-mix(in srgb, var(--c-reward) 32%, var(--surface));
+  --c-conflict-edge: color-mix(in srgb, var(--c-conflict) 32%, var(--surface));
+
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.4);
+
+  --iso-body: #2b2e35;
+  --iso-shade-1: rgba(0, 0, 0, 0.22);
+  --iso-shade-2: rgba(0, 0, 0, 0.34);
+  --iso-shade-3: rgba(0, 0, 0, 0.46);
+  --iso-sheen: rgba(255, 255, 255, 0.07);
+  --iso-cast: rgba(0, 0, 0, 0.34);
+  --iso-visor: #14161c;
+}
+
+/* ==========================================================================
+   STARLIGHT BRIDGE
+   Starlight reads its own custom properties. Remapping them onto the tokens
+   above makes the framework chrome inherit this palette instead of us
+   fighting it selector by selector. Applied to both themes at once, since
+   the values are all indirections through our own tokens.
+   ========================================================================== */
+
+:root,
+:root[data-theme='dark'],
+:root[data-theme='light'] {
+  --sl-color-white: var(--ink);
+  --sl-color-black: var(--ground);
+  --sl-color-gray-1: var(--ink);
+  --sl-color-gray-2: var(--ink-muted);
+  --sl-color-gray-3: var(--ink-faint);
+  --sl-color-gray-4: var(--rule-strong);
+  --sl-color-gray-5: var(--rule);
+  --sl-color-gray-6: var(--surface-sunken);
+  --sl-color-gray-7: var(--surface);
+
+  --sl-color-accent: var(--ui);
+  --sl-color-accent-low: var(--ui-tint);
+  --sl-color-accent-high: var(--ui-hover);
+
+  --sl-color-text: var(--ink);
+  --sl-color-text-accent: var(--ui);
+  --sl-color-text-invert: var(--surface);
+  --sl-color-bg: var(--ground);
+  --sl-color-bg-nav: var(--ground);
+  --sl-color-bg-sidebar: var(--ground);
+  --sl-color-bg-inline-code: var(--surface-sunken);
+  --sl-color-bg-accent: var(--ui);
+  --sl-color-hairline: var(--rule);
+  --sl-color-hairline-light: var(--rule);
+  --sl-color-hairline-shade: var(--rule);
+
+  --sl-font: var(--font-sans);
+  --sl-font-mono: var(--font-mono);
+
+  --sl-content-width: var(--measure);
+  --sl-text-base: var(--t-body);
+  --sl-line-height: var(--lh-body);
+  --sl-nav-height: var(--header-h);
+  --sl-mobile-toc-height: 3rem;
+  --sl-sidebar-width: var(--sidebar-w);
+  --sl-sidebar-pad-x: var(--s-3);
+  --sl-content-pad-x: var(--s-6);
+}

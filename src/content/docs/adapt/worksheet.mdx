@@ -1,0 +1,174 @@
+---
+title: "Adapt Worksheet"
+description: "Five concise activities on partner concepts, generalization gaps, cross-play, unseen-partner results, and deployment trade-offs."
+related:
+  - slug: adapt/lab
+    icon: beaker
+  - slug: adapt/research-zsc-eval
+    icon: cycle
+  - slug: adapt/evaluating-generalization
+    icon: chart
+---
+
+import Question from '../../../components/worksheet/Question.astro';
+import Match from '../../../components/worksheet/Match.astro';
+import Explore from '../../../components/worksheet/Explore.astro';
+import Objectives from '../../../components/worksheet/Objectives.astro';
+import AnswerKey from '../../../components/worksheet/AnswerKey.astro';
+import Answer from '../../../components/worksheet/Answer.astro';
+import Callout from '../../../components/ui/Callout.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+This five-part digital activity consolidates the chapter's approach to partner
+generalization. You will match adaptation concepts to their applications,
+calculate a familiar-to-unseen generalization gap, and analyze a cross-play
+table. An interactive graph compares familiar and held-out partner performance
+for specialist, generalist, and adaptive agents. The final prompt asks you to
+weigh specialization against robust deployment performance. Every earlier item
+is automatically checkable.
+
+<Objectives items={[
+  'Match partner-generalization concepts to their use in cooperative MARL. <strong>Understand</strong>',
+  'Calculate simple measures of familiar and unseen-partner performance. <strong>Apply</strong>',
+  'Interpret results across different partners. <strong>Analyse</strong>',
+  'Evaluate the trade-off between specialization and partner generalization. <strong>Evaluate</strong>',
+]} />
+
+## 1 · Match Concepts to Applications
+
+<Match
+  id="ad-ws-match"
+  blocks={['Partner diversity', 'Agent modelling', 'Ad hoc teamwork', 'Zero-shot coordination', 'Cross-play']}
+  items={[
+    { text: 'Train with several different partner policies.', block: 0 },
+    { text: 'Infer how another agent is likely to behave.', block: 1 },
+    { text: 'Cooperate with previously unknown agents.', block: 2 },
+    { text: 'Evaluate with an unseen partner, without prior joint training.', block: 3 },
+    { text: 'Pair policies that were not trained together and measure the result.', block: 4 },
+  ]}
+/>
+
+## 2 · Calculate the Generalization Gap
+
+The worksheet diagnostic from *Partner Generalization*:
+$\Delta_{\text{gen}} = J_{\text{familiar}} - J_{\text{unseen}}$.
+
+<Question id="ad-ws-gap1" n="2.1" numeric={24} notes={false}>
+Agent A scores $J_{\text{familiar}} = 92$ and $J_{\text{unseen}} = 68$.
+Calculate $\Delta_{\text{gen}}$.
+</Question>
+
+<Question id="ad-ws-gap2" n="2.2" numeric={7} notes={false}>
+Agent B scores $J_{\text{familiar}} = 86$ and $J_{\text{unseen}} = 79$.
+Calculate its gap.
+</Question>
+
+## 3 · Calculate Cross-Play Performance
+
+Percentage success. The diagonal is each policy with its own training partner.
+
+<div class="table-scroll">
+
+| | **P1** | **P2** | **P3** | **P4** |
+| --- | --- | --- | --- | --- |
+| **A** | **94** | 81 | 65 | 72 |
+| **B** | 80 | **93** | 84 | 79 |
+| **C** | 61 | 86 | **95** | 88 |
+| **D** | 70 | 82 | 85 | **96** |
+</div>
+
+<Question id="ad-ws-cp1" n="3.1" numeric={81} tolerance={0.5} notes={false} unit="%">
+Calculate policy B's mean over the three partners it did **not** train with.
+
+<Fragment slot="hint">
+Exclude the diagonal entry. $\tfrac{80 + 84 + 79}{3}$.
+</Fragment>
+</Question>
+
+<Question id="ad-ws-cp2" n="3.2" numeric={72.7} tolerance={0.4} notes={false} unit="%">
+Now the same for policy A.
+</Question>
+
+## 4 · Explore Familiar and Unseen-Partner Performance
+
+Real results from the Adapt Lab: three agents, 40-step episodes, orders
+served. `mostly-fetch` is a held-out partner that behaves much like a training
+partner. `alternate` is a held-out partner that does not.
+
+<Explore
+  id="ad-ws-arms"
+  kind="grouped"
+  labels={['Specialist', 'Generalist', 'Adaptive']}
+  series={[
+    { name: 'Familiar mean', values: [28.8, 38.8, 35.8] },
+    { name: 'mostly-fetch (near)', values: [29, 28, 25] },
+    { name: 'alternate (far)', values: [0, 0, 2] },
+  ]}
+  xLabel="Agent"
+  yLabel="Orders served"
+  slider
+  readout="{x}: {y}"
+/>
+
+<Question id="ad-ws-arm3" n="4.1" numeric={10} tolerance={0.2} notes={false} unit="orders">
+By how much does the Generalist beat the Specialist on familiar partners?
+</Question>
+
+## 5 · Evaluate the Specialization Trade-off
+
+> A **fixed-partner** agent achieves 96% with its training partner and 54%
+> with unseen partners.
+>
+> A **diverse-partner** agent achieves 90% and 82% respectively.
+
+<Question id="ad-ws-decide" n="5.1" rows={4} placeholder="Two or three sentences.">
+Which would you deploy in a system where partners change frequently, and what
+trade-off are you accepting?
+</Question>
+
+<AnswerKey>
+
+<Answer n="1">
+Partner diversity · agent modelling · ad hoc teamwork · zero-shot
+coordination · cross-play, matched to the descriptions in order.
+</Answer>
+
+<Answer n="2.1">
+$92 - 68 = 24$.
+</Answer>
+
+<Answer n="2.2">
+$86 - 79 = 7$.
+</Answer>
+
+<Answer n="3.1">
+$\tfrac{80 + 84 + 79}{3} = 81$.
+</Answer>
+
+<Answer n="3.2">
+$\tfrac{81 + 65 + 72}{3} = 72.7$.
+</Answer>
+
+<Answer n="4.1">
+$38.8 - 28.8 = 10$ orders.
+</Answer>
+
+<Answer n="5.1">
+No single right answer.
+
+**The diverse agent**, in a system where partners change frequently. 82
+against 54 on unseen partners is a 28-point difference, and unseen partners
+are the common case by assumption.
+
+**The trade-off:** 6 points of peak performance with a familiar partner, 96
+down to 90. You are giving up the ability to exploit one partner's habits in
+exchange for competence across a range, which is the cost *Training Partner Diversity* named.
+
+A strong answer also notes what the numbers omit: how the unseen partners were
+chosen. If they resemble the training partners, both figures are optimistic
+and the 82 in particular cannot be trusted.
+</Answer>
+
+</AnswerKey>

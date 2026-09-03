@@ -1,0 +1,214 @@
+---
+title: "Partial Observability"
+description: "Ambiguous local observations, histories, memory, belief state, and uncertainty about other agents."
+related:
+  - slug: background/dec-pomdp
+    icon: lightbulb
+  - slug: communicate/communication-in-marl
+    icon: message
+  - slug: adapt/partner-dependence
+    icon: users-round
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KitchenScene from '../../../components/diagrams/KitchenScene.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+What should an agent do when two different situations look identical?
+</Callout>
+
+Partial observability occurs when different environment states can produce the same local observation, leaving an agent unable to select the correct action from its current input alone.
+
+<Objectives>
+
+- Recognize when two states produce the same observation
+- Use an observation history to break that ambiguity
+- Describe what memory and a belief state add
+- Name the uncertainty that is specific to having other agents
+
+</Objectives>
+
+<KitchenScene divided>
+The wall is the point. Everything on the other side is still happening, still
+changing the reward, and still invisible.
+</KitchenScene>
+
+## Ambiguous Observations
+
+That is the whole problem, and it has a clean formal statement.
+
+<Equation
+  label="Figure 1"
+  wide
+  tex={String.raw`\tone{observe}{s^{(1)}} \neq \tone{observe}{s^{(2)}} \qquad\text{but}\qquad O_{\ag}\bigl(\tone{observe}{s^{(1)}}\bigr) = O_{\ag}\bigl(\tone{observe}{s^{(2)}}\bigr)`}
+  terms={[
+    { tex: String.raw`s^{(1)}, s^{(2)}`, is: 'two genuinely different states of the environment', tone: 'observe' },
+    { tex: String.raw`O_{i}`, is: 'agent i’s observation function, which discards the part that distinguishes them' },
+  ]}
+  caption="Two different truths that look identical to this agent."
+/>
+
+Whenever two states collapse to the same observation, an agent that decides
+from that observation alone **must** treat them the same way. It has no
+choice: a function returns one value for one input. If the right action
+differs between those states, the policy is guaranteed to be wrong in at least
+one of them, and no amount of training fixes it. The information simply is not
+there.
+
+<Callout variant="pitfall">
+This is a limit on the *policy's input*, not a failure of learning. A common
+misreading is that better training would resolve the ambiguity. It cannot.
+Two states with identical observations are indistinguishable to any policy
+that only reads the current observation, no matter how good that policy is.
+
+The fix has to add information, not effort.
+</Callout>
+
+## Observation Histories
+
+The most useful extra information an agent already has is its own past.
+
+The empty counter is ambiguous *now*. But an agent that remembers seeing agent
+2 walk toward the counter three steps ago has good reason to prefer the first
+explanation. Nothing about the current observation changed; the interpretation
+did.
+
+<Equation
+  label="Figure 2"
+  wide
+  tex={String.raw`\tone{observe}{h^{\ag}_t} = \bigl(\tone{observe}{o^{\ag}_0},\ \tone{action}{a^{\ag}_0},\ \tone{observe}{o^{\ag}_1},\ \tone{action}{a^{\ag}_1},\ \dots,\ \tone{observe}{\obs{\ag}}\bigr)`}
+  terms={[
+    { tex: String.raw`h^{i}_t`, is: 'agent i’s history: everything it has personally seen and done this episode', tone: 'observe' },
+    { tex: String.raw`o^{i}_k`, is: 'what it observed at step k', tone: 'observe' },
+    { tex: String.raw`a^{i}_k`, is: 'what it did at step k, its own actions are part of what it knows', tone: 'action' },
+  ]}
+  caption="One agent's private record of the episode so far."
+/>
+
+> **What I saw earlier can help me interpret what I see now.**
+
+A policy that reads $h^{\ag}_t$ instead of $\obs{\ag}$ is called
+<Term tone="policy">history-dependent</Term>; one that reads only the current
+observation is <Term tone="policy">reactive</Term>. Reactive policies are
+simpler, smaller, and sometimes entirely sufficient. When observations are
+ambiguous in a way that the past resolves, they are not.
+
+Note what the history is *not*. It is one agent's own record. It does not
+contain what partners saw, and it does not contain the state.
+
+## Memory and Belief State
+
+Storing a growing list and feeding all of it to a policy does not scale, the
+history gets longer every step. In practice agents keep a compressed summary
+instead, and there are three common ways to do it.
+
+**Stack the last few observations.** Concatenate the most recent $k$
+observations and treat that as the input. Crude, cheap, and often enough:
+$k$ steps of memory for the cost of a bigger input.
+
+**Carry a recurrent state.** The policy holds an internal vector, updates it
+from each new observation, and conditions on it. The network learns what is
+worth remembering rather than being told. This is what most deep multi-agent
+methods do, and for our purposes that is the level of detail needed.
+
+**Track a belief.** Maintain an explicit probability distribution over which
+state you are in, and update it with each observation. Principled, and
+expensive: it needs a model of the environment that you usually do not have.
+
+<Callout tone="observe" title="Which one to reach for" icon="compass">
+For learning purposes the choice matters less than the recognition that it is
+*needed*. If your agents are failing and their observations are ambiguous, the
+first question is not "which algorithm" but "does this policy have any way to
+know what happened earlier?"
+</Callout>
+
+## Uncertainty About Other Agents
+
+Everything so far applies to single-agent partial observability. Now the
+multi-agent part, which is a genuinely different kind of ignorance.
+
+In the single-agent kitchen, one thing was hidden: the state. In the
+two-agent kitchen there are two, and the second one is not a state at all.
+
+Agent 1 does not know:
+
+- **what agent 2 observed.** Its partner applied a different observation
+  function to the same state and got something else.
+- **what agent 2 is about to do.** They act simultaneously, so this step's
+  choice is unavailable by construction.
+- **what agent 2's policy is.** Even the *rule* generating those choices is
+  hidden, and during training it is changing.
+
+That third one is worth pausing on. An agent facing an unknown state at least
+faces a fixed environment. An agent facing an unknown partner policy faces a
+target that moves as that partner learns, the non-stationarity from *From
+One Agent to Many*, arriving here as an information problem rather than a
+learning-dynamics one.
+
+There are exactly two families of response, and each is a chapter.
+
+**Infer it.** Build a model of the partner from what you can see of its
+behaviour, and act on the prediction. This runs through the Adapt chapter, where the
+question becomes whether your model survives meeting a partner you never
+trained with.
+
+**Be told.** Have the partner send you what you are missing. This is
+the Communicate chapter, and it is not free: a channel has finite capacity, messages can be
+lost, and a message costs something to send.
+
+<KnowledgeCheck
+  id="bg-1-7-ambiguity"
+  type="choice"
+  question="An agent's two observations at different steps are byte-for-byte identical, but the best action differs between them. What follows?"
+  options={[
+    {
+      text: 'A policy that reads only the current observation cannot be right in both cases, so the policy needs memory or a message.',
+      correct: true,
+      feedback: 'Exactly. A function gives one output per input. If the input is identical and the correct output differs, the input is insufficient, and the fix is more information, not more training.',
+    },
+    {
+      text: 'The policy needs more training on those states.',
+      correct: false,
+      feedback: 'Training cannot help. The two situations present the same input, so any policy reading only that input must respond identically. The problem is upstream of learning.',
+    },
+    {
+      text: 'The observation function is buggy and should be fixed.',
+      correct: false,
+      feedback: 'Sometimes true in practice, but not implied. Ambiguity is usually a legitimate feature of the problem: a real agent cannot see through a wall. The framework expects observations to be lossy.',
+    },
+    {
+      text: 'A stochastic policy solves it, since it can pick differently on the two visits.',
+      correct: false,
+      feedback: 'A stochastic policy will pick differently, but not in a way that tracks which situation it is actually in. It is randomising blindly, so it gets the right action at chance rate. That is sometimes better than being reliably wrong, and it is not knowing.',
+    },
+  ]}
+>
+"Same input, different right answer" is the signature of partial
+observability, and it is worth learning to spot.
+</KnowledgeCheck>
+
+## Partial Observability Summary
+
+- Partial observability means two different states can produce the **same
+  observation**: $s^{(1)} \neq s^{(2)}$ while $O_\ag(s^{(1)}) =
+  O_\ag(s^{(2)})$.
+- When that happens, a policy reading only the current observation must act
+  identically in both. No amount of training resolves it, the fix adds
+  information.
+- An agent's own **history** $h^\ag_t$ is the cheapest extra information it
+  has. Policies that use it are history-dependent; those that do not are
+  reactive.
+- In practice history is compressed: **frame stacking**, a **recurrent
+  state**, or an explicit **belief** over states.
+- Teams add a second unknown: an agent does not know what its partners
+  **observed**, will **do**, or have as a **policy**, and that policy changes
+  while everyone learns.
+- Two responses: **model the partner** (the Adapt chapter) or **have it tell you**
+  (the Communicate chapter).

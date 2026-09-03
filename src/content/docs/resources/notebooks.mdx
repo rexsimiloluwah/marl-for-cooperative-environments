@@ -1,0 +1,151 @@
+---
+title: "Notebooks"
+description: "The browser lab and three Colab notebooks for coordination, communication, adaptation, and wireless resource allocation."
+related:
+  - slug: communicate/lab
+    icon: message
+  - slug: adapt/lab
+    icon: users-round
+  - slug: lab/challenge
+    icon: antenna
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import NotebookLink from '../../../components/lab/NotebookLink.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+A browser lab and three lightweight notebooks provide the computational
+activities for coordination, communication, adaptation, and the wireless
+Challenge Lab. None requires a MARL framework, a GPU, or a large training job.
+The environments, baselines and plots come from the
+[`cooperative-marl-labs` package](/resources/python-package/), so a learner can
+change conditions, compare policies and interpret results on a free Colab CPU
+rather than spend the lab implementing an environment.
+
+<Callout tone="observe" title="What the numbers in these notebooks are" icon="compass">
+Every figure the notebooks produce comes from their own code, on their own
+deliberately small environments. They are reproducible and they are **not**
+benchmark results.
+
+The environments are teaching models, chosen so each effect is visible on a
+laptop and attributable to a single cause. Carry the reasoning, not the digits.
+</Callout>
+
+## Coordinate: a virtual lab, not a notebook
+
+The Coordinate practical runs **in the browser**, not in Colab. It is the
+lowest-friction practical in the resource: nothing to open, nothing to install,
+and you can drive the agents yourself before any learning happens.
+
+- Take joint actions by hand on a two-agent switch grid.
+- Watch the joint action space grow as agents are added.
+- Train independent learners and value decomposition in the page.
+- Compare their curves, metrics and replayed behaviour.
+
+[Open the Coordinate virtual lab](/coordinate/lab/)
+
+## Communication Lab
+
+<NotebookLink
+  path="notebooks/01_communicate.ipynb"
+  time="about 30 minutes"
+  compute="CPU, nothing to install"
+/>
+
+Two agents in the smallest task where communication can matter: one sees which
+dish was ordered, the other is the only one who can act.
+
+Six experiments, and what each one establishes:
+
+<div class="table-scroll">
+
+| Experiment | Result |
+| --- | --- |
+| No usable channel | 0.25, which is chance over four dishes |
+| Four symbols | 1.00, learned with no dictionary |
+| Capacity sweep | success is exactly $\|\mathcal{M}\|/4$: a narrow channel **merges situations** |
+| Message loss | degrades as $1 - \tfrac{3}{4}p$, the signature of a loss-oblivious protocol |
+| Read the protocol | the learned mapping is a **permutation**, not the identity |
+| Pair with a stranger | cross-play falls from **1.00 to 0.300**, some pairings below chance |
+
+</div>
+
+Accompanies [Communication Lab](/communicate/lab/).
+
+## Adapt Lab
+
+<NotebookLink
+  path="notebooks/02_adapt.ipynb"
+  time="about 30 minutes"
+  compute="CPU, nothing to install"
+/>
+
+One kitchen with collisions, one learning agent, six possible partners. Four
+available for training, two held out: one behaviourally near the training set
+and one outside it.
+
+Compares three arms, and produces three findings that were not engineered:
+
+- a **specialist** trained with one partner scores **zero** with a perfectly
+  competent one it never met,
+- that specialist **beats** the generalist on a stranger resembling its own
+  partner,
+- and it has the **smallest generalization gap** while being the worst agent,
+  because its familiar-partner average is dragged down by a failure.
+
+Accompanies [Adapt Lab](/adapt/lab/).
+
+## Challenge Lab: Cooperative Wireless Resource Allocation
+
+<NotebookLink
+  path="notebooks/wireless_network_resource_allocation_marl_lab.ipynb"
+  time="60 to 90 minutes"
+  compute="Free Colab CPU, no GPU"
+/>
+
+Four access points, three channels, and no kitchen. The transfer task: the
+problem is stated in its own vocabulary and nobody maps the concepts for you.
+
+Ten sections, ending in a comparison table you assemble and one design
+decision you defend. Three results worth knowing about in advance:
+
+**A deterministic local rule scores below random.** Greedy channel selection
+reaches 3.37 against random's 6.00, because four access points running the
+identical rule on similar observations move to the same channel together.
+
+**Communication raises throughput and lowers the team reward.** From 7.62 to
+7.70 on the task measure, and from 7.56 to 7.43 on the objective, because four
+messages at 0.05 each cost more than the information was worth. Useful is not
+the same as worth it.
+
+**The talking system does not degrade under a traffic shift, it collapses.**
+It falls to 3.62, below random, by putting all four access points on one
+channel every step. Individual state coverage cannot explain it: 0.0% of those
+decisions use an unseen state. What was never trained is the joint
+configuration.
+
+Accompanies [The Challenge](/lab/challenge/).
+
+## Running them
+
+Each notebook opens with one install cell:
+
+```python
+!pip install -q cooperative-marl-labs
+```
+
+Everything the labs need is in that [package](/resources/python-package/), so a
+notebook holds the experiment rather than the environment. The Communicate lab
+adds the PyTorch extra, `cooperative-marl-labs[learning]`, because its protocol
+experiments train a small network.
+
+<Callout variant="lab">
+All four are written to be **edited**. Each ends with suggestions for
+experiments that are not run for you: beating the loss curve in Lab 2, making
+the partner model re-identify continuously in Lab 3, and finding a message
+worth more than demand level in the Challenge Lab.
+
+Those are where the notebooks stop being demonstrations.
+</Callout>

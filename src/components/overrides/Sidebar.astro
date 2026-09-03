@@ -1,0 +1,331 @@
+---
+/**
+ * SIDEBAR
+ *
+ * Replaces Starlight's sidebar entirely. Reads `src/lib/nav.ts`, which is the
+ * single source of truth for the course structure, so the sidebar, the
+ * breadcrumbs, the numbered headings, the previous/next links and the
+ * progress tracker can never disagree about what the course contains.
+ *
+ * Two row styles, because the structure has two kinds of thing in it:
+ *
+ *   Flat sections   (Start here, Resources) render as icon rows. These are
+ *                   destinations you jump to, not a sequence you work
+ *                   through, so they stay open and unnumbered.
+ *
+ *   Collapsible     (the four chapters, the lab, the project) render as a
+ *   sections        toggle row with numbered children. With 51 pages, always
+ *                   showing everything would bury the reader; the section
+ *                   containing the current page opens automatically.
+ */
+import { NAV, slugFromPath } from '../../lib/nav';
+import Icon from '../ui/Icon.astro';
+import ProgressCard from '../ui/ProgressCard.astro';
+
+const current = slugFromPath(Astro.url.pathname);
+---
+
+<div class="sb">
+  <nav class="sb__nav" aria-label="Course contents">
+    {
+      NAV.map((section, si) => {
+        const active = section.pages.some((p) => p.slug === current);
+        return (
+          <>
+            {section.group && <p class="sb__group">{section.group}</p>}
+
+            {section.collapsible ? (
+              <details
+                class:list={['sb__sec', section.topRule && 'sb__sec--ruled']}
+                open={active}
+                data-sec={si}
+              >
+                <summary class="sb__toggle">
+                  <span class="sb__toggle-text">{section.navLabel}</span>
+                  <Icon name="chevron-down" size={15} class="sb__chev" />
+                </summary>
+                <ul class="sb__list">
+                  {section.pages.map((page, pi) => {
+                    const isCurrent = page.slug === current;
+                    return (
+                      <li>
+                        <a
+                          href={`/${page.slug}/`}
+                          class:list={['sb__link', isCurrent && 'is-current']}
+                          aria-current={isCurrent ? 'page' : undefined}
+                        >
+                          {section.chapter ? (
+                            <span class="sb__num">
+                              {section.chapter}.{pi + 1}
+                            </span>
+                          ) : (
+                            <Icon name={page.icon ?? 'box'} size={15} class="sb__icon" />
+                          )}
+                          <span class="sb__text">{page.navTitle ?? page.title}</span>
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </details>
+            ) : (
+              <ul class="sb__list sb__list--flat">
+                {section.pages.map((page) => {
+                  const isCurrent = page.slug === current;
+                  return (
+                    <li>
+                      <a
+                        href={`/${page.slug}/`}
+                        class:list={['sb__link', isCurrent && 'is-current']}
+                        aria-current={isCurrent ? 'page' : undefined}
+                      >
+                        <Icon name={page.icon ?? 'box'} size={16} class="sb__icon" />
+                        <span class="sb__text">{page.navTitle ?? page.title}</span>
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </>
+        );
+      })
+    }
+  </nav>
+
+  <ProgressCard />
+</div>
+
+<script>
+  /**
+   * Remembers which sections the reader opened or closed, so navigating does
+   * not undo their choice. The section containing the current page is always
+   * forced open regardless, because being unable to see where you are is
+   * worse than overriding a stored preference.
+   */
+  const KEY = 'marl:sections:v1';
+
+  function load(): Record<string, boolean> {
+    try {
+      return JSON.parse(localStorage.getItem(KEY) || '{}');
+    } catch {
+      return {};
+    }
+  }
+
+  function save(state: Record<string, boolean>) {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+    } catch {
+      /* storage unavailable; open/closed state just will not persist */
+    }
+  }
+
+  const state = load();
+
+  document
+    .querySelectorAll<HTMLDetailsElement>('.sb__sec[data-sec]')
+    .forEach((el) => {
+      const id = el.dataset.sec!;
+      // `open` is already set server-side for the current section. Only apply
+      // a stored value when it is not the section we are reading.
+      if (!el.open && state[id] === true) el.open = true;
+      if (el.open && state[id] === false && !el.querySelector('[aria-current="page"]')) {
+        el.open = false;
+      }
+      el.addEventListener('toggle', () => {
+        state[id] = el.open;
+        save(state);
+      });
+    });
+</script>
+
+<style>
+  .sb {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    padding-bottom: var(--s-4);
+  }
+
+  .sb__nav {
+    flex: 1;
+    padding: var(--s-4) var(--s-2) 0;
+  }
+
+  /* ---- group heading ---- */
+
+  .sb__group {
+    margin: var(--s-5) var(--s-2) var(--s-2);
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    letter-spacing: var(--tr-label);
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .sb__nav > .sb__group:first-child {
+    margin-top: var(--s-1);
+  }
+
+  /* A rule above every group except the first separates the regions without
+     adding boxes. */
+  .sb__group:not(:first-child) {
+    padding-top: var(--s-4);
+    border-top: var(--hairline) solid var(--rule);
+  }
+
+  /* ---- collapsible section ---- */
+
+  .sb__sec {
+    margin-bottom: var(--s-1);
+  }
+
+  /* Separates the chapter run from the lab and project, which are siblings
+     structurally but a different kind of activity. */
+  .sb__sec--ruled {
+    margin-top: var(--s-4);
+    padding-top: var(--s-4);
+    border-top: var(--hairline) solid var(--rule);
+  }
+
+  .sb__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-2);
+    padding: 0.4rem var(--s-2);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    list-style: none;
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    color: var(--ink);
+    transition: background-color var(--dur-fast) var(--ease);
+  }
+
+  .sb__toggle::-webkit-details-marker {
+    display: none;
+  }
+
+  .sb__toggle:hover {
+    background: var(--surface-hover);
+  }
+
+  .sb__toggle-text {
+    min-width: 0;
+  }
+
+  .sb__chev {
+    color: var(--ink-faint);
+    transition: transform var(--dur-fast) var(--ease);
+  }
+
+  .sb__sec[open] > .sb__toggle .sb__chev {
+    transform: rotate(180deg);
+  }
+
+  /* The open section's heading takes the interactive colour, which is the
+     reader's coarse "you are in here" signal before they find the row. */
+  .sb__sec[open] > .sb__toggle {
+    color: var(--ui);
+  }
+
+  /* ---- rows ---- */
+
+  .sb__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .sb__sec .sb__list {
+    margin: var(--s-1) 0 var(--s-2);
+    padding-left: var(--s-3);
+    border-left: var(--hairline) solid var(--rule);
+    margin-left: var(--s-3);
+  }
+
+  .sb__list li {
+    margin: 0;
+  }
+
+  .sb__link {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-2);
+    padding: 0.34rem var(--s-2);
+    border-radius: var(--r-sm);
+    font-size: var(--t-meta);
+    line-height: 1.4;
+    color: var(--ink-muted);
+    text-decoration: none;
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease);
+  }
+
+  .sb__link:hover {
+    background: var(--surface-hover);
+    color: var(--ink);
+  }
+
+  /* Current page. Tinted row plus a left bar plus weight: three signals, so
+     it survives greyscale printing and colour-blind viewing. */
+  .sb__link.is-current {
+    background: var(--ui-tint);
+    color: var(--ui);
+    font-weight: var(--w-semibold);
+  }
+
+  .sb__link.is-current::before {
+    content: '';
+    position: absolute;
+    inset-block: 3px;
+    left: calc(var(--s-3) * -1 - 1px);
+    width: 2px;
+    border-radius: 1px;
+    background: var(--ui);
+  }
+
+  .sb__list--flat .sb__link.is-current::before {
+    left: 0;
+    inset-block: 4px;
+  }
+
+  .sb__num {
+    flex: none;
+    min-width: 1.6rem;
+    font-size: var(--t-small);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-faint);
+    font-weight: var(--w-medium);
+  }
+
+  .sb__link.is-current .sb__num,
+  .sb__link:hover .sb__num {
+    color: inherit;
+  }
+
+  .sb__icon {
+    margin-top: 0.1rem;
+    color: var(--ink-faint);
+  }
+
+  .sb__link.is-current .sb__icon,
+  .sb__link:hover .sb__icon {
+    color: inherit;
+  }
+
+  .sb__text {
+    min-width: 0;
+  }
+
+  @media (pointer: coarse) {
+    .sb__link,
+    .sb__toggle {
+      padding-block: 0.55rem;
+    }
+  }
+</style>

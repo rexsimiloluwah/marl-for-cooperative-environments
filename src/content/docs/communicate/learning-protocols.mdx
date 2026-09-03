@@ -1,0 +1,205 @@
+---
+title: "Learning Communication Protocols"
+description: "Hand-designed and learned communication protocols, with message meaning defined through receiver behaviour."
+related:
+  - slug: communicate/interpretable-communication
+    icon: lightbulb
+  - slug: communicate/research-langground
+    icon: book
+  - slug: adapt/partner-dependence
+    icon: users-round
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+Where does the meaning of a message come from?
+</Callout>
+
+A communication protocol assigns behavioural meaning to messages: a sender chooses a signal and a receiver changes its action in response.
+
+<Objectives>
+
+- Read a hand-designed message semantics
+- Describe a protocol learned from the shared task reward
+- Explain meaning through the effect a symbol has on the receiver
+
+</Objectives>
+
+## Hand-Designed Protocols
+
+The straightforward option: a human fixes the vocabulary.
+
+<div class="table-scroll">
+
+| Symbol | Meaning, assigned by us |
+| --- | --- |
+| `0` | no request |
+| `1` | get an ingredient |
+| `2` | begin cooking |
+| `3` | serve the dish |
+</div>
+
+Now the agents have one job left: learn **when** to use each symbol, and how
+to respond. The semantics are given, so the receiver's side is partly solved
+before training starts. Send `1` and the receiver already knows it concerns
+ingredients.
+
+This is a perfectly respectable engineering choice. It is inspectable, it is
+debuggable, and where you genuinely know what needs saying it is hard to beat.
+
+Its limit is that you have to know. A hand-designed vocabulary can only
+express distinctions its designer thought of, and the useful distinction in a
+task is often not obvious in advance. This is the same objection as
+hand-coding a policy: it works exactly as far as your understanding of the
+problem does.
+
+## Learned Protocols
+
+Now remove the meanings and keep the symbols.
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\tone{comm}{\mathcal{M}} = \{0,\ 1,\ 2,\ 3\}`}
+  terms={[
+    { tex: String.raw`\mathcal{M}`, is: 'the discrete message space', tone: 'comm' },
+    { tex: String.raw`0,1,2,3`, is: 'symbols whose meanings are learned through their effects' },
+  ]}
+  caption="A discrete message space supplies symbols but no predefined semantics."
+/>
+
+At the start of training, `2` means nothing at all. It is an integer the
+sender may emit and the receiver may condition on, and that is the whole of
+its definition.
+
+What can happen during learning is this. The sender occasionally emits `2`. On
+some of those steps the receiver, also learning, happens to respond in a way
+that works out. The team return goes up, both policies are reinforced, and the
+pairing of *this situation* with *this symbol* with *that response* becomes
+slightly more likely. Repeat, and a regularity forms.
+
+The textbook is explicit about why this is hard: because agents do not
+initially know the meaning of communication actions, they have to **learn how
+to interpret** the messages of others. Sender and receiver are learning
+against each other, so neither side can be correct first.
+
+<Callout variant="pitfall">
+This is a bootstrapping problem, and it is the reason learned communication
+is difficult rather than merely fiddly.
+
+A message is useful only if the receiver responds usefully. The receiver only
+learns to respond usefully if the message is informative. Neither condition
+holds at initialisation, so there is nothing for gradient descent to climb
+until some accident supplies it.
+
+This is why learned communication is often paired with a differentiable
+channel, which lets the receiver's error signal reach the sender directly
+rather than waiting for the accident.
+</Callout>
+
+## Meaning Through Receiver Behaviour
+
+Suppose the regularity forms. Here is what it looks like, and what it does
+not mean.
+
+<Callout variant="definition" title="An illustrative protocol">
+The table below is **made up as an illustration**. It is what a converged
+protocol might look like, written out so the idea is concrete. It is not the
+output of a training run in this resource, and no claim is made that these
+particular symbols emerge for these particular situations.
+</Callout>
+
+<div class="table-scroll">
+
+| Situation | Symbol sent | | Situation | Symbol sent |
+| --- | --- | --- | --- | --- |
+| ingredient needed | `3` | | ingredient needed | `2` |
+| ingredient needed | `0` | | ingredient needed | `2` |
+| ingredient needed | `2` | | ingredient needed | `2` |
+| *early in training* | *no stable mapping* | | *later* | *a convention* |
+</div>
+
+The left column is noise: the same situation produces different symbols,
+because nothing has settled. The right column is a
+<Term tone="comm">protocol</Term>: a stable mapping from situations to
+symbols, shared by sender and receiver.
+
+Now the sentence worth keeping from this section.
+
+<Callout variant="takeaway">
+**A learned symbol gets its meaning from how the other agents respond to it.**
+
+The integer `2` has no content. What makes it mean "bring an ingredient" is
+that the receiver reliably brings an ingredient on seeing it, and that this
+tends to help. Change the receiver's response and you have changed what the
+symbol means, without touching the sender.
+</Callout>
+
+Two consequences, and both matter later.
+
+**The labels are arbitrary.** Nothing distinguishes the protocol above from
+one where `1` plays the role of `2`. Any permutation of the symbols works
+equally well, provided both agents permute together.
+
+**The meaning lives in the pair, not in either agent.** There is no fact about
+agent 1 that makes `2` mean anything. The meaning is a property of the
+*relationship*, and it exists only while both halves agree.
+
+That second point is where this chapter starts turning into the next one. A
+protocol is a convention held jointly by the agents that learned it, and a
+convention held jointly is exactly the kind of thing that fails when one
+partner is replaced.
+
+<KnowledgeCheck
+  id="cm-2-6-meaning"
+  type="choice"
+  question="A trained team uses symbol 2 whenever an ingredient is needed. You retrain the receiver alone, from scratch, keeping the sender frozen. What happens to the meaning of 2?"
+  options={[
+    {
+      text: 'It is lost. The symbol meant something only because of how the receiver responded, and the new receiver has no reason to respond the same way.',
+      correct: true,
+      feedback: 'Correct, and this is the whole point of "meaning through use". Nothing inside the sender encodes the semantics. The frozen sender will keep emitting 2 in the same situations, and until the new receiver learns what to do about it, the symbol carries no information anyone can act on.',
+    },
+    {
+      text: 'It is preserved, since the sender still emits 2 in the same situations.',
+      correct: false,
+      feedback: 'The sender’s behaviour is preserved; the meaning is not. A symbol reliably emitted and not understood is not communication, it is noise with good timing.',
+    },
+    {
+      text: 'It is preserved, because 2 is a fixed part of the message space.',
+      correct: false,
+      feedback: 'The message space fixes which symbols exist, not what they refer to. That is the difference between a hand-designed vocabulary and a learned one.',
+    },
+    {
+      text: 'The new receiver will infer the meaning from the sender’s behaviour.',
+      correct: false,
+      feedback: 'It can, eventually, and only by learning: it has to try responses and find which ones the team return rewards. That is retraining, not inference at deployment, and the Adapt chapter is about how much of it can be done on the fly.',
+    },
+  ]}
+>
+Holding "meaning lives in the pair" makes the transition to the Adapt chapter
+inevitable rather than surprising.
+</KnowledgeCheck>
+
+## Learned Communication Summary
+
+- **Hand-designed** messages fix the semantics, so agents only learn when to
+  use each symbol. Inspectable and debuggable, and limited to distinctions the
+  designer anticipated.
+- **Learned** messages start meaningless. The symbol space is given; the
+  meanings are not.
+- Learning them is a **bootstrapping problem**: a message is useful only if
+  the receiver responds usefully, and the receiver learns that only from
+  useful messages.
+- A protocol is a stable mapping from situations to symbols, shared by sender
+  and receiver.
+- **A symbol means whatever its listeners do about it.** The labels are
+  arbitrary, and the meaning is a property of the pair rather than of either
+  agent.

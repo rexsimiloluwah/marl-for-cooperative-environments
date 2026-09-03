@@ -1,0 +1,98 @@
+/* ==========================================================================
+   MATHEMATICS
+   The master prompt asks for large, readable mathematics. KaTeX's defaults
+   are tuned for inline density in documentation, which is too small for a
+   textbook where the equation is often the main object on the page.
+   ========================================================================== */
+
+/* Display equations. Sized up and given real vertical room, because a
+   display equation here is a figure, not a line of text. */
+.sl-markdown-content .katex-display {
+  font-size: 1.2em;
+  margin-block: var(--s-6);
+  /* A long equation scrolls inside its own box. The page never does. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: var(--s-2);
+}
+
+.sl-markdown-content .katex-display > .katex {
+  text-align: center;
+  white-space: normal;
+}
+
+/* Inline maths matches the surrounding prose weight rather than shouting. */
+.sl-markdown-content .katex {
+  font-size: 1.06em;
+  color: var(--ink);
+}
+
+/* KaTeX renders fraction rules and radicals with `border-bottom-width`
+   values that can vanish at fractional device pixel ratios. Pin a minimum. */
+.katex .frac-line,
+.katex .overline .overline-line,
+.katex .underline .underline-line {
+  min-height: 1px;
+  border-bottom-color: currentColor;
+}
+
+/* If a macro is wrong we want to see it in development, not ship a silently
+   mangled equation. rehype-katex marks failures with .katex-error. */
+.katex-error {
+  color: var(--c-conflict-ink);
+  background: var(--c-conflict-tint);
+  border-bottom: 2px dotted var(--c-conflict);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  padding: 0.1em 0.25em;
+}
+
+/* --------------------------------------------------------------------------
+   COLOURED TERMS INSIDE EQUATIONS
+   Annotated equations tint individual terms to match the diagram objects
+   they refer to. Rather than hard-coding \textcolor in every chapter, MDX
+   wraps a term in \htmlClass{term-policy}{...} and the colour comes from
+   the semantic palette here. That keeps one source of truth for colour.
+
+   `trust: false` in astro.config.mjs disallows \html* commands by default,
+   so these classes are applied by the Equation components in JS instead.
+   The rules live here so both paths render identically.
+   -------------------------------------------------------------------------- */
+
+.term-action { color: var(--c-action-ink); }
+.term-observe { color: var(--c-observe-ink); }
+.term-policy { color: var(--c-policy-ink); }
+.term-comm { color: var(--c-comm-ink); }
+.term-reward { color: var(--c-reward-ink); }
+.term-conflict { color: var(--c-conflict-ink); }
+
+/* --------------------------------------------------------------------------
+   BOXED REGIONS
+   For naming a region several terms wide, where a brace would be unwieldy.
+   The border carries the same semantic tone as everything else.
+   -------------------------------------------------------------------------- */
+
+.eqbox {
+  padding: 0.18em 0.34em;
+  margin-inline: 0.06em;
+  border: 1.5px solid;
+  border-radius: 4px;
+}
+
+.eqbox--dash {
+  border-style: dashed;
+}
+
+.eqbox--action { border-color: var(--c-action); }
+.eqbox--observe { border-color: var(--c-observe); }
+.eqbox--policy { border-color: var(--c-policy); }
+.eqbox--comm { border-color: var(--c-comm); }
+.eqbox--reward { border-color: var(--c-reward); }
+.eqbox--conflict { border-color: var(--c-conflict); }
+
+@media (max-width: 50rem) {
+  .sl-markdown-content .katex-display {
+    font-size: 1.05em;
+    margin-block: var(--s-5);
+  }
+}

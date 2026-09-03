@@ -1,0 +1,249 @@
+---
+title: "VDN and QMIX"
+description: "Two ways to satisfy Individual-Global-Max: add the individual values, or learn a mixing function constrained to be monotonic in them."
+related:
+  - slug: coordinate/value-decomposition
+    icon: cycle
+  - slug: coordinate/scaling-coordination
+    icon: chart
+  - slug: coordinate/research-smacv2
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+What does a factorization assumption buy, and what does it cost?
+</Callout>
+
+VDN and QMIX are two value-decomposition methods that enforce compatibility between local greedy actions and the team's preferred joint action.
+
+<Objectives>
+
+- Derive VDN's additive factorization
+- Identify the agent interactions additivity cannot represent
+- Describe QMIX's learned monotonic mixing
+- State the constraint monotonic mixing still imposes
+- Choose between the two factorizations for a given task
+
+</Objectives>
+
+## VDN: Additive Factorization
+
+<Term tone="policy">Value Decomposition Networks</Term> take the simplest
+option available. Assume the team value is the **sum** of the individual
+values.
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\tone{reward}{Q_{\text{tot}}} = \sum_{\ag=1}^{\nag} \tone{policy}{Q_\ag\bigl(h^\ag, \act{\ag}\bigr)}`}
+  terms={[
+    { tex: String.raw`Q_{\text{tot}}`, is: 'the team value', tone: 'reward' },
+    { tex: String.raw`Q_\ag`, is: 'agent i’s individual value, over its own history and action', tone: 'policy' },
+  ]}
+  caption="One team value, assumed to be the sum of the parts."
+/>
+
+Nothing is learned about *how* to combine, the combination is fixed in
+advance. Only the individual $Q_\ag$ are learned, and they are trained so
+that their sum explains the team's returns.
+
+Addition satisfies IGM immediately. Raising any $Q_\ag$ raises
+$Q_{\text{tot}}$, and no agent's choice can change another agent's term, so
+each agent maximising its own value maximises the sum.
+
+<Callout variant="takeaway">
+VDN's real contribution is conceptual: it shows that a **team value can be
+decomposed at all**, and that once it is, agents can act locally without
+giving up agreement with the centralized value.
+</Callout>
+
+## Limits of Additive Factorization
+
+Addition is a strong assumption, and it is easy to see what it rules out.
+Take the joint values from *Credit Assignment*:
+
+<div class="table-scroll">
+
+| Agent 1 | Agent 2 | $Q_{\text{tot}}$ |
+| --- | --- | --- |
+| collect | prepare | 8.0 |
+| collect | collect | 2.5 |
+| prepare | prepare | 2.0 |
+| prepare | collect | 7.5 |
+</div>
+
+If $Q_{\text{tot}} = Q_1 + Q_2$, then adding the two *diagonals* of that
+table must give the same total either way, every term appears exactly once in
+each pairing:
+
+<Equation
+  label="Figure 2"
+  wide
+  tex={String.raw`\ubrace{reward}{8.0 + 7.5}{= 15.5} \;\overset{?}{=}\; \ubrace{conflict}{2.5 + 2.0}{= 4.5}`}
+  terms={[
+    { tex: String.raw`8.0 + 7.5`, is: 'the sum for one pairing of local actions', tone: 'reward' },
+    { tex: String.raw`2.5 + 2.0`, is: 'the sum for the crossed pairing', tone: 'conflict' },
+  ]}
+  caption="Unequal diagonal sums prove that this joint value is not additively separable."
+/>
+
+They do not match, so **no** choice of $Q_1$ and $Q_2$ reproduces this table
+by addition. And the table is not exotic: it just says the agents need to do
+*different* things. Addition cannot express "these actions are good together
+and bad apart", because it has no term in which the two agents interact.
+
+## QMIX: Monotonic Mixing
+
+<Term tone="policy">QMIX</Term> replaces the fixed sum with a learned
+function.
+
+<Equation
+  label="Figure 3"
+  tex={String.raw`\tone{reward}{Q_{\text{tot}}} = \tone{comm}{f_{\text{mix}}}\bigl(\tone{policy}{Q_1}, \dots, \tone{policy}{Q_\nag}\bigr)`}
+  terms={[
+    { tex: String.raw`f_{\text{mix}}`, is: 'a learned mixing function, constrained to be monotonic in every input', tone: 'comm' },
+    { tex: String.raw`Q_\ag`, is: 'the same individual values as before, still local', tone: 'policy' },
+  ]}
+  caption="How the individual values combine is now learned rather than assumed."
+/>
+
+The mixing function is not free. It is constrained to be **monotonic** in
+each individual value:
+
+<Equation
+  label="Figure 4"
+  tex={String.raw`\frac{\partial \tone{reward}{Q_{\text{tot}}}}{\partial \tone{policy}{Q_\ag}} \;\geq\; 0 \qquad \text{for every agent } \ag`}
+  terms={[
+    { tex: String.raw`\partial Q_{\text{tot}} / \partial Q_\ag`, is: 'how the team value responds to raising one agent’s value: never negatively' },
+  ]}
+  caption="Whatever the mixing function does, raising one agent's value can never lower the team's."
+/>
+
+That constraint is doing something specific, and it is worth being precise
+about why it is there. Monotonicity is what preserves IGM. If raising
+$Q_\ag$ can never lower $Q_{\text{tot}}$, then each agent taking its own
+$\arg\max$ still lands on the joint action the team value ranks highest, so
+**decentralized greedy action selection remains consistent with the
+centralized value**, exactly as under addition.
+
+<Callout variant="takeaway">
+**VDN adds individual values. QMIX learns how to combine them, while
+preserving decentralized greedy action selection.**
+
+QMIX is not "a better VDN" in the sense of a tuned improvement. It is a
+strictly more general *form* of decomposition, addition is one monotonic
+function among many, bought at the price of learning the mixer.
+</Callout>
+
+The architecture that enforces monotonicity is a small network with
+non-negative weights, conditioned on the state. That detail matters for
+implementing QMIX and not for understanding it: the idea is a learned
+combination that is not allowed to go downhill in any agent's value.
+
+## Limits of Monotonic Factorization
+
+Worth knowing, so the progression does not read as solved.
+
+Consider two agents that must choose *differently*, the coordination game
+from *Coordination*:
+
+<div class="table-scroll">
+
+| Agent 1 | Agent 2 | $Q_{\text{tot}}$ |
+| --- | --- | --- |
+| left | right | 5 |
+| right | left | 5 |
+| left | left | 0 |
+| right | right | 0 |
+</div>
+
+No monotonic mixing can handle this. Monotonicity forces each agent to have a
+single greedy action, so their greedy choices combine into either (left, left)
+or (right, right), both worth 0. The two good joint actions are unreachable
+by local greedy selection, whatever the mixer.
+
+<Callout tone="observe" title="What this tells you" icon="compass">
+This is a real limitation, not a bug in QMIX. Some coordination problems
+genuinely need a signal that both agents can read before choosing, the
+correlating device from *Joint Actions and Policies*. Later methods relax
+monotonicity to widen the representable class; the Communicate chapter takes the other road
+and gives the agents a channel.
+</Callout>
+
+## Selecting a Factorization
+
+Pedagogically, yes.
+
+VDN makes the decomposition idea immediately graspable: one team value, split
+by addition, agents act locally. Nothing about it is mysterious, and it
+establishes that the trick is possible.
+
+QMIX shows why the simple version is not enough, and what the minimum
+generalisation is. Together they trace the actual shape of the argument:
+decompose the value, discover addition is too rigid, keep only the property
+you actually need, monotonicity, because monotonicity is what buys IGM.
+
+<div class="table-scroll">
+
+| | VDN | QMIX |
+| --- | --- | --- |
+| combination | fixed sum | learned function |
+| constraint | additivity | monotonicity in each $Q_\ag$ |
+| satisfies IGM | yes | yes |
+| representable class | additive team values | monotonic team values |
+| what is learned | the $Q_\ag$ | the $Q_\ag$ **and** the mixer |
+</div>
+
+<KnowledgeCheck
+  id="co-1-8-qmix"
+  type="choice"
+  question="What is the most accurate statement of how QMIX differs from VDN?"
+  options={[
+    {
+      text: 'VDN fixes the combination as a sum; QMIX learns the combination, restricted to functions monotonic in each individual value so local greedy selection still matches the team value.',
+      correct: true,
+      feedback: 'That is the distinction. Addition is one monotonic function, so QMIX’s representable class strictly contains VDN’s, and monotonicity is retained precisely because it is what preserves IGM.',
+    },
+    {
+      text: 'QMIX is a better-tuned version of VDN that performs more strongly on benchmarks.',
+      correct: false,
+      feedback: 'This is the common misreading. The difference is structural rather than a matter of tuning: additive versus monotonic decomposition. Describing it as "better VDN" hides the property that actually changed.',
+    },
+    {
+      text: 'QMIX drops the IGM requirement in exchange for a more expressive value function.',
+      correct: false,
+      feedback: 'The opposite. QMIX keeps IGM. That is exactly what the monotonicity constraint is protecting. Dropping IGM would mean local greedy choices could disagree with the team value, losing decentralized action selection.',
+    },
+    {
+      text: 'QMIX uses the global state at execution time, while VDN does not.',
+      correct: false,
+      feedback: 'Neither uses the global state at execution. QMIX’s mixing network is conditioned on the state during training and is not needed to act: each agent selects greedily from its own Q. Both are CTDE methods.',
+    },
+  ]}
+>
+Being able to say precisely what changed, the constraint, not the quality,
+is what separates understanding these methods from reciting them.
+</KnowledgeCheck>
+
+## VDN and QMIX Summary
+
+- **VDN** assumes $Q_{\text{tot}} = \sum_\ag Q_\ag$. Addition satisfies IGM
+  automatically, and shows that decomposition is possible at all.
+- Addition cannot represent interaction. If the diagonals of a joint-value
+  table do not sum equally, no additive decomposition exists.
+- **QMIX** learns a mixing function $f_{\text{mix}}(Q_1, \dots, Q_\nag)$
+  constrained to be **monotonic** in every $Q_\ag$.
+- Monotonicity is kept because it is what **preserves IGM**: local greedy
+  selection still agrees with the centralized value.
+- QMIX is a more general form of decomposition, not a tuned VDN. Addition is
+  one monotonic function among many.
+- Monotonic decomposition still cannot represent problems requiring agents to
+  choose *differently* with no way to break the tie.

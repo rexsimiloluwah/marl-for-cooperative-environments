@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cooperative-marl-labs"
+version = "0.1.0"
+description = "Lightweight environments and utilities for learning cooperative multi-agent reinforcement learning."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Similoluwa Okunowo", email = "similoluwa@aims.ac.za" }]
+keywords = [
+  "multi-agent reinforcement learning",
+  "cooperative",
+  "education",
+  "pettingzoo",
+  "gymnasium",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Education",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Typing :: Typed",
+]
+dependencies = [
+  "numpy>=1.26",
+  "pandas>=2.0",
+  "matplotlib>=3.8",
+  "gymnasium>=1.0",
+  "pettingzoo>=1.24",
+]
+
+[project.optional-dependencies]
+# Only the speaker-listener protocol experiments need a neural network.
+learning = ["torch>=2.2"]
+dev = ["pytest>=8", "ruff>=0.6", "build>=1.2", "twine>=5"]
+
+[project.urls]
+Homepage = "https://github.com/rexsimiloluwah/marl-for-cooperative-environments"
+Source = "https://github.com/rexsimiloluwah/marl-for-cooperative-environments/tree/main/cooperative-marl-labs"
+Issues = "https://github.com/rexsimiloluwah/marl-for-cooperative-environments/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+cooperative_marl_labs = ["py.typed"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

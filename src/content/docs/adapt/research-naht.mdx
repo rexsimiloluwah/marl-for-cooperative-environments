@@ -1,0 +1,193 @@
+---
+title: "Research Connection: N-Agent Ad Hoc Teamwork"
+description: "How ad hoc teamwork changes when both the number and behavioural types of partner agents vary."
+related:
+  - slug: adapt/partner-representations
+    icon: cycle
+  - slug: adapt/ad-hoc-teamwork
+    icon: users-round
+  - slug: resources/references
+    icon: book
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+What if the number of unfamiliar teammates changes too?
+</Callout>
+
+N-Agent Ad Hoc Teamwork extends partner generalization to teams in which both the number and behavioural types of uncontrolled agents can change.
+
+<Objectives>
+
+- Locate N-Agent Ad Hoc Teamwork between controlling one agent and the whole team
+- Explain why variable team composition matters at deployment
+- Describe POAM's partner-representation approach
+- Read the reported findings and what they do and do not establish
+
+</Objectives>
+
+## The N-Agent Ad Hoc Teamwork Setting
+
+Two settings have been well studied, and they are the two extremes.
+
+<div class="table-scroll">
+
+| | How many agents the learner controls |
+| --- | --- |
+| Standard cooperative MARL | **all** of them |
+| Traditional ad hoc teamwork | **one** of them |
+</div>
+
+**N-Agent Ad Hoc Teamwork** (NeurIPS 2024) points out that real systems can
+sit between these extremes. The authors introduce a setting in which a set of
+autonomous agents must interact and cooperate with **dynamically varying
+numbers and types of partners**.
+
+Both halves of that phrase matter, and the first is the one previous framings
+did not cover.
+
+<Equation
+  label="Figure 1"
+  wide
+  tex={String.raw`\underbrace{\tone{policy}{\text{agents we control}}}_{\text{some}} \;+\; \underbrace{\tone{conflict}{\text{agents we do not}}}_{\text{how many? which kinds?}}`}
+  terms={[
+    { tex: String.raw`\text{controlled agents}`, is: 'the policies available to the learner', tone: 'policy' },
+    { tex: String.raw`\text{uncontrolled agents}`, is: 'partners whose number and types may vary', tone: 'conflict' },
+  ]}
+  caption="NAHT teams combine controlled policies with a variable set of unfamiliar partners."
+/>
+
+## Variable Team Composition
+
+Return to the motivating examples from *Ad Hoc Teamwork* and count.
+
+A warehouse operator deploying twelve of its own robots alongside a
+subcontractor's eight controls **some** of the team. So does a fleet operator
+whose vehicles meet other manufacturers' vehicles at a junction: how many of
+each is at the junction changes minute to minute.
+
+Neither situation is described by controlling one agent, and neither is
+described by controlling all of them. And the difference is not cosmetic: an
+agent that can rely on three co-trained colleagues behaves differently from
+one that is alone among strangers, and in the middle case it does not know in
+advance which it will be.
+
+<Callout variant="takeaway">
+The number of partners is usually treated as a fixed part of the problem.
+
+Once it varies, an agent cannot even count on how much of the team shares its
+conventions, so a policy has to work across compositions rather than just
+across partners.
+</Callout>
+
+## POAM and Partner Representations
+
+The authors propose **Policy Optimization with Agent Modelling**, or POAM.
+
+The idea connects directly to sections 3.4 and 3.5 rather than arriving as an
+unrelated algorithm. POAM is a policy gradient method that **learns
+representations of partner behaviours** and uses them to adapt.
+
+That is the behaviour embedding from *Partner Representations*, put to work:
+
+<Equation
+  label="Figure 2"
+  wide
+  tex={String.raw`\ubrace{observe}{\text{observed partner behaviour}}{what I have seen} \rightarrow \ubrace{policy}{\text{learned representation}}{who these partners are} \rightarrow \ubrace{action}{\text{my action}}{what I should do about it}`}
+  terms={[
+    { tex: String.raw`\text{observed behaviour}`, is: 'locally available evidence about the partners', tone: 'observe' },
+    { tex: String.raw`\text{representation}`, is: 'a learned summary of the variable partner set', tone: 'policy' },
+    { tex: String.raw`\text{action}`, is: 'the controlled agent\u2019s response', tone: 'action' },
+  ]}
+  caption="POAM conditions controlled actions on learned representations of the observed partner set."
+/>
+
+Note what the representation has to survive here. Under NAHT the partners
+vary in **kind and in number**, so a representation indexed by partner
+identity is doubly useless: it has no entry for a stranger, and no way to
+describe a team of three strangers rather than one.
+
+## Reported Experimental Findings
+
+The authors evaluate POAM in **multi-agent particle environments** and
+**StarCraft II**, and report improved cooperative performance over baselines
+along with generalization to previously unseen partners.
+
+<Callout tone="observe" title="Published results, not ours" icon="compass">
+Everything in this section is what the paper reports on its own environments
+and baselines. Nothing here was reproduced in this resource.
+
+The reason to read it is the **problem formulation**, which reframes ad hoc
+teamwork as a spectrum rather than a binary, and the confirmation that
+behaviour representations are the mechanism people reach for.
+</Callout>
+
+## Implications for Ad Hoc Teamwork
+
+> **How should an agent represent the behaviour of partners when both their
+> type and their number can change?**
+
+Worth sitting with. A representation of one partner is a vector. A
+representation of a *team* of unknown size, whose members you may be
+individually uncertain about, is a harder object, and how to build one is
+open.
+
+<KnowledgeCheck
+  id="ad-3-9-naht"
+  type="choice"
+  question="Why is a partner representation indexed by identity especially useless in the NAHT setting?"
+  options={[
+    {
+      text: 'Because the partners vary in both kind and number, so an identity index has no entry for a stranger and no way to describe a team of several unknowns.',
+      correct: true,
+      feedback: 'Both failures at once. *Partner Representations* established that identity representations cannot place a stranger. NAHT adds that the team composition itself varies, so even a behaviour representation has to summarise a set of partners of unknown size.',
+    },
+    {
+      text: 'Because identities are private information that agents cannot observe.',
+      correct: false,
+      feedback: 'Identity is sometimes observable, and that is not the problem. The problem is that knowing which partner you have only helps if you have met it before.',
+    },
+    {
+      text: 'Because policy gradient methods cannot use discrete representations.',
+      correct: false,
+      feedback: 'They can. The obstacle is what the representation can express about unseen partners, not how it is optimised.',
+    },
+    {
+      text: 'Because NAHT requires controlling only one agent.',
+      correct: false,
+      feedback: 'The opposite: NAHT is specifically about controlling *some* of the team, between the one-agent and all-agents extremes.',
+    },
+  ]}
+>
+The pattern to carry: whenever the thing you must generalise over can vary in
+size as well as in kind, a lookup table is even further from sufficient.
+</KnowledgeCheck>
+
+## N-Agent Ad Hoc Teamwork Lessons
+
+- Two well-studied extremes: the learner controls **all** agents (standard
+  cooperative MARL) or **one** (traditional ad hoc teamwork).
+- **NAHT** is the setting in between, where agents cooperate with
+  **dynamically varying numbers and types** of partners.
+- Real deployments are mostly in the middle: your own fleet alongside somebody
+  else's, in proportions that change.
+- **POAM** is a policy gradient method that learns representations of partner
+  behaviour and uses them to adapt, which is the *Partner Representations* mechanism
+  instantiated.
+- The authors report improved cooperative performance and generalization to
+  unseen partners on multi-agent particle environments and StarCraft II.
+
+## Further reading
+
+**N-Agent Ad Hoc Teamwork**, Caroline Wang, Arrasy Rahman, Ishan Durugkar,
+Elad Liebman and Peter Stone. *Advances in Neural Information Processing
+Systems 37* (NeurIPS 2024).
+[Proceedings page](https://proceedings.neurips.cc/paper_files/paper/2024/hash/cabf611498431ad89a85ace75f790d93-Abstract-Conference.html).

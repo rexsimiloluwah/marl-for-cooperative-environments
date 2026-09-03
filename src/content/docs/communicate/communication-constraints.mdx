@@ -1,0 +1,243 @@
+---
+title: "Communication Constraints"
+description: "How finite capacity, limited range, message loss, and noise constrain cooperative communication protocols."
+related:
+  - slug: communicate/communication-policies
+    icon: lightbulb
+  - slug: communicate/communication-failures
+    icon: cycle
+  - slug: lab/challenge
+    icon: antenna
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import Explore from '../../../components/worksheet/Explore.astro';
+import MessageFlow from '../../../components/diagrams/MessageFlow.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+What happens to a protocol when the channel is limited?
+</Callout>
+
+Communication channels constrain which information agents can exchange and how reliably it arrives.
+
+<Objectives>
+
+- Reason about a finite message capacity
+- Reason about a limited communication range
+- Reason about messages that are dropped
+- Reason about messages that arrive corrupted
+
+</Objectives>
+
+## Message Capacity
+
+A discrete message space has a size, and that size is a hard limit on how many
+distinct things can ever be said.
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\bigl|\tone{comm}{\mathcal{M}}\bigr| = K \qquad\text{or, for a } b\text{-bit message,}\qquad \bigl|\tone{comm}{\mathcal{M}}\bigr| = 2^{b}`}
+  terms={[
+    { tex: String.raw`K`, is: 'how many distinct messages exist', tone: 'comm' },
+    { tex: String.raw`b`, is: 'bits available per message; each bit doubles the space' },
+  ]}
+  caption="Capacity counts distinctions, not detail. K messages can express exactly K situations."
+/>
+
+Drag the slider to see what a bit buys.
+
+<Explore
+  id="cm-bits"
+  kind="bars"
+  labels={['1', '2', '3', '4', '5', '6', '7', '8']}
+  values={[2, 4, 8, 16, 32, 64, 128, 256]}
+  xLabel="Bits per message"
+  yLabel="Distinct messages"
+  slider
+  readout="{x} bits → {y} distinct messages"
+/>
+
+Capacity is best thought about backwards, starting from the distinctions the
+team actually needs. With one bit, agent 1 has exactly two things it can say:
+
+<div class="table-scroll">
+
+| Message | Meaning |
+| --- | --- |
+| `0` | no help needed |
+| `1` | help needed |
+</div>
+
+That is a real protocol and it is often enough. But notice what it cannot do:
+it cannot say **what kind** of help. Two bits can.
+
+<div class="table-scroll">
+
+| Message | Meaning |
+| --- | --- |
+| `00` | no help needed |
+| `01` | bring an ingredient |
+| `10` | start cooking |
+| `11` | ready to serve |
+</div>
+
+<Callout variant="takeaway">
+A narrow channel does not force a team to say less about each situation. It
+forces the team to **merge situations**.
+
+With one bit, "bring an ingredient" and "start cooking" have to become the
+same message, and the receiver has to work out which from context. Designing
+a protocol under a capacity limit is deciding which distinctions are worth
+keeping.
+</Callout>
+
+## Communication Range
+
+A message may reach only agents that are close enough.
+
+In the Dec-POMDP this is part of the observation model rather than a separate
+mechanism: whether agent $j$ observes $m^\ag_t$ depends on the state, through
+the distance between them.
+
+<Equation
+  label="Figure 2"
+  wide
+  tex={String.raw`\text{agent } j \text{ receives } \tone{comm}{m^\ag_t} \iff \mathrm{dist}\bigl(\ag,\ j\bigr) \leq \ubrace{observe}{d}{the range}`}
+  terms={[
+    { tex: String.raw`m^i_t`, is: 'the message sent by agent i at step t', tone: 'comm' },
+    { tex: String.raw`\mathrm{dist}(i,j)`, is: 'the current distance between sender and receiver', tone: 'observe' },
+    { tex: String.raw`d`, is: 'the maximum communication range' },
+  ]}
+  caption="Message receipt depends on the state-dependent distance between agents."
+/>
+
+Two consequences worth noticing. Agents cannot rely on being heard, so a
+protocol built on "everyone knows what I said" fails as soon as someone walks
+away. And range makes communication **state-dependent**: the same message
+sent from a different position reaches a different audience.
+
+## Message Loss
+
+A sent message may simply not arrive.
+
+<MessageFlow lossy>
+The same picture with an unreliable channel. Agent 1 sends; agent 2 may
+receive nothing at all.
+</MessageFlow>
+
+The standard way to model this is with a probability: with probability
+$p_{\text{loss}}$, the message the receiver observes is replaced by the empty
+message.
+
+<Equation
+  label="Figure 3"
+  wide
+  tex={String.raw`\text{received} = \begin{cases} \tone{comm}{m^\ag_t} & \text{with probability } 1 - p_{\text{loss}} \\[2pt] \tone{conflict}{\varnothing} & \text{with probability } p_{\text{loss}} \end{cases}`}
+  terms={[
+    { tex: String.raw`\varnothing`, is: 'the empty message: the receiver gets nothing, exactly as if none had been sent', tone: 'conflict' },
+  ]}
+  caption="Loss turns a message into a silence, and silence is a message the sender did not choose."
+/>
+
+Loss is worse than it first appears, because $\varnothing$ is a legitimate
+message that means "say nothing". So a receiver cannot distinguish
+
+- the sender **chose** to stay silent, from
+- the sender spoke and the channel **ate it**.
+
+A protocol in which silence carries meaning is therefore fragile under loss.
+If `no message` means "carry on as planned", then a dropped "stop" reads as
+approval.
+
+## Communication Noise
+
+Weaker than loss and sometimes more damaging: the message arrives, changed.
+
+For a continuous message the usual model adds a random perturbation.
+
+<Equation
+  label="Figure 4"
+  tex={String.raw`\text{received} = \tone{comm}{m^\ag_t} + \tone{conflict}{\epsilon}, \qquad \epsilon \sim \mathcal{N}(0, \sigma^{2})`}
+  terms={[
+    { tex: String.raw`\epsilon`, is: 'noise added by the channel', tone: 'conflict' },
+    { tex: String.raw`\sigma^{2}`, is: 'how much of it' },
+  ]}
+  caption="The message arrives, slightly wrong. Nothing tells the receiver by how much."
+/>
+
+Noise punishes a particular kind of protocol: one where nearby messages mean
+very different things. If a learned vector uses tiny differences to
+distinguish "bring a tomato" from "bring an onion", noise destroys it. A
+protocol whose meanings are far apart in message space survives.
+
+<Callout variant="takeaway">
+**A useful communication strategy should remain useful under the constraints
+of its channel.**
+
+That single sentence is what this section is for. A protocol is not just a
+mapping from situations to symbols. It is a mapping that has to work through a
+specific channel, with that channel's capacity, reach, reliability and noise.
+
+A protocol tuned on a perfect channel and deployed on a real one is one of the
+most common ways cooperative systems fail.
+</Callout>
+
+<Callout variant="example">
+A kitchen protocol can face all four constraints. A small symbol set limits
+capacity, only nearby agents may hear a signal, equipment noise can hide or
+corrupt it, and sending a message can consume time. Silence is therefore an
+action worth considering rather than proof that communication is absent.
+</Callout>
+
+<KnowledgeCheck
+  id="cm-2-4-loss"
+  type="choice"
+  question="A team's protocol uses silence to mean 'continue as planned'. What goes wrong when 10% of messages are lost?"
+  options={[
+    {
+      text: 'A lost message becomes silence, so a dropped instruction is read as approval to continue.',
+      correct: true,
+      feedback: 'Exactly. Loss replaces a message with the empty message, and the empty message already means something in this protocol. The receiver cannot tell a deliberate silence from an eaten message, so 10% of instructions are silently inverted.',
+    },
+    {
+      text: 'Nothing much. Losing 10% of messages costs at most 10% of performance.',
+      correct: false,
+      feedback: 'That would hold if a lost message were merely absent. Here it is actively misread, so the cost depends on how bad a wrongly-continued plan is, and that can be far worse than the loss rate.',
+    },
+    {
+      text: 'The receiver will notice the gap and ask again.',
+      correct: false,
+      feedback: 'It cannot notice: nothing distinguishes a lost message from a chosen silence. Detecting the gap requires a protocol that makes silence meaningless, such as always sending something.',
+    },
+    {
+      text: 'The messages arrive corrupted rather than missing.',
+      correct: false,
+      feedback: 'That is noise, a different constraint. Loss removes a message; noise alters one. They call for different fixes, which is why the section separates them.',
+    },
+  ]}
+>
+Any protocol where silence carries meaning needs checking against loss before
+it is trusted.
+</KnowledgeCheck>
+
+## Communication Constraints Summary
+
+- **Capacity** $|\mathcal{M}| = K$, or $2^b$ for $b$ bits, counts
+  distinctions. A narrow channel forces the team to merge situations, not to
+  describe them more briefly.
+- **Range** makes communication state-dependent: who hears you depends on
+  where everyone is.
+- **Loss** replaces a message with $\varnothing$, which is indistinguishable
+  from a chosen silence. Protocols in which silence means something are
+  fragile.
+- **Noise** perturbs the message, punishing protocols whose meanings sit close
+  together in message space.
+- The principle: a protocol must remain useful **under its own channel's
+  constraints**, not just on a perfect one.

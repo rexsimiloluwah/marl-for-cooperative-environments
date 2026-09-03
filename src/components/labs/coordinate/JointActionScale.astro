@@ -1,0 +1,149 @@
+---
+/**
+ * JOINT ACTION SPACE EXPLORER
+ *
+ * Five actions per agent, and the learner drags the agent count. The bars are
+ * on a linear scale on purpose: a log axis would make exponential growth look
+ * like a straight line, which is the opposite of the point.
+ */
+const N_ACTIONS = 5;
+const MAX_AGENTS = 6;
+const counts = Array.from({ length: MAX_AGENTS }, (_, i) => i + 1);
+---
+
+<joint-action-scale class="jas not-content" data-actions={N_ACTIONS}>
+  <div class="jas__ctl">
+    <label class="jas__lab" for="jas-n">Number of agents</label>
+    <input class="jas__slider" id="jas-n" type="range" min="1" max={MAX_AGENTS} step="1" value="2" data-n />
+    <output class="jas__out" data-out></output>
+  </div>
+
+  <div class="jas__bars" role="img" aria-label="Joint action space size against number of agents">
+    {counts.map((n) => (
+      <div class="jas__col" data-col={n}>
+        <div class="jas__barWrap"><div class="jas__bar" data-bar></div></div>
+        <span class="jas__n">{n}</span>
+      </div>
+    ))}
+  </div>
+  <p class="jas__read" data-read aria-live="polite"></p>
+</joint-action-scale>
+
+<script>
+  class JointActionScale extends HTMLElement {
+    connectedCallback() {
+      const A = Number(this.dataset.actions ?? 5);
+      const slider = this.querySelector<HTMLInputElement>('[data-n]');
+      const out = this.querySelector('[data-out]');
+      const read = this.querySelector('[data-read]');
+      const cols = [...this.querySelectorAll<HTMLElement>('[data-col]')];
+      const max = Math.pow(A, cols.length);
+
+      const render = () => {
+        const n = Number(slider?.value ?? 2);
+        if (out) out.textContent = String(n);
+        cols.forEach((col) => {
+          const k = Number(col.dataset.col);
+          const total = Math.pow(A, k);
+          const bar = col.querySelector<HTMLElement>('[data-bar]');
+          if (bar) bar.style.height = `${(total / max) * 100}%`;
+          col.classList.toggle('is-on', k === n);
+          col.classList.toggle('is-past', k < n);
+        });
+        if (read) {
+          const total = Math.pow(A, n);
+          read.textContent =
+            `${n} agent${n === 1 ? '' : 's'} × ${A} actions each = ` +
+            `${total.toLocaleString('en-US')} joint actions`;
+        }
+      };
+
+      slider?.addEventListener('input', render);
+      render();
+    }
+  }
+  if (!customElements.get('joint-action-scale')) {
+    customElements.define('joint-action-scale', JointActionScale);
+  }
+</script>
+
+<style>
+  .jas {
+    display: block;
+    margin-block: var(--s-5);
+    padding: var(--s-4);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+
+  .jas__ctl {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    margin-bottom: var(--s-3);
+  }
+  .jas__lab {
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    color: var(--ink-muted);
+    white-space: nowrap;
+  }
+  .jas__slider { flex: 1; accent-color: var(--ui); }
+  .jas__out {
+    font-family: var(--font-mono);
+    font-size: var(--t-small);
+    font-weight: var(--w-semibold);
+    min-width: 1.2rem;
+    text-align: right;
+  }
+
+  .jas__bars {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--s-2);
+    height: 110px;
+  }
+  .jas__col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+  }
+  .jas__barWrap {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+  }
+  .jas__bar {
+    width: 100%;
+    min-height: 2px;
+    background: var(--c-observe);
+    opacity: 0.25;
+    border-radius: 2px 2px 0 0;
+    transition: opacity 0.15s;
+  }
+  .jas__col.is-past .jas__bar { opacity: 0.45; }
+  .jas__col.is-on .jas__bar { opacity: 1; }
+  .jas__n {
+    margin-top: 4px;
+    font-family: var(--font-mono);
+    font-size: var(--t-micro);
+    color: var(--ink-faint);
+  }
+  .jas__col.is-on .jas__n { color: var(--ink); font-weight: 600; }
+
+  .jas__read {
+    margin: var(--s-3) 0 0;
+    font-family: var(--font-mono);
+    font-size: var(--t-small);
+    font-weight: var(--w-semibold);
+    color: var(--ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .jas__bar { transition: none; }
+  }
+</style>

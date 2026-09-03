@@ -1,0 +1,176 @@
+---
+title: "Centralized Training with Decentralized Execution"
+description: "Using centralized information during training while preserving decentralized, locally informed policies at execution."
+related:
+  - slug: coordinate/centralized-critics
+    icon: lightbulb
+  - slug: coordinate/value-decomposition
+    icon: chart
+  - slug: coordinate/centralized-vs-decentralized
+    icon: cycle
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Term from '../../../components/ui/Term.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import CtdeSplit from '../../../components/diagrams/CtdeSplit.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+How can an agent learn from information it will not have at deployment?
+</Callout>
+
+<Term tone="policy">Centralized training with decentralized execution</Term>, or CTDE, permits global information while policies are learned but restricts each deployed agent to information it can obtain locally.
+
+<Objectives>
+
+- Separate what is available during training from what is available at execution
+- List the centralized signals that may support learning
+- Explain why CTDE is a paradigm rather than an algorithm
+- State what CTDE does not guarantee
+
+</Objectives>
+
+## Training and Execution Phases
+
+<CtdeSplit zLabel="z" />
+
+During **training**, centralized information is available and is used to
+shape the learning signal. During **execution**, each policy is conditioned
+only on information locally available to its own agent.
+
+<Callout variant="takeaway">
+**Centralize information for learning. Decentralize decisions for execution.**
+</Callout>
+
+The important word in that sentence is *decisions*. Nothing is centralized at
+execution time, not the choice, not the information, not any component. What
+was centralized is already spent: it went into the gradients that produced
+these policies, and then it went away.
+
+## Centralized Training Information
+
+Give the extra information a name so it can be used without re-listing it
+every time.
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\tone{comm}{z_t} \;=\; \text{whatever is available centrally at training time}`}
+  terms={[
+    { tex: String.raw`z_t`, is: 'centralized information at step t: available while learning, never at execution', tone: 'comm' },
+  ]}
+  caption="One symbol for everything training is allowed to see and execution is not."
+/>
+
+Depending on the setup, $z_t$ might contain
+
+- the **global state** $\st$, if the simulator can provide it,
+- **other agents' observations**, $\obs{j}$ for $j \neq \ag$,
+- **other agents' actions**, or the whole joint action $\jointact$,
+- anything else the trainer happens to have: episode metadata, partner
+  identities, privileged simulator variables.
+
+This is a genuinely free lunch in most workflows, and that is worth being
+explicit about. Training usually happens in a simulator you wrote, on one
+machine, with every agent's tensors in the same process. Declining to look at
+them does not make your method more principled; it just discards information
+you already have.
+
+<Callout variant="pitfall">
+CTDE is **not** communication, and confusing the two will cause trouble in
+the Communicate chapter.
+
+Under CTDE, $z_t$ is used by the learning algorithm and is gone at deployment.
+Under communication, one agent sends information that another agent uses
+*while acting*, so it has to fit in a channel, it can be lost, and it costs
+something.
+
+A quick test: if the trick still works when the deployed robots have their
+radios removed, it is CTDE. If not, it is communication.
+</Callout>
+
+## Limits of CTDE
+
+This is the correction most worth making early, because CTDE is routinely
+spoken about as though it were an algorithm.
+
+It is not. CTDE is a **training and execution paradigm**, a statement about
+what information is permitted at which moment. It does not tell you:
+
+- whether learning is **value-based or policy-based**,
+- whether you use a **centralized critic**,
+- whether you use **value decomposition**,
+- which **algorithm** you run at all.
+
+Those are separate design choices made *inside* CTDE, and the next four
+sections are exactly those choices. A centralized critic and a value
+decomposition are both ways of exploiting $z_t$; they are siblings under this
+paradigm rather than alternatives to it.
+
+<div class="table-scroll">
+
+| Question | Answered by |
+| --- | --- |
+| What may training see? What may execution see? | the **paradigm**, CTDE |
+| How is the centralized information actually used? | the **method**, a centralized critic, a value decomposition, … |
+| Which update rule computes it? | the **algorithm**, PPO, Q-learning, … |
+</div>
+
+<Callout tone="observe" title="The constraint that survives" icon="compass">
+One thing CTDE never relaxes: the deployed policies must be functions of local
+information. Every method in this chapter has to produce
+$\pol{\ag}(\act{\ag} \given \obs{\ag})$, or a version conditioned on that
+agent's own history, no matter how much it looked at during training.
+
+If a method needs $z_t$ at execution time, it has not solved the problem. It
+has changed it.
+</Callout>
+
+<KnowledgeCheck
+  id="co-1-4-ctde"
+  type="choice"
+  question="A method trains a value function on the global state, then at deployment each agent picks actions using only its own observation. Someone objects that this is 'cheating'. What is the best response?"
+  options={[
+    {
+      text: 'It is not cheating: the extra information shaped the learning signal but is not required to act, so the deployed system still satisfies the decentralization constraint.',
+      correct: true,
+      feedback: 'Exactly right. The constraint that matters is on execution, and it is satisfied. The global state is a training-time resource, like a simulator or a reset function, things no deployed system has either.',
+    },
+    {
+      text: 'It is cheating, since a real system would not have the global state.',
+      correct: false,
+      feedback: 'A real system does not have a simulator, a reset button or a million episodes either, and nobody calls those cheating. What matters is whether the *deployed* policy needs information it cannot get, and here it does not.',
+    },
+    {
+      text: 'It is fine, because the global state is only an approximation of the agents’ observations.',
+      correct: false,
+      feedback: 'It is the other way around: the observations are lossy views of the state. And that is not the reason it is acceptable, the reason is that the state is used only during training.',
+    },
+    {
+      text: 'It depends on whether the agents can communicate at deployment.',
+      correct: false,
+      feedback: 'That is the CTDE-versus-communication distinction, and it is not what decides this case. Because nothing needs to be transmitted at execution time, communication is irrelevant here, the policies already run on local information alone.',
+    },
+  ]}
+>
+Being able to defend this cleanly matters: the objection comes up constantly,
+and the answer is always about *which moment* the information is used in.
+</KnowledgeCheck>
+
+## CTDE Summary
+
+- **CTDE** allows centralized information while learning and requires local
+  information while acting.
+- $z_t$ names that centralized information: global state, other agents'
+  observations, the joint action, or anything else training has access to.
+- It is a **paradigm, not an algorithm**. It does not specify value-based
+  versus policy-based learning, nor whether you use a centralized critic or a
+  value decomposition. Those are choices made within it.
+- It is **not communication**. $z_t$ is spent during training; a message is
+  used while acting, and must fit a channel.
+- The surviving constraint: deployed policies are functions of local
+  information only.

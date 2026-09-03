@@ -1,0 +1,494 @@
+---
+/**
+ * CHAPTER HERO
+ *
+ * One illustration per chapter, carrying the central problem before any
+ * technical material. All three are the same kitchen seen three ways, and
+ * they reuse IsoRobot so the agents here are visibly the agents in the
+ * diagrams and in the lab.
+ *
+ * WHY PANELS INSTEAD OF ONE WIDE SVG
+ * A single 900-unit strip scaled into a 44rem text column renders each stage
+ * at about 200px, which puts the ticket text and the reach arrows below
+ * legibility. So each stage is its own small SVG in a grid that reflows, and
+ * every label is real HTML text at a real font size rather than SVG text
+ * shrunk by the viewBox. The panels still read as one wide strip on a desktop
+ * column, and they stack instead of shrinking when the column is narrow.
+ */
+import IsoRobot from '../landing/IsoRobot.astro';
+
+interface Props {
+  variant: 'coordinate' | 'communicate' | 'adapt';
+}
+const { variant } = Astro.props;
+
+/* Panel geometry. Ground line at y = 142, so a 0.58-scale robot standing
+   behind the counter has its head at y = 84 and its base hidden by the
+   counter front. */
+const W = 240;
+/* Cropped to the content: the order board starts at y=16 and the floor ends at
+   y=166, so a taller box only adds dead space under each panel. */
+const H = 174;
+const arrow = `hero-arrow-${variant}`;
+const dot = `hero-dot-${variant}`;
+---
+
+<figure class="hero not-content" data-variant={variant}>
+  <div class:list={['hero__grid', `hero__grid--${variant}`]}>
+    {/* ------------------------------------------------ shared SVG defs */}
+    <svg class="hero__defs" aria-hidden="true" width="0" height="0">
+      <defs>
+        <marker id={arrow} viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5"
+          markerHeight="5" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="context-stroke" />
+        </marker>
+        <pattern id={dot} width="4" height="4" patternUnits="userSpaceOnUse">
+          <circle cx="1.4" cy="1.4" r="0.9" fill="currentColor" opacity="0.55" />
+        </pattern>
+      </defs>
+    </svg>
+
+    {
+      variant === 'coordinate' &&
+        [
+          { key: 'goal', label: 'shared goal' },
+          { key: 'clash', label: 'both reach for one thing' },
+          { key: 'split', label: 'complementary' },
+        ].map((stage) => (
+          <div class="hero__cell">
+            <svg viewBox={`0 0 ${W} ${H}`} class="hero__svg" role="img">
+              <ellipse class="hero__floor" cx="120" cy="150" rx="106" ry="16" />
+
+              {/* the order, on the wall where both agents can see it */}
+              <g class="hero__wallBoard">
+                <rect x="12" y="16" width="78" height="58" rx="5" />
+                <path class="hero__bowl" d="M 38 46 h 28 a 14 14 0 0 1 -28 0 Z" />
+                <path class="hero__bowlSteam" d="M 47 40 c 3 -6 -3 -8 0 -13" />
+                <path class="hero__bowlSteam" d="M 58 40 c 3 -6 -3 -8 0 -13" />
+                <line x1="24" y1="62" x2="78" y2="62" />
+              </g>
+
+              {/* extractor hood, so the hob side of the room is a room */}
+              <g class="hero__hood">
+                <path d="M 168 34 h 10 v 12 h -10 Z" />
+                <path d="M 142 46 H 204 L 212 68 H 134 Z" />
+              </g>
+
+              <IsoRobot x={78} y={134} scale={0.58} tone="policy" piece="cube" noShadow />
+              <IsoRobot x={164} y={134} scale={0.58} tone="action" piece="sphere" flip noShadow />
+
+              <path class="hero__counterFront" d="M 24 128 H 216 V 148 H 24 Z" />
+              <path class="hero__counterTop" d="M 40 112 H 200 L 216 128 H 24 Z" />
+
+              {/* ingredient station on the left, hob on the right */}
+              <path class="hero__board" d="M 44 116 h 46 l 6 8 h -46 Z" />
+              <circle class={`hero__veg${stage.key === 'split' ? ' is-taken' : ''}`} cx="58" cy="120" r="4.2" />
+              <circle class="hero__veg" cx="73" cy="121" r="3.6" />
+
+              <path class={`hero__hob${stage.key === 'split' ? ' is-on' : ''}`} d="M 148 116 h 46 l 6 8 h -46 Z" />
+              <ellipse class={`hero__hobRing${stage.key === 'split' ? ' is-on' : ''}`} cx="170" cy="120" rx="15" ry="4.6" />
+              <path class="hero__pot" d="M 158 106 h 25 v 10 a 12.5 4 0 0 1 -25 0 Z" />
+              {stage.key === 'split' && <path class="hero__steam" d="M 168 96 c 4 -7 -4 -9 0 -16" />}
+
+              {/* stage 2: both agents go for the same ingredient, hob unused */}
+              {stage.key === 'clash' && (
+                <>
+                  <path class="hero__reach is-clash" d="M 90 106 C 80 94, 66 100, 61 112"
+                    marker-end={`url(#${arrow})`} />
+                  <path class="hero__reach is-clash" d="M 146 104 C 120 80, 82 92, 66 110"
+                    marker-end={`url(#${arrow})`} />
+                </>
+              )}
+
+              {/* stage 3: one takes the ingredient, the other takes the hob */}
+              {stage.key === 'split' && (
+                <>
+                  <path class="hero__reach is-good" d="M 90 106 C 80 94, 66 100, 61 112"
+                    marker-end={`url(#${arrow})`} />
+                  <path class="hero__reach is-good" d="M 150 104 C 156 94, 164 106, 167 114"
+                    marker-end={`url(#${arrow})`} />
+                </>
+              )}
+            </svg>
+            <p class="hero__label">{stage.label}</p>
+          </div>
+        ))
+    }
+
+    {
+      variant === 'communicate' && (
+        <>
+          <div class="hero__cell">
+            <p class="hero__badge hero__badge--ghost" aria-hidden="true">.</p>
+            <svg viewBox={`0 0 ${W} ${H}`} class="hero__svg" role="img">
+              <ellipse class="hero__floor" cx="120" cy="150" rx="106" ry="16" />
+
+              {/* the order board on the wall, showing the next order as a bowl */}
+              <g class="hero__wallBoard">
+                <rect x="120" y="18" width="86" height="62" rx="5" />
+                <path class="hero__bowl" d="M 148 44 h 30 a 15 15 0 0 1 -30 0 Z" />
+                <path class="hero__bowlSteam" d="M 158 38 c 3 -6 -3 -8 0 -13" />
+                <path class="hero__bowlSteam" d="M 170 38 c 3 -6 -3 -8 0 -13" />
+                <line x1="134" y1="66" x2="192" y2="66" />
+              </g>
+
+              <IsoRobot x={78} y={134} scale={0.58} tone="policy" piece="cube" noShadow />
+
+              <path class="hero__counterFront" d="M 24 128 H 216 V 148 H 24 Z" />
+              <path class="hero__counterTop" d="M 40 112 H 200 L 216 128 H 24 Z" />
+              <path class="hero__board" d="M 44 116 h 46 l 6 8 h -46 Z" />
+              <circle class="hero__veg" cx="58" cy="120" r="4.2" />
+              <circle class="hero__veg" cx="73" cy="121" r="3.6" />
+
+              <path class="hero__look" d="M 100 88 C 112 74, 118 64, 124 58"
+                marker-end={`url(#${arrow})`} />
+            </svg>
+            <p class="hero__label">sees the order</p>
+          </div>
+
+          <div class="hero__link">
+            <svg viewBox="0 0 96 60" class="hero__linkSvg" role="img" aria-label="a message crosses">
+              <path class="hero__msgPath" d="M 6 30 H 88" marker-end={`url(#${arrow})`} />
+              <g class="hero__token">
+                <rect x="33" y="16" width="28" height="28" rx="6" />
+                <rect x="38" y="21" width="18" height="18" fill={`url(#${dot})`} stroke="none" />
+              </g>
+            </svg>
+            <p class="hero__label">message</p>
+          </div>
+
+          <div class="hero__cell">
+            <p class="hero__badge hero__badge--ghost" aria-hidden="true">.</p>
+            <svg viewBox={`0 0 ${W} ${H}`} class="hero__svg" role="img">
+              <ellipse class="hero__floor" cx="120" cy="150" rx="106" ry="16" />
+
+              {/* extractor hood over the stove this agent is watching */}
+              <g class="hero__hood">
+                <path d="M 70 34 h 10 v 12 h -10 Z" />
+                <path d="M 46 46 H 108 L 116 68 H 38 Z" />
+              </g>
+
+              <IsoRobot x={158} y={134} scale={0.58} tone="action" piece="sphere" flip noShadow />
+
+              <path class="hero__counterFront" d="M 24 128 H 216 V 148 H 24 Z" />
+              <path class="hero__counterTop" d="M 40 112 H 200 L 216 128 H 24 Z" />
+
+              <path class="hero__hob is-on" d="M 52 116 h 46 l 6 8 h -46 Z" />
+              <ellipse class="hero__hobRing is-on" cx="74" cy="120" rx="15" ry="4.6" />
+              <path class="hero__pot" d="M 62 104 h 26 v 12 a 13 4 0 0 1 -26 0 Z" />
+              <path class="hero__steam" d="M 70 94 c 4 -8 -4 -10 0 -18" />
+              <path class="hero__steam" d="M 82 94 c 4 -8 -4 -10 0 -18" />
+
+              <path class="hero__look" d="M 142 92 C 126 80, 108 92, 94 104"
+                marker-end={`url(#${arrow})`} />
+            </svg>
+            <p class="hero__label">sees the stove</p>
+          </div>
+        </>
+      )
+    }
+
+    {
+      variant === 'adapt' && (
+        <>
+          <div class="hero__cell">
+            <p class="hero__badge hero__badge--reward">order served</p>
+            <svg viewBox={`0 0 ${W} ${H}`} class="hero__svg" role="img">
+              <ellipse class="hero__floor" cx="120" cy="150" rx="106" ry="16" />
+
+
+              {/* the order, on the wall where both agents can see it */}
+              <g class="hero__wallBoard">
+                <rect x="12" y="16" width="78" height="58" rx="5" />
+                <path class="hero__bowl" d="M 38 46 h 28 a 14 14 0 0 1 -28 0 Z" />
+                <path class="hero__bowlSteam" d="M 47 40 c 3 -6 -3 -8 0 -13" />
+                <path class="hero__bowlSteam" d="M 58 40 c 3 -6 -3 -8 0 -13" />
+                <line x1="24" y1="62" x2="78" y2="62" />
+              </g>
+
+              {/* extractor hood, so the hob side of the room is a room */}
+              <g class="hero__hood">
+                <path d="M 168 34 h 10 v 12 h -10 Z" />
+                <path d="M 142 46 H 204 L 212 68 H 134 Z" />
+              </g>
+
+              <IsoRobot x={72} y={134} scale={0.58} tone="policy" piece="cube" noShadow />
+              <IsoRobot x={168} y={134} scale={0.58} tone="action" piece="sphere" flip noShadow />
+
+              <path class="hero__counterFront" d="M 24 128 H 216 V 148 H 24 Z" />
+              <path class="hero__counterTop" d="M 40 112 H 200 L 216 128 H 24 Z" />
+
+              {/* ingredient collected, hob lit, plated dish between them */}
+              <path class="hero__board" d="M 40 116 h 42 l 6 8 h -42 Z" />
+              <circle class="hero__veg is-taken" cx="54" cy="120" r="4.2" />
+
+              <ellipse class="hero__plate" cx="120" cy="122" rx="17" ry="6" />
+              <path class="hero__bowl" d="M 109 119 h 22 a 11 9 0 0 1 -22 0 Z" />
+
+              <path class="hero__hob is-on" d="M 152 116 h 44 l 6 8 h -44 Z" />
+              <ellipse class="hero__hobRing is-on" cx="174" cy="120" rx="15" ry="4.6" />
+              <path class="hero__pot" d="M 162 106 h 25 v 10 a 12.5 4 0 0 1 -25 0 Z" />
+              <path class="hero__steam" d="M 172 96 c 4 -7 -4 -9 0 -16" />
+
+              <path class="hero__reach is-good" d="M 84 106 C 74 94, 60 100, 56 114"
+                marker-end={`url(#${arrow})`} />
+              <path class="hero__reach is-good" d="M 154 104 C 160 94, 168 106, 171 114"
+                marker-end={`url(#${arrow})`} />
+            </svg>
+            <p class="hero__label">familiar partner</p>
+          </div>
+
+          <div class="hero__link">
+            <svg viewBox="0 0 96 60" class="hero__linkSvg" role="img" aria-label="the partner changed">
+              <path class="hero__swap" d="M 8 30 H 86" marker-end={`url(#${arrow})`} />
+            </svg>
+            <p class="hero__label">partner changed</p>
+          </div>
+
+          <div class="hero__cell">
+            <p class="hero__badge hero__badge--conflict">nobody fetches</p>
+            <svg viewBox={`0 0 ${W} ${H}`} class="hero__svg" role="img">
+              <ellipse class="hero__floor" cx="120" cy="150" rx="106" ry="16" />
+
+
+              {/* the order, on the wall where both agents can see it */}
+              <g class="hero__wallBoard">
+                <rect x="12" y="16" width="78" height="58" rx="5" />
+                <path class="hero__bowl" d="M 38 46 h 28 a 14 14 0 0 1 -28 0 Z" />
+                <path class="hero__bowlSteam" d="M 47 40 c 3 -6 -3 -8 0 -13" />
+                <path class="hero__bowlSteam" d="M 58 40 c 3 -6 -3 -8 0 -13" />
+                <line x1="24" y1="62" x2="78" y2="62" />
+              </g>
+
+              {/* extractor hood, so the hob side of the room is a room */}
+              <g class="hero__hood">
+                <path d="M 168 34 h 10 v 12 h -10 Z" />
+                <path d="M 142 46 H 204 L 212 68 H 134 Z" />
+              </g>
+
+              <IsoRobot x={78} y={134} scale={0.58} tone="policy" piece="cube" noShadow />
+              <IsoRobot x={162} y={134} scale={0.58} tone="conflict" piece="cone" flip noShadow />
+
+              <path class="hero__counterFront" d="M 24 128 H 216 V 148 H 24 Z" />
+              <path class="hero__counterTop" d="M 40 112 H 200 L 216 128 H 24 Z" />
+
+              {/* the ingredient is still there; both agents are at the hob */}
+              <path class="hero__board" d="M 40 116 h 42 l 6 8 h -42 Z" />
+              <circle class="hero__veg" cx="54" cy="120" r="4.2" />
+              <circle class="hero__veg" cx="69" cy="121" r="3.6" />
+
+              <path class="hero__hob" d="M 138 116 h 46 l 6 8 h -46 Z" />
+              <ellipse class="hero__hobRing" cx="160" cy="120" rx="15" ry="4.6" />
+              <path class="hero__pot" d="M 148 106 h 25 v 10 a 12.5 4 0 0 1 -25 0 Z" />
+
+              <path class="hero__reach is-clash" d="M 96 104 C 118 84, 140 94, 152 112"
+                marker-end={`url(#${arrow})`} />
+              <path class="hero__reach is-clash" d="M 146 104 C 148 92, 154 102, 156 112"
+                marker-end={`url(#${arrow})`} />
+            </svg>
+            <p class="hero__label">new partner</p>
+          </div>
+        </>
+      )
+    }
+  </div>
+  <figcaption class="hero__caption"><slot /></figcaption>
+</figure>
+
+<style>
+  .hero {
+    margin-block: var(--s-6);
+    container-type: inline-size;
+  }
+
+  .hero__defs { position: absolute; width: 0; height: 0; }
+
+  .hero__grid {
+    display: grid;
+    gap: var(--s-2);
+    align-items: end;
+    padding: var(--s-3) var(--s-2);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+  .hero__grid--coordinate { grid-template-columns: repeat(3, 1fr); }
+  .hero__grid--communicate,
+  .hero__grid--adapt { grid-template-columns: 1fr minmax(4.5rem, 6rem) 1fr; }
+
+  /* A panel below roughly 12rem stops being readable, so the strip stacks
+     rather than shrinking. Container units, because the text column is much
+     narrower than the viewport. */
+  .hero__cell { min-width: 0; }
+  .hero__svg { display: block; width: 100%; height: auto; }
+
+  .hero__link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s-1);
+    padding-bottom: 2.4rem;
+  }
+  .hero__linkSvg { width: 100%; height: auto; overflow: visible; }
+
+  /* ---------------------------------------------------------------- labels */
+  .hero__label,
+  .hero__badge {
+    margin: 0;
+    text-align: center;
+    font-family: var(--font-sans);
+    font-size: var(--t-micro);
+    line-height: 1.3;
+  }
+  .hero__label {
+    margin-top: var(--s-1);
+    color: var(--ink-muted);
+  }
+  .hero__badge {
+    margin-bottom: var(--s-2);
+    padding: 0.2em 0.55em;
+    justify-self: center;
+    width: max-content;
+    font-weight: var(--w-semibold);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    background: var(--surface-sunken);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-sm);
+  }
+  .hero__badge--ghost { visibility: hidden; }
+  .hero__badge--reward {
+    color: var(--c-reward-ink);
+    background: var(--c-reward-tint);
+    border-color: var(--c-reward-edge);
+  }
+  .hero__badge--conflict {
+    color: var(--c-conflict-ink);
+    background: var(--c-conflict-tint);
+    border-color: var(--c-conflict-edge);
+  }
+
+  /* ---------------------------------------------------------------- kitchen */
+  .hero__floor { fill: color-mix(in srgb, var(--ui) 6%, transparent); }
+
+  .hero__counterTop {
+    fill: var(--iso-body, #e7e7ea);
+    stroke: color-mix(in srgb, var(--ink) 14%, transparent);
+    stroke-width: 1;
+  }
+  .hero__counterFront {
+    fill: color-mix(in srgb, var(--ink) 10%, var(--surface));
+    stroke: color-mix(in srgb, var(--ink) 14%, transparent);
+    stroke-width: 1;
+  }
+
+  .hero__board {
+    fill: color-mix(in srgb, var(--c-observe) 16%, var(--surface));
+    stroke: color-mix(in srgb, var(--c-observe) 45%, transparent);
+    stroke-width: 1;
+  }
+  .hero__veg { fill: var(--c-reward); }
+  .hero__veg.is-taken { fill: none; stroke: color-mix(in srgb, var(--ink) 22%, transparent); stroke-width: 1; stroke-dasharray: 2 2; }
+
+  .hero__hob {
+    fill: color-mix(in srgb, var(--ink) 12%, var(--surface));
+    stroke: color-mix(in srgb, var(--ink) 20%, transparent);
+    stroke-width: 1;
+  }
+  .hero__hob.is-on {
+    fill: color-mix(in srgb, var(--c-action) 20%, var(--surface));
+    stroke: color-mix(in srgb, var(--c-action) 50%, transparent);
+  }
+  .hero__hobRing { fill: none; stroke: color-mix(in srgb, var(--ink) 25%, transparent); stroke-width: 2; }
+  .hero__hobRing.is-on { stroke: var(--c-action); }
+
+  .hero__pot {
+    fill: color-mix(in srgb, var(--ink) 30%, var(--surface));
+    stroke: color-mix(in srgb, var(--ink) 40%, transparent);
+    stroke-width: 1;
+  }
+  .hero__plate {
+    fill: var(--surface);
+    stroke: color-mix(in srgb, var(--ink) 22%, transparent);
+    stroke-width: 1;
+  }
+  .hero__bowl { fill: color-mix(in srgb, var(--c-reward) 40%, var(--surface)); }
+  .hero__steam,
+  .hero__bowlSteam {
+    fill: none;
+    stroke: color-mix(in srgb, var(--ink) 28%, transparent);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+  }
+
+  .hero__hood path {
+    fill: color-mix(in srgb, var(--ink) 8%, var(--surface));
+    stroke: color-mix(in srgb, var(--ink) 20%, transparent);
+    stroke-width: 1;
+  }
+
+  .hero__wallBoard rect {
+    fill: var(--surface);
+    stroke: color-mix(in srgb, var(--c-observe) 55%, transparent);
+    stroke-width: 1.4;
+  }
+  .hero__wallBoard line { stroke: color-mix(in srgb, var(--c-observe) 40%, transparent); stroke-width: 2; }
+
+  /* ------------------------------------------------------------- intentions */
+  .hero__reach,
+  .hero__look {
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  .hero__reach.is-clash { stroke: var(--c-conflict); }
+  .hero__reach.is-good { stroke: var(--c-reward); }
+  .hero__look { stroke: var(--c-observe); stroke-dasharray: 3 3; }
+
+  .hero__msgPath,
+  .hero__swap {
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  .hero__msgPath { stroke: var(--c-comm); }
+  .hero__swap { stroke: color-mix(in srgb, var(--ink) 45%, transparent); }
+
+  .hero__token { color: var(--c-comm); }
+  .hero__token rect:first-child {
+    fill: color-mix(in srgb, var(--c-comm) 14%, var(--surface));
+    stroke: var(--c-comm);
+    stroke-width: 1.4;
+  }
+
+  /* --------------------------------------------------------------- caption */
+  .hero__caption {
+    margin-top: var(--s-3);
+    font-family: var(--font-sans);
+    font-size: var(--t-meta);
+    line-height: var(--lh-tight, 1.45);
+    color: var(--ink-muted);
+    text-align: center;
+  }
+  .hero__caption:empty { display: none; }
+
+  /* A panel narrower than about 12rem stops being readable, so the strip
+     becomes a column and the connector turns to point down. Container units,
+     because the text column is much narrower than the viewport. Last in the
+     sheet so these win over the base rules above. */
+  @container (max-width: 36rem) {
+    .hero__grid--coordinate,
+    .hero__grid--communicate,
+    .hero__grid--adapt { grid-template-columns: 1fr; }
+    .hero__link {
+      padding-block: var(--s-1);
+      padding-bottom: 0;
+    }
+    .hero__linkSvg {
+      width: 3rem;
+      transform: rotate(90deg);
+    }
+  }
+</style>

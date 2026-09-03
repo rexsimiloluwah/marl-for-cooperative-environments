@@ -1,0 +1,507 @@
+---
+/**
+ * ANNOTATED EQUATION
+ *
+ * The central teaching primitive of this resource. An important equation is
+ * not maths followed by a bullet list of definitions; it is a diagram whose
+ * parts are labelled in place.
+ *
+ * Terms are tagged in the LaTeX with `\mark{key}{...}` and referenced by that
+ * key in `annotations`. Positions are measured in the browser, so there are
+ * no coordinates to maintain and editing the formula cannot desynchronise the
+ * labels. See src/lib/equations/annotate.ts.
+ *
+ * Colour is semantic, never decorative. A term's `tone` must match the
+ * concept it denotes, using the same six tones as every diagram, the lab, the
+ * videos and the slides. Pick from: action, observe, policy, comm, reward,
+ * conflict.
+ *
+ * ```mdx
+ * <Equation
+ *   label="Figure 1.4"
+ *   tex={String.raw`\mark{a}{\act{i}} \sim \mark{pi}{\pol{i}}\!\left(\act{i} \given \mark{o}{\obs{i}}\right)`}
+ *   annotations={[
+ *     { term: 'a',  side: 'above', tone: 'action',  label: 'the action agent i takes', reads: 'a superscript i, subscript t' },
+ *     { term: 'pi', side: 'above', tone: 'policy',  label: 'agent i&rsquo;s own policy' },
+ *     { term: 'o',  side: 'below', tone: 'observe', label: 'only what agent i can see' },
+ *   ]}
+ *   caption="Each agent acts on its own observation alone."
+ * />
+ * ```
+ */
+import katex from 'katex';
+import { ANNOTATED_MACROS } from '../../lib/equations/notation.mjs';
+import type { Annotation } from '../../lib/equations/annotate';
+
+type Tone = 'action' | 'observe' | 'policy' | 'comm' | 'reward' | 'conflict';
+
+/** One row of the "where:" legend under an equation. */
+interface TermDef {
+  /** The symbol, as LaTeX. e.g. String.raw`\rew` */
+  tex: string;
+  /** What it denotes. One clause, no trailing full stop. */
+  is: string;
+  /** Colour, matched to how the symbol is toned inside the equation. */
+  tone?: Tone;
+}
+
+interface Props {
+  /** LaTeX. Tag annotated sub-terms with `\mark{key}{...}`. */
+  tex: string;
+  /** Labels to place around the equation. */
+  annotations?: Annotation[];
+  /** Figure label, e.g. "Figure 1.4". Explicit, so prose can cite it. */
+  label?: string;
+  /** Caption. This is where the teaching prose goes, not into the labels. */
+  caption?: string;
+  /** Allow the figure to exceed the text measure. */
+  wide?: boolean;
+  /** Offer a step-through control that reveals annotations one at a time. */
+  steps?: boolean;
+  /**
+   * Symbol legend, rendered under the equation as a "where:" list.
+   *
+   * This is the preferred way to say what an equation's parts mean. Braces
+   * inside the LaTeX (`\ubrace`, `\obrace`) name the ROLE a group of terms
+   * plays; this list defines each individual SYMBOL. Between them there is
+   * usually no need for a drawn arrow at all.
+   */
+  terms?: TermDef[];
+}
+
+const {
+  tex,
+  annotations = [],
+  label,
+  caption,
+  wide = false,
+  steps = false,
+  terms = [],
+} = Astro.props;
+
+/** Renders one legend symbol. Inline mode, so it sits on the text baseline. */
+function renderSymbol(symbolTex: string): string {
+  try {
+    return katex.renderToString(symbolTex, {
+      displayMode: false,
+      trust: true,
+      strict: false,
+      throwOnError: true,
+      macros: ANNOTATED_MACROS,
+    });
+  } catch (error) {
+    throw new Error(
+      `Equation legend symbol failed to render.\n  LaTeX: ${symbolTex}\n` +
+        `  KaTeX: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+const legend = terms.map((t) => ({ ...t, html: renderSymbol(t.tex) }));
+
+// `trust: true` is safe here and only here: this LaTeX is authored in the
+// repository, not supplied by a reader. Prose maths keeps `trust: false`.
+let html = '';
+let renderError: string | null = null;
+try {
+  html = katex.renderToString(tex, {
+    displayMode: true,
+    trust: true,
+    strict: false,
+    throwOnError: true,
+    macros: ANNOTATED_MACROS,
+  });
+} catch (error) {
+  // Fail the build loudly. A silently broken equation is worse than no page.
+  renderError = error instanceof Error ? error.message : String(error);
+  throw new Error(
+    `Equation failed to render.\n  LaTeX: ${tex}\n  KaTeX: ${renderError}`
+  );
+}
+
+// Warn at build time about annotations whose term is not present in the
+// output, which is the one way these can drift out of sync.
+const present = new Set(
+  [...html.matchAll(/data-term="([^"]+)"/g)].map((m) => m[1])
+);
+const orphans = annotations.filter((a) => !present.has(a.term));
+// A label is a pointer, not a sentence. Long ones force the spread algorithm
+// into extra lanes and crowd the figure; the explanation belongs in `caption`.
+const LABEL_MAX = 34;
+const longLabels = annotations.filter((a) => a.label.length > LABEL_MAX);
+if (longLabels.length) {
+  console.warn(
+    `[Equation] ${label ?? 'unlabelled'}: label longer than ${LABEL_MAX} ` +
+      `characters: ` +
+      longLabels.map((a) => `"${a.label}" (${a.label.length})`).join(', ') +
+      `. Shorten it and move the explanation into the caption.`
+  );
+}
+
+/**
+ * A brace inside \left...\right makes the delimiter grow to cover the
+ * brace AND its label, which stretches a pair of parentheses to several times
+ * its natural height. Fixed-size delimiters avoid the stretch but the wide
+ * label then shoves the bracket away from its contents instead. Neither looks
+ * acceptable, so inside delimiters the house style is colour plus a legend.
+ */
+if (/\\left/.test(tex) && /\\[uo]brace/.test(tex)) {
+  console.warn(
+    `[Equation] ${label ?? 'unlabelled'}: \\ubrace/\\obrace inside ` +
+      `\\left...\\right will stretch the delimiter badly. Either brace the ` +
+      `whole delimited group from outside, or use \\tone to colour the inner ` +
+      `terms and define them in \`terms\`.`
+  );
+}
+
+/**
+ * A brace label much wider than the term it sits under pads the equation with
+ * horizontal whitespace, because the braced group has to be as wide as its
+ * label. Brace labels name a role in a few words; the full definition belongs
+ * in the legend.
+ */
+for (const m of tex.matchAll(/\\[uo]brace\{[a-z]+\}\{.*?\}\{([^}]{28,})\}/g)) {
+  console.warn(
+    `[Equation] ${label ?? 'unlabelled'}: brace label is long ` +
+      `(${m[1].length} chars): "${m[1]}". Long labels pad the equation with ` +
+      `whitespace. Keep brace labels to a few words and move the explanation ` +
+      `into \`terms\` or the caption.`
+  );
+}
+
+if (annotations.length > 2 && terms.length === 0) {
+  console.warn(
+    `[Equation] ${label ?? 'unlabelled'}: ${annotations.length} drawn ` +
+      `annotations and no \`terms\` legend. Prefer \\ubrace/\\obrace inside ` +
+      `the LaTeX plus a \`terms\` list; drawn arrows are a last resort for a ` +
+      `symbol too small to brace.`
+  );
+}
+
+const badUnderlines = annotations.filter(
+  (a) => a.shape === 'underline' && a.side === 'above'
+);
+if (badUnderlines.length) {
+  console.warn(
+    `[Equation] ${label ?? 'unlabelled'}: shape "underline" is always drawn ` +
+      `below its term, so side "above" is ignored for ` +
+      badUnderlines.map((a) => `"${a.term}"`).join(', ') +
+      `. Drawn above a term, the rule reads as a strikethrough.`
+  );
+}
+
+if (orphans.length) {
+  console.warn(
+    `[Equation] ${label ?? 'unlabelled'}: no \\mark{...} found for ` +
+      orphans.map((o) => `"${o.term}"`).join(', ') +
+      `. Present: ${[...present].join(', ') || 'none'}.`
+  );
+}
+---
+
+<figure class:list={['eqn', wide && 'breakout']}>
+  {
+    (label || steps) && (
+      <div class="eqn__head">
+        {label && <span class="label">{label}</span>}
+        {
+          steps && (
+            <div class="eqn__steps" data-eqn-steps>
+              <span class="eqn__count" data-eqn-count aria-live="polite">
+                The equation
+              </span>
+              <button type="button" class="btn btn--quiet" data-eqn-prev>
+                Back
+              </button>
+              <button type="button" class="btn btn--quiet" data-eqn-next>
+                Next
+              </button>
+              <button type="button" class="btn btn--quiet" data-eqn-all>
+                Show all
+              </button>
+            </div>
+          )
+        }
+      </div>
+    )
+  }
+
+  <annotated-equation class="eqn__stage">
+    <div class="eqn__math" data-eqn-math set:html={html} />
+    {/* Only built when there are drawn annotations. Rendering the layer
+        unconditionally left an empty bordered strip inside the frame on every
+        brace-annotated equation, which is now the common case. */}
+    {annotations.length > 0 && (
+    <div class="eqn__layer" data-eqn-layer aria-hidden="true">
+      {
+        /* Rendered server-side so the labels survive a JavaScript failure.
+           The annotation engine only measures and positions them. Order here
+           is the order in `annotations`, which is what the engine indexes by. */
+        annotations.map((a) => (
+          <span
+            class:list={['eqn__label', `eqn__label--${a.tone ?? 'policy'}`]}
+            data-eqn-label
+            data-side={a.side ?? 'below'}
+            data-shape={a.shape ?? 'arrow'}
+          >
+            {a.label}
+          </span>
+        ))
+      }
+    </div>
+    )}
+    {annotations.length > 0 && (
+      <svg class="eqn__wires" data-eqn-wires aria-hidden="true" focusable="false"></svg>
+    )}
+    <script
+      type="application/json"
+      data-eqn-json
+      is:inline
+      set:html={JSON.stringify(annotations)}></script>
+  </annotated-equation>
+
+  {
+    legend.length > 0 && (
+      <dl class="eqn__legend">
+        {legend.map((t) => (
+          <div class:list={['eqn__row', t.tone && `eqn__row--${t.tone}`]}>
+            <dt set:html={t.html} />
+            <dd>{t.is}</dd>
+          </div>
+        ))}
+      </dl>
+    )
+  }
+
+  {
+    (caption || annotations.length > 0) && (
+      <figcaption class="eqn__caption">
+        {caption}
+        {
+          annotations.length > 0 && (
+            /* The label layer is aria-hidden, because floating labels read as
+               disconnected fragments. The same information is given here in
+               reading order instead, so nothing is lost. */
+            <ul class="sr-only">
+              {annotations.map((a) => (
+                <li>
+                  {a.label}
+                  {a.reads ? `: ${a.reads}` : ''}
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </figcaption>
+    )
+  }
+</figure>
+
+<script>
+  import '../../lib/equations/annotate.ts';
+</script>
+
+<style>
+  .eqn {
+    margin-block: var(--s-6);
+  }
+
+  .eqn__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    flex-wrap: wrap;
+    margin-bottom: var(--s-2);
+  }
+
+  .eqn__steps {
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+  }
+
+  .eqn__count {
+    font-size: var(--t-micro);
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+    margin-inline-end: var(--s-2);
+  }
+
+  /* ---- stage ----
+     Padding is set by the annotation engine once it knows how many label
+     lanes each side needs. Before that it is zero, so an equation with no
+     annotations, or one whose script has not run, still sits correctly. */
+  .eqn__stage {
+    display: block;
+    position: relative;
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+    padding: calc(var(--s-5) + var(--eqn-pad-top, 0px)) var(--s-4)
+      calc(var(--s-5) + var(--eqn-pad-bottom, 0px));
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .eqn__math {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* The component owns its own display maths sizing, independent of the
+     prose rules in katex.css, because a figure is not a paragraph. */
+  .eqn__math :global(.katex-display) {
+    margin: 0;
+    font-size: 1.35em;
+  }
+
+  .eqn__wires {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: visible;
+  }
+
+  /* ---- fallback flow ----
+     Until the engine reports back, the label layer is an ordinary wrapped row
+     under the equation. That is what a reader sees if the script fails: the
+     labels and their colours, just not the arrows. */
+  .eqn__layer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--s-2);
+    margin-top: var(--s-4);
+    padding-top: var(--s-3);
+    border-top: var(--hairline) solid var(--rule);
+  }
+
+  /* ---- positioned ----
+     Once measured, the layer becomes an overlay and the labels are placed by
+     transform. */
+  .eqn__stage[data-positioned] .eqn__layer {
+    position: absolute;
+    inset: 0;
+    display: block;
+    margin: 0;
+    padding: 0;
+    border-top: none;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* ---- labels ----
+     Positioned by transform from the top-left of the stage. */
+  .eqn__label {
+    /* No max-width. The engine spreads labels using offsetWidth, and a
+       max-width combined with `nowrap` caps offsetWidth while letting the
+       text overflow it, which makes the spread under-measure and the labels
+       collide. Labels are kept short by convention instead, and the build
+       warns when one runs long. */
+    padding: 0.1rem 0.3rem;
+    font-family: var(--font-sans);
+    font-size: var(--t-micro);
+    font-weight: var(--w-medium);
+    line-height: 1.35;
+    letter-spacing: 0.01em;
+    text-align: center;
+    white-space: nowrap;
+    border-radius: var(--r-sm);
+  }
+
+  .eqn__stage[data-positioned] .eqn__label {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .eqn__label--action { color: var(--c-action-ink); background: var(--c-action-tint); }
+  .eqn__label--observe { color: var(--c-observe-ink); background: var(--c-observe-tint); }
+  .eqn__label--policy { color: var(--c-policy-ink); background: var(--c-policy-tint); }
+  .eqn__label--comm { color: var(--c-comm-ink); background: var(--c-comm-tint); }
+  .eqn__label--reward { color: var(--c-reward-ink); background: var(--c-reward-tint); }
+  .eqn__label--conflict { color: var(--c-conflict-ink); background: var(--c-conflict-tint); }
+
+  /* ---- reveal ----
+     Everything is visible by default so the figure is correct with no
+     JavaScript. The engine only hides things once it is running and a
+     stepper is present. */
+  .eqn__label,
+  .eqn__wires :global([data-wire]) {
+    opacity: 1;
+    transition: opacity var(--dur-mid) var(--ease);
+  }
+
+  /* Once the engine takes over, un-revealed annotations are hidden but keep
+     their layout box, so revealing one never shifts the equation. */
+  .eqn__stage[data-stepping] .eqn__label:not(.is-shown),
+  .eqn__stage[data-stepping] .eqn__wires :global([data-wire]:not(.is-shown)) {
+    opacity: 0;
+  }
+
+  /* ---- variable legend ----
+     A definition list rather than prose, so a reader can scan for one symbol
+     instead of re-reading a sentence. The symbol column is tone-coloured to
+     match how it appears inside the equation, which is what lets the reader
+     connect the two without a drawn line. */
+  .eqn__legend {
+    margin: var(--s-3) 0 0;
+    padding: var(--s-3) var(--s-4);
+    background: var(--surface-sunken);
+    border-radius: var(--r-md);
+    display: grid;
+    gap: var(--s-2);
+    max-width: var(--measure);
+  }
+
+  .eqn__row {
+    display: grid;
+    grid-template-columns: minmax(2.5rem, auto) 1fr;
+    gap: var(--s-3);
+    align-items: baseline;
+  }
+
+  .eqn__legend dt {
+    margin: 0;
+    text-align: right;
+    font-size: 1.02em;
+    color: var(--ink);
+  }
+
+  .eqn__legend dd {
+    margin: 0;
+    font-size: var(--t-small);
+    line-height: 1.5;
+    color: var(--ink-muted);
+  }
+
+  .eqn__row--action dt { color: var(--c-action-ink); }
+  .eqn__row--observe dt { color: var(--c-observe-ink); }
+  .eqn__row--policy dt { color: var(--c-policy-ink); }
+  .eqn__row--comm dt { color: var(--c-comm-ink); }
+  .eqn__row--reward dt { color: var(--c-reward-ink); }
+  .eqn__row--conflict dt { color: var(--c-conflict-ink); }
+
+  /* KaTeX colours its own spans, so the tone has to reach them too. */
+  .eqn__legend dt :global(.katex) { color: inherit; }
+
+  .eqn__caption {
+    display: block;
+    margin-top: var(--s-3);
+    font-size: var(--t-small);
+    line-height: 1.55;
+    color: var(--ink-muted);
+    max-width: var(--measure);
+  }
+
+  @media (max-width: 50rem) {
+    .eqn__math :global(.katex-display) {
+      font-size: 1.1em;
+    }
+    .eqn__label {
+      font-size: 0.6875rem;
+    }
+  }
+</style>

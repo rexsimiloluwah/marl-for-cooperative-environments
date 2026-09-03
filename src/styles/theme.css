@@ -1,0 +1,568 @@
+/* ==========================================================================
+   SHELL AND EDITORIAL THEME
+
+   All Starlight CSS ships inside `@layer starlight.*`. Unlayered rules beat
+   layered ones in the cascade regardless of specificity, and every rule here
+   is unlayered, so nothing needs `!important` and nothing needs to
+   out-specify the framework. Keep it that way.
+
+   Regions:
+     shell   header, left sidebar        --ground
+     article main content, right TOC     --surface
+   The article is a lit surface on a quieter shell, separated by rules rather
+   than by shadows or floating cards.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   BASE
+   -------------------------------------------------------------------------- */
+
+/* Border-box everywhere.
+   Starlight ships this in its own reset, so document pages had it, but the
+   landing page is a standalone route that does not load Starlight's CSS. On
+   that page `height: 100%` on a padded card resolved against the CONTENT box
+   and every card overflowed its grid row by exactly its padding plus border,
+   which ate the row gap and made the cards look like they overlapped.
+   Declaring it here makes these stylesheets self-sufficient rather than
+   relying on a reset that is only present on some routes. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
+  background: var(--ground);
+  scroll-padding-top: calc(var(--header-h) + var(--s-4));
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-size: var(--t-body);
+  line-height: var(--lh-body);
+  letter-spacing: var(--tr-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv05' 1, 'cv08' 1, 'ss03' 1;
+}
+
+::selection {
+  background: var(--ui-tint);
+  color: var(--ui);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ui);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/* Nothing may push the document sideways. Wide children opt into their own
+   horizontal scroll container instead. */
+html,
+body {
+  overflow-x: clip;
+}
+
+/* --------------------------------------------------------------------------
+   HEADER
+   -------------------------------------------------------------------------- */
+
+.header {
+  background: var(--ground);
+  border-bottom: var(--hairline) solid var(--rule);
+  box-shadow: none;
+  padding-inline: var(--s-4);
+}
+
+/* Starlight's header uses a three-column grid sized to the sidebar and
+   content columns. Ours is a single flex row, so the grid is undone. */
+@media (min-width: 50rem) {
+  .header {
+    display: block;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   LEFT SIDEBAR
+   Contents come from the Sidebar override, which carries its own scoped
+   styles. Only the containing pane is styled here.
+   -------------------------------------------------------------------------- */
+
+.sidebar-pane {
+  background: var(--ground);
+  border-inline-end: var(--hairline) solid var(--rule);
+}
+
+.sidebar-content {
+  padding: 0;
+  height: 100%;
+}
+
+/* ---- collapse ----
+   The header toggle sets `data-sb-collapsed` on the root element. Zeroing the
+   width variable as well as hiding the pane keeps Starlight's grid, which is
+   sized from that variable, in agreement with what is on screen. */
+@media (min-width: 50rem) {
+  :root[data-sb-collapsed] {
+    --sl-sidebar-width: 0rem;
+  }
+
+  :root[data-sb-collapsed] .sidebar-pane {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   ARTICLE
+   -------------------------------------------------------------------------- */
+
+.main-frame {
+  background: var(--surface);
+  /* Fill the viewport. Without this the shell colour shows through beneath a
+     short page, which reads as a stray dark band. */
+  min-height: calc(100vh - var(--header-h));
+}
+
+.main-pane {
+  background: var(--surface);
+}
+
+.content-panel {
+  padding-inline: var(--s-6);
+  padding-block: var(--s-6);
+  border-top: none;
+}
+
+/* In a textbook the title and the body are one continuous article, so the
+   rule Starlight draws between its panels is removed. */
+.content-panel + .content-panel {
+  border-top: none;
+  padding-top: 0;
+}
+
+.sl-markdown-content {
+  max-width: var(--measure);
+}
+
+/* --------------------------------------------------------------------------
+   HEADINGS
+   The h1 is produced by the PageTitle override, which owns its own styles.
+   -------------------------------------------------------------------------- */
+
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--ink);
+  font-weight: var(--w-semibold);
+  line-height: var(--lh-heading);
+  letter-spacing: var(--tr-heading);
+  text-wrap: balance;
+}
+
+.sl-markdown-content h2 {
+  font-size: var(--t-h2);
+  margin-top: var(--s-7);
+  margin-bottom: var(--s-3);
+}
+
+.sl-markdown-content > h2:first-child {
+  margin-top: var(--s-2);
+}
+
+.sl-markdown-content h3 {
+  font-size: var(--t-h3);
+  margin-top: var(--s-5);
+  margin-bottom: var(--s-2);
+}
+
+.sl-markdown-content h4 {
+  font-size: var(--t-body);
+  margin-top: var(--s-5);
+  margin-bottom: var(--s-2);
+  color: var(--ink-muted);
+}
+
+.sl-markdown-content .sl-anchor-link {
+  color: var(--ink-faint);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.sl-markdown-content :is(h2, h3, h4, h5, h6):hover .sl-anchor-link,
+.sl-markdown-content .sl-anchor-link:focus-visible {
+  opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   PROSE
+   -------------------------------------------------------------------------- */
+
+.sl-markdown-content p {
+  margin-block: var(--s-4);
+  text-wrap: pretty;
+}
+
+.sl-markdown-content p.lead {
+  font-size: var(--t-lead);
+  line-height: 1.55;
+  color: var(--ink-muted);
+  letter-spacing: -0.008em;
+  margin-bottom: var(--s-5);
+}
+
+.sl-markdown-content :is(ul, ol) {
+  margin-block: var(--s-4);
+  padding-inline-start: var(--s-5);
+}
+
+.sl-markdown-content li + li {
+  margin-top: var(--s-2);
+}
+
+.sl-markdown-content li::marker {
+  color: var(--ink-faint);
+}
+
+/* No `color` here. Body text is already --ink, and setting it would outrank
+   the component-scoped colours on <Term>, because Astro scopes with
+   :where() and so leaves component specificity at a single class. */
+.sl-markdown-content strong {
+  font-weight: var(--w-semibold);
+}
+
+/* Links keep their underline: colour alone must never be the only signal. */
+.sl-markdown-content a:not(.sl-anchor-link) {
+  color: var(--ui);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-color: var(--ui-edge);
+  transition: text-decoration-color var(--dur-fast) var(--ease);
+}
+
+.sl-markdown-content a:not(.sl-anchor-link):hover {
+  text-decoration-color: var(--ui);
+}
+
+.sl-markdown-content blockquote {
+  margin-block: var(--s-5);
+  padding-inline-start: var(--s-4);
+  border-inline-start: 2px solid var(--rule-strong);
+  color: var(--ink-muted);
+  font-style: normal;
+}
+
+.sl-markdown-content hr {
+  margin-block: var(--s-7);
+  border: none;
+  border-top: var(--hairline) solid var(--rule);
+}
+
+/* --------------------------------------------------------------------------
+   CODE
+   -------------------------------------------------------------------------- */
+
+.sl-markdown-content code:not(pre code) {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--surface-sunken);
+  border: var(--hairline) solid var(--rule);
+  border-radius: var(--r-sm);
+  padding: 0.1em 0.32em;
+  color: var(--ink);
+}
+
+.expressive-code {
+  margin-block: var(--s-5);
+}
+
+/* --------------------------------------------------------------------------
+   TABLES
+   -------------------------------------------------------------------------- */
+
+.sl-markdown-content table {
+  width: 100%;
+  margin-block: var(--s-5);
+  border-collapse: collapse;
+  font-size: var(--t-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.sl-markdown-content :is(th, td) {
+  padding: var(--s-2) var(--s-3);
+  text-align: left;
+  border-bottom: var(--hairline) solid var(--rule);
+  vertical-align: top;
+}
+
+.sl-markdown-content th {
+  font-weight: var(--w-semibold);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border-bottom: var(--hairline) solid var(--rule-strong);
+}
+
+/* Embedded UI brings its own table styling. Without this, the markdown
+   table rules above reach into components and uppercase their row headers.
+   `.not-content` is Starlight's opt-out marker; the project's own rules have
+   to honour it too, not just Starlight's. */
+.sl-markdown-content .not-content th {
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+  color: inherit;
+}
+
+.sl-markdown-content .table-scroll {
+  overflow-x: auto;
+  margin-block: var(--s-5);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* --------------------------------------------------------------------------
+   ASIDES
+   Starlight ships four kinds. Remapped onto the semantic palette so a
+   callout's colour already says what kind of thing it is. Purpose-built
+   callouts (Intuition, Example, Takeaway) live in components/ui/Callout.
+   -------------------------------------------------------------------------- */
+
+.starlight-aside {
+  border-radius: var(--r-md);
+  border: var(--hairline) solid;
+  border-inline-start-width: 3px;
+  padding: var(--s-4);
+  margin-block: var(--s-5);
+  font-size: var(--t-small);
+  line-height: var(--lh-loose);
+}
+
+.starlight-aside__title {
+  font-size: var(--t-micro);
+  font-weight: var(--w-semibold);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  gap: var(--s-2);
+}
+
+.starlight-aside p {
+  margin-block: var(--s-2);
+}
+
+.starlight-aside p:first-of-type {
+  margin-top: 0;
+}
+
+.starlight-aside p:last-child {
+  margin-bottom: 0;
+}
+
+.starlight-aside--note {
+  background: var(--c-observe-tint);
+  border-color: var(--c-observe-edge);
+  border-inline-start-color: var(--c-observe);
+}
+.starlight-aside--note .starlight-aside__title { color: var(--c-observe-ink); }
+
+.starlight-aside--tip {
+  background: var(--c-reward-tint);
+  border-color: var(--c-reward-edge);
+  border-inline-start-color: var(--c-reward);
+}
+.starlight-aside--tip .starlight-aside__title { color: var(--c-reward-ink); }
+
+.starlight-aside--caution {
+  background: var(--c-action-tint);
+  border-color: var(--c-action-edge);
+  border-inline-start-color: var(--c-action);
+}
+.starlight-aside--caution .starlight-aside__title { color: var(--c-action-ink); }
+
+.starlight-aside--danger {
+  background: var(--c-conflict-tint);
+  border-color: var(--c-conflict-edge);
+  border-inline-start-color: var(--c-conflict);
+}
+.starlight-aside--danger .starlight-aside__title { color: var(--c-conflict-ink); }
+
+/* --------------------------------------------------------------------------
+   RIGHT SIDEBAR
+   -------------------------------------------------------------------------- */
+
+.right-sidebar {
+  background: var(--surface);
+  border-inline-start: none;
+}
+
+.right-sidebar-panel {
+  padding: var(--s-6) var(--s-4);
+}
+
+starlight-toc nav > h2 {
+  font-size: var(--t-micro);
+  font-weight: var(--w-semibold);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: var(--s-2);
+}
+
+starlight-toc nav ul {
+  padding: 0;
+}
+
+starlight-toc nav a {
+  font-size: var(--t-meta);
+  line-height: 1.4;
+  color: var(--ink-muted);
+  text-decoration: none;
+  border-inline-start: 2px solid var(--rule);
+  padding-block: 0.3rem;
+  transition:
+    color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+starlight-toc nav a:hover {
+  color: var(--ink);
+}
+
+starlight-toc nav a[aria-current='true'] {
+  color: var(--ui);
+  font-weight: var(--w-semibold);
+  border-inline-start-color: var(--ui);
+}
+
+/* --------------------------------------------------------------------------
+   MOBILE TOC
+   -------------------------------------------------------------------------- */
+
+mobile-starlight-toc nav {
+  background: var(--ground);
+  border-bottom: var(--hairline) solid var(--rule);
+}
+
+mobile-starlight-toc nav summary {
+  border: var(--hairline) solid var(--rule);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  font-size: var(--t-meta);
+}
+
+/* --------------------------------------------------------------------------
+   SEARCH
+   -------------------------------------------------------------------------- */
+
+site-search button[data-open-modal] {
+  width: 100%;
+  justify-content: flex-start;
+  background: var(--surface);
+  border: var(--hairline) solid var(--rule);
+  border-radius: var(--r-full);
+  color: var(--ink-faint);
+  font-size: var(--t-meta);
+  padding: 0.45rem var(--s-4);
+  box-shadow: none;
+}
+
+site-search button[data-open-modal]:hover {
+  border-color: var(--rule-strong);
+}
+
+site-search button[data-open-modal] > kbd {
+  margin-inline-start: auto;
+  background: var(--surface-sunken);
+  color: var(--ink-faint);
+  border-radius: var(--r-sm);
+  font-family: var(--font-sans);
+  font-size: var(--t-micro);
+}
+
+/* --------------------------------------------------------------------------
+   BREAKOUT
+   Figures, annotated equations and the lab may exceed the text measure.
+   Prose may not.
+   -------------------------------------------------------------------------- */
+
+.sl-markdown-content .breakout {
+  width: min(var(--measure-wide), 100%);
+  max-width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   MOBILE
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 50rem) {
+  :root {
+    --t-body: 1rem;
+    --t-h1: 1.625rem;
+    --t-h2: 1.25rem;
+    --t-lead: 1.0625rem;
+  }
+
+  .content-panel {
+    padding-inline: var(--s-4);
+    padding-block: var(--s-5);
+  }
+
+  .sl-markdown-content h2 {
+    margin-top: var(--s-6);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   REDUCED MOTION
+   The master prompt requires step-based or simplified updates rather than
+   animation. Interactive islands also read this query in JS and switch to
+   discrete stepping.
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0.01ms;
+    --dur-mid: 0.01ms;
+    --dur-slow: 0.01ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   PRINT
+   Instructors print sections. Make that produce something usable.
+   -------------------------------------------------------------------------- */
+
+@media print {
+  .header,
+  .sidebar-pane,
+  .right-sidebar,
+  .page-actions,
+  .pager {
+    display: none;
+  }
+
+  .sl-markdown-content {
+    max-width: none;
+  }
+
+  body {
+    background: #fff;
+    font-size: 10.5pt;
+  }
+}

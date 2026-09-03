@@ -1,0 +1,212 @@
+---
+/**
+ * NOTEBOOK LINK
+ *
+ * The official Google Colab "Open in Colab" badge for a notebook shipped with
+ * this repository.
+ *
+ * House rule, and it is deliberate: this uses Google's own badge image rather
+ * than a site-styled button, and does not restyle it. A learner who has seen
+ * one Colab notebook recognises that badge instantly, and a bespoke "Launch
+ * notebook" button throws that recognition away for no gain. So the image is
+ * served from colab.research.google.com at its intrinsic 117x20, with only
+ * a focus ring added for keyboard users.
+ *
+ * `width` and `height` are set to the SVG's own dimensions. That is not a
+ * restyle: it reserves the right box before the image arrives, so the page
+ * does not jump, and it keeps the aspect ratio exactly as published.
+ *
+ * While REPO_BASE is unset the badge is replaced by the path to the file and
+ * instructions for opening it. A dead Colab link is worse than no link: it
+ * looks like it should work and hands the learner a 404.
+ */
+import Icon from '../ui/Icon.astro';
+import { colabUrl, repoFileUrl } from '../../lib/site';
+
+interface Props {
+  /** Repository-relative path, e.g. 'notebooks/lab2.ipynb'. */
+  path: string;
+  /** Rough completion time, e.g. '30 to 45 minutes'. */
+  time?: string;
+  /** What it needs to run. */
+  compute?: string;
+  /**
+   * Bare badge with no surrounding card, for a second placement further down
+   * a page where the filename and requirements have already been given.
+   */
+  compact?: boolean;
+  /** Line shown above a compact badge. */
+  label?: string;
+}
+const { path, time, compute, compact = false, label } = Astro.props;
+const colab = colabUrl(path);
+const file = repoFileUrl(path);
+const name = path.split('/').pop();
+
+const BADGE = 'https://colab.research.google.com/assets/colab-badge.svg';
+---
+
+{
+  compact ? (
+    <p class="nbc not-content">
+      {label && <span class="nbc__label">{label}</span>}
+      {colab ? (
+        <a href={colab} target="_blank" rel="noopener noreferrer" class="nbc__link">
+          <img src={BADGE} alt="Open in Colab" width="117" height="20" />
+        </a>
+      ) : (
+        <span class="nbc__label">
+          Notebook at <code>{path}</code>
+        </span>
+      )}
+    </p>
+  ) : (
+    <div class="nb not-content">
+      <div class="nb__head">
+        <Icon name="code" size={15} />
+        <span class="nb__title">{name}</span>
+      </div>
+
+      {colab ? (
+        <div class="nb__actions">
+          <a href={colab} target="_blank" rel="noopener noreferrer" class="nb__badge">
+            <img src={BADGE} alt="Open in Colab" width="117" height="20" />
+          </a>
+          {file && (
+            <a class="nb__view" href={file} target="_blank" rel="noopener noreferrer">
+              View source on GitHub
+            </a>
+          )}
+        </div>
+      ) : (
+        <p class="nb__local">
+          The notebook ships with this resource at <code>{path}</code>. Upload it to
+          <a href="https://colab.research.google.com/" target="_blank" rel="noopener noreferrer">
+            Google Colab
+          </a>
+          , or open it in Jupyter locally. An <strong>Open in Colab</strong> badge
+          appears here once the repository is public.
+        </p>
+      )}
+
+      {(time || compute) && (
+        <dl class="nb__meta">
+          {time && (
+            <>
+              <dt>Time</dt>
+              <dd>{time}</dd>
+            </>
+          )}
+          {compute && (
+            <>
+              <dt>Compute</dt>
+              <dd>{compute}</dd>
+            </>
+          )}
+        </dl>
+      )}
+    </div>
+  )
+}
+
+<style>
+  .nb {
+    margin-block: var(--s-5);
+    padding: var(--s-4);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+
+  .nb__head {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    color: var(--c-action-ink);
+  }
+  .nb__title {
+    font-family: var(--font-mono);
+    font-size: var(--t-small);
+    font-weight: var(--w-semibold);
+    color: var(--ink);
+  }
+
+  .nb__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--s-4);
+    margin-top: var(--s-3);
+    flex-wrap: wrap;
+  }
+
+  /* The badge is Google's artwork. No background, border, padding or radius
+     of ours goes near it; the anchor only gets a focus ring so it is usable
+     from the keyboard. */
+  .nb__badge,
+  .nbc__link {
+    display: inline-block;
+    line-height: 0;
+    border-radius: 3px;
+  }
+  .nb__badge:focus-visible,
+  .nbc__link:focus-visible {
+    outline: 2px solid var(--ui);
+    outline-offset: 3px;
+  }
+  .nb__badge img,
+  .nbc__link img {
+    display: block;
+  }
+
+  .nb__view {
+    font-size: var(--t-meta);
+    color: var(--ink-muted);
+  }
+
+  .nb__local {
+    margin: var(--s-3) 0 0;
+    font-size: var(--t-small);
+    line-height: 1.55;
+    color: var(--ink-muted);
+  }
+  .nb__local code,
+  .nbc__label code {
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+    padding: 1px 5px;
+    background: var(--surface-sunken);
+    border-radius: 3px;
+  }
+
+  .nb__meta {
+    display: flex;
+    gap: var(--s-4);
+    margin: var(--s-3) 0 0;
+    font-size: var(--t-meta);
+    flex-wrap: wrap;
+  }
+  .nb__meta dt {
+    display: inline;
+    font-weight: var(--w-semibold);
+    color: var(--ink-faint);
+  }
+  .nb__meta dt::after { content: ' '; }
+  .nb__meta dd {
+    display: inline;
+    margin: 0;
+    color: var(--ink-muted);
+  }
+
+  /* ---- compact placement ---- */
+  .nbc {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    margin-block: var(--s-4);
+    flex-wrap: wrap;
+  }
+  .nbc__label {
+    font-size: var(--t-small);
+    color: var(--ink-muted);
+  }
+</style>

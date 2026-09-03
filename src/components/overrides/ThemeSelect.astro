@@ -1,0 +1,122 @@
+---
+/**
+ * THEME SELECT
+ *
+ * Two explicit buttons rather than one cycling icon, so the control shows
+ * both what the options are and which one is active. Starlight's own picker
+ * is a <select>; this replaces it but keeps Starlight's storage contract
+ * exactly: key `starlight-theme`, value light|dark|auto, applied by setting
+ * `document.documentElement.dataset.theme`. Reusing the contract means
+ * Starlight's inline pre-paint script still prevents a flash of the wrong
+ * theme on first load.
+ *
+ * With no stored preference the system setting wins, which is Starlight's
+ * default behaviour and the right one: a reader who has asked their OS for
+ * dark should not be handed a white page.
+ */
+import Icon from '../ui/Icon.astro';
+---
+
+<starlight-theme-select class="theme">
+  <button type="button" data-theme-set="dark" aria-pressed="false">
+    <Icon name="moon" size={16} label="Use dark theme" />
+  </button>
+  <button type="button" data-theme-set="light" aria-pressed="false">
+    <Icon name="sun" size={17} label="Use light theme" />
+  </button>
+</starlight-theme-select>
+
+<script>
+  const KEY = 'starlight-theme';
+
+  type Theme = 'light' | 'dark';
+
+  function systemTheme(): Theme {
+    return matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+
+  function stored(): Theme | 'auto' {
+    try {
+      const v = localStorage.getItem(KEY);
+      return v === 'light' || v === 'dark' ? v : 'auto';
+    } catch {
+      return 'auto';
+    }
+  }
+
+  function apply(theme: Theme) {
+    document.documentElement.dataset.theme = theme;
+  }
+
+  function reflect() {
+    const pref = stored();
+    const effective = pref === 'auto' ? systemTheme() : pref;
+    document
+      .querySelectorAll<HTMLButtonElement>('[data-theme-set]')
+      .forEach((btn) => {
+        btn.setAttribute(
+          'aria-pressed',
+          String(btn.dataset.themeSet === effective)
+        );
+      });
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('[data-theme-set]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const theme = btn.dataset.themeSet as Theme;
+      try {
+        localStorage.setItem(KEY, theme);
+      } catch {
+        /* the choice just will not survive a reload */
+      }
+      apply(theme);
+      reflect();
+    });
+  });
+
+  // Follow the system while no explicit choice has been made.
+  matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+    if (stored() === 'auto') {
+      apply(systemTheme());
+      reflect();
+    }
+  });
+
+  reflect();
+</script>
+
+<style>
+  .theme {
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+    padding: 2px;
+    border-radius: var(--r-full);
+    background: var(--surface-sunken);
+  }
+
+  .theme button {
+    display: grid;
+    place-items: center;
+    width: 1.85rem;
+    height: 1.85rem;
+    border: none;
+    border-radius: var(--r-full);
+    background: transparent;
+    color: var(--ink-faint);
+    cursor: pointer;
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease);
+  }
+
+  .theme button:hover {
+    color: var(--ink);
+  }
+
+  .theme button[aria-pressed='true'] {
+    background: var(--surface);
+    color: var(--ui);
+    box-shadow: var(--shadow-subtle);
+  }
+</style>

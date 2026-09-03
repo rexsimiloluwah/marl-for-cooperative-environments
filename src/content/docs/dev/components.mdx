@@ -1,0 +1,229 @@
+---
+title: Teaching component gallery
+description: Reference fixture for the knowledge-check, research-connection and Bloom components. Not part of the course.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
+head:
+  - tag: meta
+    attrs:
+      name: robots
+      content: noindex
+---
+
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import ResearchConnection from '../../../components/ui/ResearchConnection.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+A reference fixture, not a lesson. Nothing here is course content: the
+questions restate definitions this resource has already fixed, the citation is
+a placeholder, and the page is absent from the sidebar and from search. It
+exists so that every teaching component and every variant is rendered
+somewhere, and a regression shows up here before it reaches a chapter.
+
+The strip above the first paragraph is `<SectionMeta />`, reading this section's
+own `minutes` and `bloom` frontmatter. This fixture claims all six Bloom
+levels so that the full set renders; a real page claims the one or two it
+actually works at.
+
+## 1. Section metadata
+
+`<SectionMeta />` takes no props. It reads `minutes` and `bloom` from the
+frontmatter of the page it is on, so an author never restates what the
+schema already holds. On a page that declares neither field it renders
+nothing at all, not an empty rule, not a placeholder, which is why there is
+no "empty" fixture to show below.
+
+## 2. Knowledge check · single choice
+
+The default type. One correct option, and feedback on every option including
+the correct one, because the reader who picked it still needs to know why it
+holds. The explanation is the component's body.
+
+<KnowledgeCheck
+  id="fixture-shared-reward"
+  question="Two agents are trained with a single shared team reward. What does that alone guarantee?"
+  options={[
+    {
+      text: 'That both agents are scored by the same number.',
+      correct: true,
+      feedback:
+        'Yes, and that is all it guarantees. A shared reward makes the objective common: one number, produced by what the team did together, handed to every agent.',
+    },
+    {
+      text: 'That both agents will choose actions that fit together.',
+      feedback:
+        'No. Sharing an objective says nothing about whether either agent can work out which part of the joint action produced the number, or whether their separate choices happen to fit.',
+    },
+    {
+      text: 'That each agent can see what the other agent observed.',
+      feedback:
+        'No. Reward structure and observability are separate. Agents can share a reward and still each see only their own local observation.',
+    },
+  ]}
+>
+  A shared reward defines what the team is trying to maximise. It does not
+  tell any individual agent what it should do next, and that gap is why
+  cooperative MARL needs more machinery than handing everyone the same
+  number.
+</KnowledgeCheck>
+
+## 3. Knowledge check · multiple answers
+
+Every correct option is required, and the hint says so before the reader
+commits. Selecting some but not all of them reports "partly right" rather
+than "wrong", and the feedback for a correct option that was missed is shown
+alongside the ones that were selected.
+
+<KnowledgeCheck
+  id="fixture-non-stationarity"
+  type="multiple"
+  question="An independent learner treats its teammates as part of the environment. Which of these follow from that modelling choice?"
+  options={[
+    {
+      text: 'The environment the agent experiences changes as its teammates learn.',
+      correct: true,
+      feedback:
+        'Yes. Teammate policies were folded into the environment, and those policies are being updated, so the environment moves.',
+    },
+    {
+      text: 'Experience collected earlier may no longer describe what happens now.',
+      correct: true,
+      feedback:
+        'Yes. Earlier transitions were generated under teammate policies that have since changed, so they describe a setting that no longer exists.',
+    },
+    {
+      text: "The agent's own set of available actions grows as its teammates learn.",
+      feedback:
+        'No. What changes is the behaviour of the teammates. The actions available to this agent are fixed by the environment, not by how well anyone has learned.',
+    },
+  ]}
+  explanation="Non-stationarity is a consequence of the modelling choice rather than an extra assumption on top of it: the moment teammates are folded into the environment, their learning becomes environment drift."
+/>
+
+## 4. Knowledge check · prediction, no correct answer
+
+A `predict` never grades. It records the commitment, shows the feedback for
+the option the reader chose, and reveals the explanation. Nothing is ever
+called incorrect, and no option here is marked `correct`, the value is
+having committed before reading on.
+
+<KnowledgeCheck
+  id="fixture-predict-obstacle"
+  type="predict"
+  question="Commit before reading on: for a team of independent learners sharing one reward, which do you expect to be the bigger obstacle?"
+  options={[
+    {
+      text: "Not knowing which agent's action earned the reward.",
+      feedback:
+        'You are predicting that credit assignment binds first. Watch what happens when the team reward is high and one agent contributed nothing to it.',
+    },
+    {
+      text: 'Teammates changing while each agent is still learning.',
+      feedback:
+        'You are predicting that non-stationarity binds first. Watch what happens to experience an agent collected before its teammates moved.',
+    },
+    {
+      text: 'Neither dominates; it depends on the setting.',
+      feedback:
+        'A defensible position. Hold onto it and notice which of the two the sections that follow actually spend their effort on.',
+    },
+  ]}
+>
+  There is no scored answer here, and the component does not pretend
+  otherwise. The value is that the prediction was committed before the
+  reading, so it can be compared against afterwards.
+</KnowledgeCheck>
+
+## 5. Knowledge check · prediction, free text
+
+A `predict` with no options at all becomes a free-text commitment. The answer
+is stored as the string branch of `CheckState`, echoed back on submit, and
+followed by the explanation.
+
+<KnowledgeCheck
+  id="fixture-predict-free"
+  type="predict"
+  question="In one sentence, write what you expect partial observability to change about how an agent chooses an action."
+>
+  Compare what you wrote against the definition this resource uses: a
+  decentralized policy maps an agent's own observation to an action, so
+  anything outside that observation cannot influence the choice, however
+  relevant it is.
+</KnowledgeCheck>
+
+## 6. Knowledge check · no explanation
+
+A check may end at its per-option feedback. Here there is no `explanation`
+prop and no body, so the response is the verdict and the feedback rows and
+nothing else. A check with neither feedback nor an explanation reveals
+nothing and is warned about at build time, as is any incorrect option with no
+`feedback` of its own.
+
+<KnowledgeCheck
+  id="fixture-joint-action"
+  question="In the notation used here, a joint action is:"
+  options={[
+    {
+      text: 'the actions of all agents at one time step, taken together',
+      correct: true,
+      feedback: 'Yes: one entry per agent, at a single time step.',
+    },
+    {
+      text: 'the actions one agent takes over several time steps',
+      feedback:
+        'No. That is a trajectory of a single agent, which is indexed by time rather than by agent.',
+    },
+    {
+      text: 'the action a team agrees on before anyone acts',
+      feedback:
+        'No. Nothing in the definition requires agreement or any communication at all. The joint action is simply what everyone did, collected into one object.',
+    },
+  ]}
+/>
+
+## 7. Research connection
+
+{/* Placeholder metadata on purpose. The component holds no citation of its
+    own: every field, and everything in the claim slot, is supplied by the
+    author of the page it appears on, from the paper in front of them. */}
+
+<ResearchConnection
+  title="Example Paper Title"
+  authors="Author, A. and Author, B."
+  venue="Venue"
+  year={2024}
+  url="https://example.org/paper"
+  arxiv="0000.00000"
+>
+  <Fragment slot="claim">
+    Placeholder text standing in for a statement of what the paper reports.
+    Everything inside this labelled block is the paper's, and it is the page
+    author's job to keep it to what the paper actually says.
+  </Fragment>
+
+  Placeholder text standing in for our own framing: how the section the
+  reader has just finished connects to the work above. This zone is ours, it
+  is labelled as ours, and a reader can tell the two apart without having to
+  trust the wording.
+</ResearchConnection>
+
+The minimal form: an identifier but no canonical `url`, so the title is not
+a link, and no claim block. A connection given neither `url` nor `arxiv`
+renders the same way minus the identifier line, and is warned about at build
+time on the grounds that a reader who cannot reach the paper cannot check
+what it says.
+
+<ResearchConnection
+  title="Example Paper Title"
+  authors="Author, A."
+  venue="Venue"
+  year={2023}
+  arxiv="0000.00001"
+>
+  Framing prose with no claim block, for a connection that points at a body
+  of work without reporting any specific finding from it.
+</ResearchConnection>
+

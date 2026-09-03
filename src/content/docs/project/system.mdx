@@ -1,0 +1,160 @@
+---
+title: "Part 1: Define the System"
+description: "Define the disaster-response agents, state, local observations, actions, shared reward, and team objective."
+related:
+  - slug: project/design
+    icon: cycle
+  - slug: background/dec-pomdp
+    icon: book
+  - slug: project/rubric
+    icon: award
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Equation from '../../../components/equations/Equation.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+A defensible MARL design begins with a precise system formulation. This section
+guides you through selecting agent roles, defining the complete environment
+state, assigning local observations and actions, constructing one shared
+reward, and stating the team objective. Each later coordination,
+communication, and adaptation choice will be evaluated against these
+definitions. The goal is a Dec-POMDP specification that preserves meaningful
+decentralized information constraints.
+
+## Choose your agents
+
+Pick **three to five roles**. Not fifteen.
+
+For each, specify what it sees and what it can do:
+
+<div class="table-scroll">
+
+| Role | Observation | Actions |
+| --- | --- | --- |
+| Search drone | local map tile, detected people, battery, nearby agents | move, scan, return to base, relay |
+| *your role 2* | | |
+| *your role 3* | | |
+</div>
+
+That first row is an example, not a requirement. Replace it.
+
+<Callout variant="pitfall">
+The most common failure in this part is an observation that is really the
+state.
+
+"Knows the locations of all survivors" is not an observation, it is the answer
+to the task. If an agent had it, there would be no search problem.
+
+For every item you list, ask: **could a physical sensor on this agent produce
+this, right now, without asking anybody?** If not, it belongs in the state, or
+it has to arrive as a message in Part 3.
+</Callout>
+
+## Define the state
+
+What would the **full** environment state contain, whether or not anybody can
+see it?
+
+This matters even though no agent receives it, for two reasons. It is what
+your transition and reward functions are defined on. And writing it down is
+what lets you check that your observations are genuinely smaller than it.
+
+A useful test from the Background: **is anything in your state actually a
+belief?** If your state includes "the team's estimate of where survivors
+are", that is not state, it is inference.
+
+## Define the observations
+
+For each role, what does that agent actually receive each step?
+
+<Equation
+  label="Figure 1"
+  tex={String.raw`\tone{observe}{\obs{\ag}} = O_\ag\bigl(\tone{observe}{\st}\bigr)`}
+  terms={[
+    { tex: String.raw`O_\ag`, is: 'this role’s observation function: the crop of the truth it gets', tone: 'observe' },
+  ]}
+  caption="An observation is a filter on the state. Each role has its own."
+/>
+
+Two properties to check explicitly, because Part 3 depends on them:
+
+**Asymmetry.** Do different roles hold different information? If every agent
+sees the same thing, there is nothing to communicate and Part 3 will be
+hollow.
+
+**Insufficiency.** Is there a decision an agent must make where its own
+observation is not enough? That is your communication or inference
+requirement, and naming it here makes Parts 3 and 4 straightforward.
+
+## Define the actions
+
+What decisions can each role make? Keep the sets small and discrete unless you
+have a reason not to.
+
+One constraint worth stating, because it catches people: **no agent may act on
+another agent**. "Assign drone 2 to sector B" is not an action unless you are
+designing a centralized controller, in which case say so and accept the
+consequences from the Coordinate chapter. Otherwise an agent acts, and the consequences
+reach its partners through the environment or through a message.
+
+## Define one shared reward
+
+One team reward. Every agent receives the same number.
+
+Keep it to **three or four terms**. The Challenge Lab used three deliberately.
+
+<Equation
+  label="Figure 2"
+  wide
+  tex={String.raw`\tone{reward}{r_t} = \ubrace{reward}{w_1 \cdot \text{people assisted}}{what you want} - \ubrace{conflict}{w_2 \cdot \text{response time}}{what you want less of} - \ubrace{conflict}{w_3 \cdot \text{unsafe actions}}{what you will not accept}`}
+  terms={[
+    { tex: String.raw`r_t`, is: 'the shared disaster-response reward', tone: 'reward' },
+    { tex: String.raw`w_1,w_2,w_3`, is: 'weights expressing the relative design priorities' },
+    { tex: String.raw`\text{unsafe actions}`, is: 'a safety penalty shared by the whole team', tone: 'conflict' },
+  ]}
+  caption="An example reward balances assistance, response time, and safety."
+/>
+
+For each term, be ready to say **what behaviour it is there to produce**, and
+what it might accidentally reward instead.
+
+<Callout variant="takeaway">
+The reward is where your intentions become the system's objective, and it is
+the easiest place to be careless.
+
+Two questions worth asking of every term:
+
+**Could an agent maximise this without doing the task?** A reward for "area
+scanned" pays a drone to fly in circles over open ground.
+
+**Is it a function of the joint action?** If you find yourself wanting to
+reward a specific agent for a specific act, you are drifting out of the
+common-reward setting, and *Cooperative Rewards* explains what that costs.
+</Callout>
+
+## Define the shared objective
+
+One sentence, in plain words: what is the system collectively trying to
+achieve?
+
+Then check it against your reward. If the sentence and the reward function
+disagree, the reward wins, and that is a bug rather than a philosophical
+position.
+
+## System Formulation Checklist
+
+- Three to five roles, each with observations and actions
+- A state that is genuinely larger than any observation
+- At least one role holding information another role needs
+- At least one decision an agent cannot make well from its own observation
+- One shared reward, three or four terms, each justified
+- One sentence stating the collective objective
+
+That last-but-one item is the hinge. If nothing in your system is
+informationally awkward, Parts 3 and 4 will have nothing to work on, and it is
+worth going back and making the observations narrower.
+
+Next: [Parts 2 to 4](/project/design/).
