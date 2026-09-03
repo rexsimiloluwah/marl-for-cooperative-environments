@@ -276,9 +276,23 @@ export const PAGES: readonly ResolvedPage[] = flat;
 
 const bySlug = new Map(flat.map((p) => [p.slug, p]));
 
-/** Normalises a URL pathname to a bare slug. */
+/**
+ * Normalises a URL pathname to a bare slug.
+ *
+ * The configured base has to come off first. Under a project-site base,
+ * `Astro.url.pathname` is `/repo/coordinate/introduction/`, and leaving the
+ * prefix on produces a slug that matches nothing: the sidebar loses its
+ * current-page state, the breadcrumbs empty out, the previous/next pager
+ * disappears and section numbers stop resolving. All of that fails silently,
+ * which is why it is handled here rather than at each call site.
+ */
 export function slugFromPath(pathname: string): string {
-  return pathname.replace(/^\/+|\/+$/g, '');
+  const base = import.meta.env.BASE_URL.replace(/\/+$/, '');
+  let path = pathname;
+  if (base && (path === base || path.startsWith(`${base}/`))) {
+    path = path.slice(base.length);
+  }
+  return path.replace(/^\/+|\/+$/g, '');
 }
 
 export function findPage(slugOrPath: string): ResolvedPage | undefined {

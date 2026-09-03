@@ -11,6 +11,7 @@
  */
 import { neighbours, slugFromPath } from '../../lib/nav';
 import Icon from '../ui/Icon.astro';
+import { pageUrl } from '../../lib/url';
 
 const slug = slugFromPath(Astro.url.pathname);
 const { prev, next } = neighbours(slug);
@@ -22,7 +23,7 @@ const { prev, next } = neighbours(slug);
       <nav class="pager print:hidden" aria-label="Previous and next section">
         {
           prev ? (
-            <a class="pager__link pager__link--prev" href={`/${prev.slug}/`} rel="prev">
+            <a class="pager__link pager__link--prev" href={pageUrl(prev.slug)} rel="prev">
               <Icon name="chevron-right" size={15} class="pager__arrow" />
               <span class="pager__body">
                 <span class="pager__label">Previous</span>
@@ -38,7 +39,7 @@ const { prev, next } = neighbours(slug);
         }
         {
           next && (
-            <a class="pager__link pager__link--next" href={`/${next.slug}/`} rel="next">
+            <a class="pager__link pager__link--next" href={pageUrl(next.slug)} rel="next">
               <span class="pager__body">
                 <span class="pager__label">Next</span>
                 <span class="pager__title">

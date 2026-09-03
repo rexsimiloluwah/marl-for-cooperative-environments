@@ -165,7 +165,7 @@ NeurIPS 2026 Education Track submission. Spec lives in MASTER_PROMPT.md.
 
 ## Still open before submission
 
-- [ ] Set the real host in `astro.config.mjs` (`site`, plus `base` if GitHub Pages)
+- [x] Set the real host in `astro.config.mjs`, now derived from the environment
 - [ ] Fill the three remaining Resources stubs: Knowledge Checks, All Worksheets, References
 - [ ] First commit and push to `rexsimiloluwah/marl-for-cooperative-environments`
 - [ ] Notebook `git clone` and the challenge lab illustration only resolve once the repository has content pushed
@@ -211,4 +211,17 @@ NeurIPS 2026 Education Track submission. Spec lives in MASTER_PROMPT.md.
 - [x] `Accordion` and `AccordionGroup` components, native `<details>`, no JavaScript
 - [x] `CooperativeOverview` illustration on the Introduction, same kitchen as the chapter heroes
 - [x] Every section and chapter link on these pages resolves
+
+## GitHub Pages deployment
+
+- [x] `deploy-site.yml`: builds, audits links, checks the base was applied, deploys via Pages
+- [x] `site` and `base` come from the environment, derived from the repository in CI
+- [x] `withBase()` / `pageUrl()` for hand-written paths, 20 call sites fixed
+- [x] `rehype-base-links.mjs` rewrites the 44 absolute links written in MDX prose
+- [x] `slugFromPath()` strips the base, which was silently breaking the sidebar state, breadcrumbs, pager and section numbers
+- [x] `ProgressCard` reads the base out of `location.pathname` too
+- [x] `links.py` is base-aware, so the audit catches an unprefixed path
+- [x] Verified by serving a real base build and driving it in a browser
+- [x] `public/.nojekyll`, insurance if Pages is ever switched to branch-based
+- [ ] Enable it: Settings, Pages, Source: GitHub Actions
 

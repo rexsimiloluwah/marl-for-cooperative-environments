@@ -21,6 +21,7 @@
 import { NAV, slugFromPath } from '../../lib/nav';
 import Icon from '../ui/Icon.astro';
 import ProgressCard from '../ui/ProgressCard.astro';
+import { pageUrl } from '../../lib/url';
 
 const current = slugFromPath(Astro.url.pathname);
 ---
@@ -50,7 +51,7 @@ const current = slugFromPath(Astro.url.pathname);
                     return (
                       <li>
                         <a
-                          href={`/${page.slug}/`}
+                          href={pageUrl(page.slug)}
                           class:list={['sb__link', isCurrent && 'is-current']}
                           aria-current={isCurrent ? 'page' : undefined}
                         >
@@ -75,7 +76,7 @@ const current = slugFromPath(Astro.url.pathname);
                   return (
                     <li>
                       <a
-                        href={`/${page.slug}/`}
+                        href={pageUrl(page.slug)}
                         class:list={['sb__link', isCurrent && 'is-current']}
                         aria-current={isCurrent ? 'page' : undefined}
                       >

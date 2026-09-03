@@ -87,8 +87,16 @@ const C = 2 * Math.PI * R;
     }
   }
 
+  // Astro inlines import.meta.env at build time, so the base is a literal
+  // here rather than a runtime lookup.
+  const BASE = import.meta.env.BASE_URL.replace(/\/+$/, '');
+
   function currentSlug(): string {
-    return location.pathname.replace(/^\/+|\/+$/g, '');
+    let path = location.pathname;
+    if (BASE && (path === BASE || path.startsWith(BASE + '/'))) {
+      path = path.slice(BASE.length);
+    }
+    return path.replace(/^\/+|\/+$/g, '');
   }
 
   function render() {

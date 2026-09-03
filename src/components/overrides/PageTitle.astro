@@ -12,6 +12,7 @@
 import { findPage, slugFromPath } from '../../lib/nav';
 import Icon from '../ui/Icon.astro';
 import PageActions from '../ui/PageActions.astro';
+import { withBase } from '../../lib/url';
 
 const slug = slugFromPath(Astro.url.pathname);
 const page = findPage(slug);
@@ -22,7 +23,7 @@ const { title } = Astro.locals.starlightRoute.entry.data;
   {
     page ? (
       <nav class="crumbs" aria-label="Breadcrumb">
-        <a href="/" class="crumbs__home">
+        <a href={withBase('/')} class="crumbs__home">
           <Icon name="home" size={14} label="Home" />
         </a>
         <Icon name="chevron-right" size={13} class="crumbs__sep" />

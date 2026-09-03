@@ -12,6 +12,7 @@ import MobileTableOfContents from 'virtual:starlight/components/MobileTableOfCon
 import TableOfContents from 'virtual:starlight/components/TableOfContents';
 import { findPage } from '../../lib/nav';
 import Icon from '../ui/Icon.astro';
+import { pageUrl } from '../../lib/url';
 
 const { toc, entry } = Astro.locals.starlightRoute;
 const raw = (entry.data as { related?: (string | { slug: string; icon?: string })[] })
@@ -41,7 +42,7 @@ const related = (raw ?? [])
       return null;
     }
     return {
-      href: `/${page.slug}/`,
+      href: pageUrl(page.slug),
       title: page.title,
       number: page.number,
       icon: icon ?? AREA_ICON[page.section.short] ?? 'book',

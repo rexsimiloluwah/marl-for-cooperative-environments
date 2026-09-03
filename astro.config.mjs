@@ -5,9 +5,34 @@ import { unified } from '@astrojs/markdown-remark';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { PROSE_MACROS } from './src/lib/equations/notation.mjs';
+import { rehypeBaseLinks } from './src/lib/rehype-base-links.mjs';
+
+/**
+ * DEPLOY TARGET
+ *
+ * Both values come from the environment so the same source deploys to a
+ * GitHub Pages project site, to a custom domain, or to a local preview,
+ * without editing this file.
+ *
+ * The GitHub Pages workflow sets them from the repository itself, so a rename
+ * or a transfer needs no change here. Locally both default to a plain root,
+ * which keeps `npm run dev` free of a base path.
+ *
+ * A project site is served from a subdirectory, so `base` is not optional
+ * there: every internal path needs the prefix. `withBase()` in src/lib/url.ts
+ * handles the paths we write by hand, and `rehypeBaseLinks` handles the ones
+ * written in MDX.
+ */
+const SITE = process.env.PUBLIC_SITE_URL || 'http://localhost:4321';
+const BASE = process.env.PUBLIC_BASE_PATH || '/';
 
 export default defineConfig({
-  site: 'https://marl-cooperative.example.org',
+  site: SITE,
+  base: BASE,
+  // Emit `/page/index.html`, which is what a static host without rewrite
+  // rules needs in order to serve `/page/` and `/page` alike.
+  trailingSlash: 'ignore',
+  build: { format: 'directory' },
 
   // Astro 7 defaults to the Sätteri processor, whose plugin API is
   // visitor-based and does not accept unified plugins. We opt into the
@@ -20,6 +45,10 @@ export default defineConfig({
     processor: unified({
       remarkPlugins: [remarkMath],
       rehypePlugins: [
+        // Prefix site-absolute prose links and images with the configured
+        // base. Must run before nothing in particular, but keeping it first
+        // means the maths pipeline never sees a half-rewritten tree.
+        [rehypeBaseLinks, { base: BASE }],
         [
           rehypeKatex,
           {

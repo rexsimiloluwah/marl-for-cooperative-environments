@@ -18,6 +18,7 @@ import ThemeSelect from '../components/overrides/ThemeSelect.astro';
 import Icon from '../components/ui/Icon.astro';
 import AgentsGoal from '../components/landing/AgentsGoal.astro';
 import WirelessScene from '../components/landing/WirelessScene.astro';
+import { withBase } from '../lib/url';
 
 const TITLE = 'Multi-Agent Reinforcement Learning for Cooperative Environments';
 const DESCRIPTION =
@@ -30,24 +31,24 @@ const journey = [
     title: 'Coordinate',
     icon: 'users-round',
     blurb: 'Learn how agents align their actions toward a common goal.',
-    href: '/coordinate/coordination/',
-    lab: { label: 'Lab 01', href: '/lab/experiment-coordinate/' },
+    href: '/coordinate/introduction/',
+    lab: { label: 'Lab 01' },
   },
   {
     n: '02',
     title: 'Communicate',
     icon: 'message',
     blurb: 'Share information to overcome limits in what each agent can see.',
-    href: '/communicate/communication-in-marl/',
-    lab: { label: 'Lab 02', href: '/lab/experiment-communicate/' },
+    href: '/communicate/introduction/',
+    lab: { label: 'Lab 02' },
   },
   {
     n: '03',
     title: 'Adapt',
     icon: 'cycle',
     blurb: 'Generalize to new teammates and situations, not just familiar ones.',
-    href: '/adapt/partner-dependence/',
-    lab: { label: 'Lab 03', href: '/lab/experiment-adapt/' },
+    href: '/adapt/introduction/',
+    lab: { label: 'Lab 03' },
   },
 ];
 
@@ -103,7 +104,7 @@ const resources = [
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{TITLE}</title>
     <meta name="description" content={DESCRIPTION} />
-    <link rel="canonical" href={Astro.site ? new URL('/', Astro.site).href : '/'} />
+    <link rel="canonical" href={Astro.site ? new URL(withBase('/'), Astro.site).href : withBase('/')} />
     <ThemeProvider />
   </head>
 
@@ -111,7 +112,7 @@ const resources = [
     <a class="lp__skip" href="#start">Skip to content</a>
 
     <header class="lp__header">
-      <a class="lp__brand" href="/">
+      <a class="lp__brand" href={withBase("/")}>
         <span class="lp__mark" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
             <path d="M7 8 L17 8 M7 8 L12 17 M17 8 L12 17" stroke="var(--rule-strong)" stroke-width="1.3"></path>
@@ -123,10 +124,10 @@ const resources = [
         <span>MARL in Cooperative Environments</span>
       </a>
       <nav class="lp__nav" aria-label="Site">
-        <a href="/introduction/">Course</a>
-        <a href="/lab/overview/">Lab</a>
-        <a href="/project/brief/">Project</a>
-        <a href="/resources/references/">Resources</a>
+        <a href={withBase("/introduction/")}>Course</a>
+        <a href={withBase("/lab/overview/")}>Lab</a>
+        <a href={withBase("/project/brief/")}>Project</a>
+        <a href={withBase("/resources/references/")}>Resources</a>
       </nav>
       <ThemeSelect />
     </header>
@@ -144,11 +145,11 @@ const resources = [
               goals in changing environments.
             </p>
             <div class="hero__actions">
-              <a class="btn btn--primary btn--lg" href="/introduction/">
+              <a class="btn btn--primary btn--lg" href={withBase("/introduction/")}>
                 Start Learning
                 <Icon name="chevron-right" size={16} />
               </a>
-              <a class="btn btn--lg" href="/lab/overview/">Open the Lab</a>
+              <a class="btn btn--lg" href={withBase("/lab/overview/")}>Open the Lab</a>
             </div>
             <p class="hero__meta">
               Advanced undergraduate level · roughly 8 to 12 hours · no prior
@@ -180,7 +181,7 @@ const resources = [
                     <span class="jc__n">{step.n}</span>
                     <Icon name={step.icon} size={22} class="jc__icon" />
                   </div>
-                  <h3><a href={step.href}>{step.title}</a></h3>
+                  <h3><a href={withBase(step.href)}>{step.title}</a></h3>
                   <p class="jc__blurb">{step.blurb}</p>
                   <ul class="jc__list">
                     <li>
@@ -223,7 +224,7 @@ const resources = [
                 network carries more traffic; choose the same channel as your
                 neighbour and you both lose.
               </p>
-              <a class="btn btn--primary" href="/lab/overview/">
+              <a class="btn btn--primary" href={withBase("/lab/overview/")}>
                 Go to Challenge Lab
                 <Icon name="chevron-right" size={15} />
               </a>
@@ -243,7 +244,7 @@ const resources = [
                 communication scheme and the training conditions, then defend
                 your deployment decision with measured evidence.
               </p>
-              <a class="btn btn--primary" href="/project/brief/">
+              <a class="btn btn--primary" href={withBase("/project/brief/")}>
                 Start Final Project
                 <Icon name="chevron-right" size={15} />
               </a>
@@ -272,7 +273,7 @@ const resources = [
             {
               resources.map((r) => (
                 <li>
-                  <a href={r.href}>
+                  <a href={withBase(r.href)}>
                     <span class="res__icon"><Icon name={r.icon} size={22} /></span>
                     <strong>{r.title}</strong>
                     <span class="res__blurb">{r.blurb}</span>
