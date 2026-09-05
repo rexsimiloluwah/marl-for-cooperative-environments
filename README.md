@@ -3,7 +3,7 @@
 **How agents coordinate, communicate, and adapt when partners, communication
 conventions, or deployment conditions differ from training**
 
-![The learning journey in five stages. One agent learns a goal; two agents must coordinate their actions; agents with different information must communicate; agents must adapt to unfamiliar partners; and finally, multiple LLM agents must learn to work together.](public/images/learning-journey.png)
+![Multi-Agent Reinforcement Learning in Cooperative Environments. Two robots draw back a stage curtain on scenes of cooperating drones, warehouse robots, connected vehicles, and wireless access points.](public/images/cover-image.png)
 
 In multi-agent reinforcement learning (MARL), where multiple agents learn to
 act toward a shared goal, **generalizable cooperation** asks whether effective
@@ -44,6 +44,8 @@ Suitable for **undergraduate and graduate levels**. Every practical activity
 runs on a laptop or a free Colab CPU session.
 
 ## Learning Journey
+
+![The learning journey in five stages. One agent learns a goal; two agents must coordinate their actions; agents with different information must communicate; agents must adapt to unfamiliar partners; and finally, multiple LLM agents must learn to work together.](public/images/learning-journey.png)
 
 **Background → Coordinate → Communicate → Adapt → LLM Frontier → Challenge Lab → Final Project**
 
