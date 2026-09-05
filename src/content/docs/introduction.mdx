@@ -11,8 +11,8 @@ Many real-world problems involve **more than one decision-maker**.
 - autonomous vehicles share roads with other vehicles;
 - wireless access points share limited communication channels;
 - disaster-response agents may need to divide tasks and exchange information;
-- AI agents may need to cooperate with systems they have never encountered
-  before.
+- AI agents, including large language models, may need to coordinate, exchange
+  information, and work with unfamiliar agents.
 
 In these settings, being individually intelligent is not enough.
 
@@ -23,7 +23,11 @@ An agent's success can depend on:
 - how their actions interact;
 - whether the agents around them behave as expected.
 
-This is the focus of **Multi-Agent Reinforcement Learning (MARL)**.
+This is the focus of **Multi-Agent Reinforcement Learning (MARL)**. In this
+tutorial, we use those foundations to build toward one emerging question:
+
+> **How can agents cooperate when the partners, protocols, or conditions around
+> them change?**
 
 <CooperativeOverview>
 The three capabilities this tutorial develops: agents coordinating actions,
@@ -46,7 +50,9 @@ reinforcement learning:
 
 > **How can multiple agents learn to work together toward a shared goal?**
 
-We will approach this through three connected chapters.
+We will approach that question through three connected capabilities, then use
+them to study partner generalization, zero-shot coordination, and LLM-agent
+collaboration.
 
 ## Chapter 1: Coordinate
 
@@ -84,17 +90,42 @@ You will explore:
 - ad hoc teamwork;
 - zero-shot coordination.
 
+## Exploring the Frontier
+
+The three chapters build a foundation for a rapidly developing question in AI:
+
+> **What happens when the cooperating agents are large language models?**
+
+Recent research is beginning to treat teams of LLMs as cooperative learning
+systems rather than only as independently prompted assistants.
+
+In [**LLMs as Cooperative Agents**](/frontier/llm-agents/), you will connect the
+ideas developed throughout the tutorial to this emerging frontier:
+
+- modelling LLMs as agents;
+- distinguishing orchestrated collaboration from learned collaboration;
+- formulating multi-LLM collaboration as a cooperative MARL problem;
+- connecting shared rewards, credit assignment, and CTDE to LLM training;
+- exploring current research and open questions around increasingly complex
+  agent teams and societies.
+
+The goal is not simply to learn established MARL methods. It is to build the
+foundation needed to understand where cooperative learning is going next.
+
 ## The Learning Journey
 
-**Coordinate → Communicate → Adapt**
+**Background → Coordinate → Communicate → Adapt → Explore the Frontier**
 
-The chapters build toward increasingly difficult forms of cooperation:
+The core chapters progressively build the ideas needed to reason about
+cooperative agents:
 
 1. **Coordinate** actions with other agents.
 2. **Communicate** when useful information is distributed.
 3. **Adapt** when the agents around you are unfamiliar or changing.
+4. **Explore the Frontier** by connecting these ideas to emerging research on
+   LLMs as cooperative agents.
 
-You will then apply these ideas in:
+You will then apply and extend what you have learned through:
 
 - [**Challenge Lab: Wireless Network Resource Allocation using MARL**](/lab/overview/)
 - [**Final Project: Design a MARL-Based Disaster-Response System**](/project/brief/)
@@ -107,4 +138,5 @@ You should be able to:
 - reason about coordination, communication, and adaptation;
 - compare different MARL approaches and their assumptions;
 - evaluate cooperation under familiar and unfamiliar conditions;
+- connect cooperative MARL concepts to emerging research on LLM collaboration;
 - design and justify a cooperative MARL system.

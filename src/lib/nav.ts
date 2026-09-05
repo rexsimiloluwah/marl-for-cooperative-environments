@@ -192,6 +192,22 @@ export const NAV: NavSection[] = [
     ],
   },
   {
+    label: 'Frontier: Cooperative MARL and LLMs',
+    short: 'Frontier',
+    navLabel: 'Frontier: Cooperative MARL and LLMs',
+    topRule: true,
+    collapsible: true,
+    pages: [
+      { slug: 'frontier/llm-agents', title: 'LLMs as Cooperative Agents', icon: 'message' },
+      {
+        slug: 'frontier/learning-llm-collaboration',
+        title: 'Learning LLM Collaboration with MARL',
+        navTitle: 'Learning LLM Collaboration',
+        icon: 'graduation',
+      },
+    ],
+  },
+  {
     label: 'Challenge Lab: Cooperative Wireless Resource Allocation',
     short: 'Lab',
     navLabel: 'Challenge Lab: Cooperative Wireless Resource Allocation',
@@ -205,7 +221,7 @@ export const NAV: NavSection[] = [
         navTitle: 'Why This Problem',
         icon: 'antenna',
       },
-      { slug: 'lab/environment', title: 'Wireless Environment', icon: 'box' },
+      { slug: 'lab/environment', title: 'Wireless Network Resource Allocation Environment', icon: 'box' },
       { slug: 'lab/challenge', title: 'Wireless Allocation Experiments', icon: 'beaker' },
     ],
   },
@@ -249,7 +265,9 @@ export const NAV: NavSection[] = [
     short: 'Resources',
     group: 'Resources',
     pages: [
+      { slug: 'resources/videos', title: 'Explainer Videos', icon: 'video' },
       { slug: 'resources/knowledge-checks', title: 'Knowledge Checks', icon: 'help-circle' },
+      { slug: 'resources/flashcards', title: 'Flashcards', icon: 'copy' },
       { slug: 'resources/worksheets', title: 'All Worksheets', icon: 'clipboard' },
       { slug: 'resources/notebooks', title: 'Notebooks', icon: 'code' },
       { slug: 'resources/references', title: 'References', icon: 'book' },

@@ -20,9 +20,9 @@ import AgentsGoal from '../components/landing/AgentsGoal.astro';
 import WirelessScene from '../components/landing/WirelessScene.astro';
 import { withBase } from '../lib/url';
 
-const TITLE = 'Multi-Agent Reinforcement Learning for Cooperative Environments';
+const TITLE = 'Multi-Agent Reinforcement Learning in Cooperative Environments';
 const DESCRIPTION =
-  'An interactive undergraduate resource on cooperative multi-agent reinforcement learning: learning to coordinate, communicate, and adapt, with executable code, a wireless resource-allocation lab, and a design project.';
+  'In multi-agent reinforcement learning (MARL), where multiple agents learn to act toward a shared goal, generalizable cooperation asks whether effective teamwork can persist when partners, communication conventions, or deployment conditions differ from training. An interactive educational resource with executable code, a wireless resource-allocation lab, a design project, and a chapter on LLMs as cooperative agents.';
 
 /** The three core chapters. Background is prerequisite reading before these. */
 const journey = [
@@ -52,6 +52,29 @@ const journey = [
   },
 ];
 
+/**
+ * Where the three chapters land. Not a fourth chapter with a lab of its own,
+ * but the destination the earlier ideas were building towards.
+ */
+const frontier = [
+  {
+    label: 'Prompted or learned',
+    text: 'the difference between arranging LLMs in a conversation and training them to collaborate',
+  },
+  {
+    label: 'The same formalism',
+    text: 'multi-LLM collaboration written as a Dec-POMDP, with the same partial observability',
+  },
+  {
+    label: 'Credit, again',
+    text: 'why one shared reward over a joint response reopens the problem from Coordinate',
+  },
+  {
+    label: 'What is shown',
+    text: 'MAGRPO and the current results, separated from what they do not yet establish',
+  },
+];
+
 const resources = [
   {
     icon: 'monitor',
@@ -59,6 +82,13 @@ const resources = [
     blurb:
       'Learn each concept through clear explanations, visual examples, interactive demonstrations, and real-world connections.',
     href: '/introduction/',
+  },
+  {
+    icon: 'video',
+    title: 'Explainer Videos',
+    blurb:
+      'Two narrated animated explainers: the core cooperative MARL journey, and the frontier of LLMs as cooperative agents.',
+    href: '/resources/videos/',
   },
   {
     icon: 'code',
@@ -94,6 +124,20 @@ const resources = [
     blurb:
       'Short questions embedded throughout the course to test your understanding and provide immediate feedback.',
     href: '/resources/knowledge-checks/',
+  },
+  {
+    icon: 'copy',
+    title: 'Flashcards',
+    blurb:
+      'Forty-five cards across five decks, laid out as a study sheet. Turn any card over, search the set, or filter to one idea.',
+    href: '/resources/flashcards/',
+  },
+  {
+    icon: 'package',
+    title: 'Python Package',
+    blurb:
+      'cooperative-marl-labs: the environments, agents, training loops and evaluation used throughout, installable and documented on its own.',
+    href: '/package/overview/',
   },
 ];
 ---
@@ -139,10 +183,13 @@ const resources = [
           <div class="hero__copy">
             <p class="eyebrow">Interactive learning resource</p>
             <h1 class="hero__title">{TITLE}</h1>
-            <p class="hero__sub">Learning to Coordinate, Communicate, and Adapt</p>
+            <p class="hero__sub">Coordinate, Communicate, Adapt</p>
             <p class="hero__body">
-              Explore how multiple agents learn to work together toward shared
-              goals in changing environments.
+              In multi-agent reinforcement learning, where multiple agents learn
+              to act toward a shared goal, <strong>generalizable
+              cooperation</strong> asks whether effective teamwork can persist
+              when partners, communication conventions, or deployment
+              conditions differ from training.
             </p>
             <div class="hero__actions">
               <a class="btn btn--primary btn--lg" href={withBase("/introduction/")}>
@@ -168,10 +215,23 @@ const resources = [
           <header class="band__head">
             <h2>Your Learning Journey</h2>
             <p>
-              Three chapters, three labs. Each chapter answers one question
-              that the previous chapter makes unavoidable.
+              A problem-driven path, not an algorithm survey. Each stage
+              creates the difficulty that makes the next one necessary, and
+              techniques arrive as tools for solving it.
             </p>
           </header>
+
+          <!-- The central story of the resource, in one image. Same figure as
+               the submission paper, so the two never drift apart. -->
+          <img
+            class="journey__figure"
+            src={withBase('/images/learning-journey.png')}
+            width="2244"
+            height="701"
+            loading="lazy"
+            decoding="async"
+            alt="The learning journey in five stages. One agent learns a goal; two agents must coordinate their actions; agents that know different things must communicate; agents must adapt to unfamiliar partners; and finally multiple LLM agents must learn to work together."
+          />
 
           <ol class="journey">
             {
@@ -209,8 +269,40 @@ const resources = [
         </div>
       </section>
 
-      <!-- ================= CHALLENGE LAB + PROJECT ================= -->
+      <!-- ================= FRONTIER ================= -->
       <section class="band band--alt">
+        <div class="band__inner">
+          <div class="project">
+            <div class="project__copy">
+              <p class="eyebrow">Where the three chapters land</p>
+              <h2>LLMs as Cooperative Agents</h2>
+              <p>
+                Several language models working on one task are a cooperative
+                multi-agent system, and every question from the three chapters
+                returns: they act on partial information, they are paid on a
+                shared outcome, and nothing tells an individual model what its
+                own contribution was worth. This chapter reads the current
+                research through the vocabulary you have just built, and is
+                careful about which claims the evidence supports.
+              </p>
+              <a class="btn btn--primary" href={withBase("/frontier/llm-agents/")}>
+                Read the Frontier Chapter
+                <Icon name="chevron-right" size={15} />
+              </a>
+            </div>
+            <ul class="project__facts">
+              {
+                frontier.map((f) => (
+                  <li><strong>{f.label}</strong> {f.text}</li>
+                ))
+              }
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= CHALLENGE LAB + PROJECT ================= -->
+      <section class="band">
         <div class="band__inner">
           <div class="challenge">
             <div class="challenge__copy">
@@ -260,7 +352,7 @@ const resources = [
       </section>
 
       <!-- ================= RESOURCES ================= -->
-      <section class="band">
+      <section class="band band--alt">
         <div class="band__inner">
           <header class="band__head band__head--left">
             <h2>Resources</h2>
@@ -383,6 +475,14 @@ const resources = [
       .band--alt {
         background: var(--ground);
         border-block: var(--hairline) solid var(--rule);
+      }
+
+      .journey__figure {
+        display: block;
+        width: 100%;
+        height: auto;
+        margin: 0 0 var(--s-6);
+        border-radius: var(--r-md);
       }
 
       .band__inner {

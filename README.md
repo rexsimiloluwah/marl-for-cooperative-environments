@@ -1,22 +1,35 @@
-# Multi-Agent Reinforcement Learning for Cooperative Environments
+# Multi-Agent Reinforcement Learning in Cooperative Environments
 
-**Learning to Coordinate, Communicate, and Adapt**
+**How agents coordinate, communicate, and adapt when partners, communication
+conventions, or deployment conditions differ from training**
 
-![Multi-Agent Reinforcement Learning for Cooperative Environments: Learning to Coordinate, Communicate, and Adapt. Two robots draw back a stage curtain on scenes of cooperating drones, warehouse robots, connected vehicles, and wireless access points.](public/images/cover-image.png)
+![The learning journey in five stages. One agent learns a goal; two agents must coordinate their actions; agents with different information must communicate; agents must adapt to unfamiliar partners; and finally, multiple LLM agents must learn to work together.](public/images/learning-journey.png)
 
-An interactive educational resource for learning how multiple
-reinforcement-learning agents cooperate toward shared goals.
+In multi-agent reinforcement learning (MARL), where multiple agents learn to
+act toward a shared goal, **generalizable cooperation** asks whether effective
+teamwork can persist when partners, communication conventions, or deployment
+conditions differ from training.
+
+## What Inspired This?
+
+I built this because I wanted to study cooperative MARL seriously, but the
+learning path felt scattered across papers, codebases, surveys, and benchmarks.
+The field is exciting, yet it was hard to find one structured, comprehensive
+resource that moved from foundations to research intuition. This is the guide I
+wished I had while trying to become research-ready.
 
 ## Why This Resource?
 
-Many real-world systems involve multiple decision-makers. Agents may need to:
+Many AI systems are moving from single decision-makers toward teams. In those
+teams, being individually capable is not enough. Agents may need to:
 
 - **Coordinate** their actions.
 - **Communicate** useful information.
 - **Adapt** when other agents or conditions change.
 
-This resource develops these ideas from first principles and connects them to
-modern cooperative MARL research.
+The resource teaches the MARL foundations needed to understand that emerging
+problem, then builds toward current research on learned communication,
+zero-shot coordination, ad hoc teamwork, and multi-LLM collaboration.
 
 ## Who Is This Designed For?
 
@@ -32,35 +45,40 @@ runs on a laptop or a free Colab CPU session.
 
 ## Learning Journey
 
-**Background → Coordinate → Communicate → Adapt → Challenge Lab → Final Project**
+**Background → Coordinate → Communicate → Adapt → LLM Frontier → Challenge Lab → Final Project**
 
+- **Background:** What changes when reinforcement learning moves from one agent
+  to many?
 - **Chapter 1: Coordinate:** How can agents learn actions that work well
   together?
 - **Chapter 2: Communicate:** What information should agents share when they
   know different things?
 - **Chapter 3: Adapt:** Can agents still cooperate when the other agents change?
+- **Frontier:** What changes when the cooperating agents are language models?
 
 ## Educational Resources
 
-Eight parts, each expandable.
+Ten parts, each expandable.
 
 <details>
-<summary><strong>Interactive Tutorial</strong></summary>
+<summary><strong>Interactive Tutorial Website</strong></summary>
+<br>
 
-A structured, markdown-first tutorial that develops cooperative MARL from the
-foundations through coordination, communication, and adaptation. Concepts are
+A structured, markdown-first tutorial that develops the foundations of
+cooperative MARL as preparation for generalizable cooperation. Concepts are
 introduced intuitively before moving to formal definitions, equations, and
 research connections.
 
 Nine background sections, then three chapters:
 [Coordinate](https://rexsimiloluwah.github.io/marl-for-cooperative-environments/coordinate/introduction/),
 [Communicate](https://rexsimiloluwah.github.io/marl-for-cooperative-environments/communicate/introduction/),
-[Adapt](https://rexsimiloluwah.github.io/marl-for-cooperative-environments/adapt/introduction/).
+[Adapt](https://rexsimiloluwah.github.io/marl-for-cooperative-environments/adapt/introduction/), and a closing chapter on the frontier.
 
 </details>
 
 <details>
 <summary><strong>Virtual Lab</strong></summary>
+<br>
 
 A browser-based lab where learners experiment with joint actions, independent
 learning, and value decomposition, and observe how different training
@@ -74,6 +92,7 @@ Nothing to install and nothing to open: it runs in the page.
 
 <details>
 <summary><strong>Google Colab Labs</strong></summary>
+<br>
 
 Guided practical labs where learners complete small pieces of code, run
 experiments, visualize learned behaviour, and interpret the results.
@@ -94,7 +113,26 @@ unanswered.
 </details>
 
 <details>
+<summary><strong>Interactive Flashcards</strong></summary>
+<br>
+
+Retrieval practice for the key concepts, equations, and intuitions. 45 cards
+across five decks: Background, Coordinate, Communicate, Adapt, and the LLM
+frontier.
+
+Each deck shows every card at once. Reveal one at a time to test yourself, or
+reveal the whole deck and use it as a revision sheet. Search and filter by card
+type make it usable as a reference as well as a quiz.
+
+No timers, streaks or scores. Read the question, retrieve the answer, reveal.
+
+[All decks](https://rexsimiloluwah.github.io/marl-for-cooperative-environments/resources/flashcards/)
+
+</details>
+
+<details>
 <summary><strong>Embedded Knowledge Checks</strong></summary>
+<br>
 
 Short questions throughout the tutorial that ask learners to predict outcomes,
 test conceptual understanding, and receive immediate feedback.
@@ -108,6 +146,7 @@ mistaken answer teaches something rather than just scoring zero.
 
 <details>
 <summary><strong>Digital Worksheets</strong></summary>
+<br>
 
 Concise chapter activities that combine concept matching, calculations,
 interactive exploration, and short design trade-offs.
@@ -122,6 +161,7 @@ question at the end.
 
 <details>
 <summary><strong>Challenge Lab: Wireless Network Resource Allocation using MARL</strong></summary>
+<br>
 
 A hands-on integration challenge where learners combine coordination,
 communication, and adaptation to manage channel allocation, interference,
@@ -137,6 +177,7 @@ the concepts back to the chapters for you.
 
 <details>
 <summary><strong>Final Project: Design a MARL-Based Disaster-Response System</strong></summary>
+<br>
 
 A create-level project where learners design a complete cooperative MARL
 system, including its agents, observations, actions, shared objective,
@@ -151,6 +192,7 @@ Nobody supplies the environment this time.
 
 <details>
 <summary><strong><code>cooperative-marl-labs</code> Python Package</strong></summary>
+<br>
 
 A lightweight package containing the environments, agents, partner policies,
 training utilities, evaluation tools, and visualizations used in the Colab
@@ -169,9 +211,14 @@ training loops, seeded evaluation, and plots. PyTorch is an optional extra.
 
 </details>
 
-Planned, and not yet part of the resource: short **visual explainers**, under
-five minutes each, introducing cooperative MARL, coordination, communication,
-and adaptation.
+<details>
+<summary><strong>Two Animated Explainer Videos</strong></summary>
+<br>
+
+- [An Intro to Multi-Agent Reinforcement Learning in Cooperative Environments](https://www.youtube.com/watch?v=TOJrFLJHXkM) (19:38)
+- [When LLM Agents Work Together: Cooperative Multi-Agent Reinforcement Learning Meets Language Models](https://www.youtube.com/watch?v=P5OAe5XLmzc) (13:32)
+
+</details>
 
 ## Learning Objectives
 
@@ -181,7 +228,9 @@ By the end of the resource, learners should be able to:
 - explain coordination, communication, and adaptation challenges;
 - compare approaches for learning cooperative behaviour;
 - analyse multi-agent behaviour through experiments;
-- evaluate cooperation under unfamiliar conditions;
+- evaluate cooperation under unfamiliar partners and changing conditions;
+- connect generalizable cooperation to recent work on learned communication,
+  zero-shot coordination, ad hoc teamwork, and multi-LLM collaboration;
 - design and justify a cooperative MARL system.
 
 The learning activities progress through Bloom's Taxonomy:
@@ -253,8 +302,7 @@ If you use this resource in teaching or research, please cite:
 
 ```bibtex
 @misc{okunowo2026cooperativemarl,
-  title  = {Multi-Agent Reinforcement Learning for Cooperative Environments:
-            Learning to Coordinate, Communicate, and Adapt},
+  title  = {Multi-Agent Reinforcement Learning in Cooperative Environments},
   author = {Okunowo, Similoluwa},
   year   = {2026},
   url    = {https://github.com/rexsimiloluwah/marl-for-cooperative-environments}
@@ -263,4 +311,14 @@ If you use this resource in teaching or research, please cite:
 
 ## License
 
-See [LICENSE](LICENSE).
+Code and educational content are licensed separately, which is the usual split
+for a teaching resource.
+
+- **Code** is under the **Apache License 2.0**: the `cooperative-marl-labs`
+  package, the website source, the notebooks, and the video project. See
+  [LICENSE](LICENSE).
+- **Educational content** is under **CC BY 4.0**: the written lessons,
+  worksheets, flashcards, knowledge checks, diagrams, narration scripts, and
+  the two explainer videos. See [LICENSE-CONTENT](LICENSE-CONTENT).
+
+Both permit reuse and adaptation, including commercially, with attribution.

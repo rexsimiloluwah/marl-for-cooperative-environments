@@ -5,22 +5,28 @@ name: publish cooperative-marl-labs
 # Nothing here can publish from `main`. Merging to `main` runs the tests only;
 # releasing is a separate, deliberate push to `release`.
 #
-# ONE-TIME SETUP, before the first successful run
+# ONE-TIME SETUP, pick ONE of the two
 #
-# 1. Trusted publishing on PyPI. No API token is stored anywhere.
-#    Go to https://pypi.org/manage/account/publishing/ and add a pending
-#    publisher:
-#      PyPI project name : cooperative-marl-labs
-#      Owner             : rexsimiloluwah
-#      Repository name   : marl-for-cooperative-environments
-#      Workflow name     : publish-cooperative-marl-labs.yml
-#      Environment name  : pypi
-#    Repeat at https://test.pypi.org/manage/account/publishing/ with
-#    environment name `testpypi` if you want the dry run below.
+# 0.1.0 was published from a laptop with twine, so the project already exists
+# on PyPI: https://pypi.org/project/cooperative-marl-labs/
 #
-# 2. In this repository: Settings -> Environments -> New environment -> `pypi`.
-#    Add yourself as a required reviewer if you want a manual gate before every
-#    upload. Repeat for `testpypi`.
+# OPTION A - API token. Works immediately, no PyPI web setup.
+#   In this repository: Settings -> Secrets and variables -> Actions ->
+#   New repository secret, named PYPI_API_TOKEN, value the pypi-... token.
+#   Use a PROJECT-SCOPED token now that the project exists:
+#   https://pypi.org/manage/project/cooperative-marl-labs/settings/
+#
+# OPTION B - trusted publishing. Preferred, because no token is stored at all.
+#   https://pypi.org/manage/project/cooperative-marl-labs/settings/publishing/
+#      Owner            : rexsimiloluwah
+#      Repository name  : marl-for-cooperative-environments
+#      Workflow name    : publish-cooperative-marl-labs.yml
+#      Environment name : pypi
+#   Then leave PYPI_API_TOKEN unset and this workflow uses OIDC instead.
+#
+# Either way, create the environments so the upload has a gate:
+#   Settings -> Environments -> New environment -> `pypi` (and `testpypi`).
+#   Add yourself as a required reviewer for a manual approval before upload.
 #
 # HOW TO RELEASE
 #
@@ -112,6 +118,24 @@ jobs:
           PY
         working-directory: .
 
+      # `skip-existing: true` means re-publishing an existing version is a
+      # silent no-op, which looks like a successful release that did nothing.
+      # Say so here instead, while the reason is still obvious.
+      - name: this version must not already be on PyPI
+        run: |
+          V="${{ steps.read.outputs.version }}"
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+            "https://pypi.org/pypi/cooperative-marl-labs/$V/json")
+          if [ "$CODE" = "200" ]; then
+            echo "::error::cooperative-marl-labs $V is already on PyPI. PyPI never"
+            echo "::error::allows a version to be replaced, so bump the version in"
+            echo "::error::cooperative-marl-labs/pyproject.toml AND in"
+            echo "::error::src/cooperative_marl_labs/__init__.py, then push again."
+            exit 1
+          fi
+          echo "$V is not on PyPI yet, good to publish"
+        working-directory: .
+
   # ----------------------------------------------------------------- 3. build
   build:
     name: build the distribution
@@ -152,7 +176,18 @@ jobs:
         with:
           name: dist
           path: dist
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      # Whichever of the two is configured. The token step runs only when the
+      # secret exists; otherwise trusted publishing handles it with no secret.
+      - name: publish with an API token
+        if: ${{ secrets.PYPI_API_TOKEN != '' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          password: ${{ secrets.TEST_PYPI_API_TOKEN || secrets.PYPI_API_TOKEN }}
+          skip-existing: true
+      - name: publish with trusted publishing
+        if: ${{ secrets.PYPI_API_TOKEN == '' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
@@ -175,7 +210,15 @@ jobs:
         with:
           name: dist
           path: dist
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - name: publish with an API token
+        if: ${{ secrets.PYPI_API_TOKEN != '' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          skip-existing: true
+      - name: publish with trusted publishing
+        if: ${{ secrets.PYPI_API_TOKEN == '' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           skip-existing: true
 

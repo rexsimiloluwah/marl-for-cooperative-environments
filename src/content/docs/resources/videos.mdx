@@ -1,0 +1,56 @@
+---
+title: "Explainer Videos"
+description: "Two narrated animated explainers: the core cooperative MARL journey, and the frontier of LLMs as cooperative agents."
+related:
+  - slug: introduction
+    icon: compass
+  - slug: frontier/llm-agents
+    icon: message
+  - slug: resources/references
+    icon: book
+---
+
+import VideoEmbed from '../../../components/ui/VideoEmbed.astro';
+import Callout from '../../../components/ui/Callout.astro';
+
+## An Introduction to Cooperative MARL
+
+Start here. It builds the subject from a single learning agent to cross-play
+evaluation, and each idea creates the problem that makes the next one
+necessary.
+
+<VideoEmbed
+  id="TOJrFLJHXkM"
+  title="An Intro to Multi-Agent Reinforcement Learning in Cooperative Environments"
+  length="19:38"
+  caption="Joint actions, partial observability, shared rewards and credit assignment; CTDE, VDN and QMIX; learned communication under capacity, cost, delay and failure; partner dependence, ad hoc teamwork and cross-play. Ends on four questions the field has not settled."
+/>
+
+## LLMs as Cooperative Agents
+
+The frontier chapter, in video form. It carries the same ideas to teams of
+language models and is careful about which claims current research supports.
+
+<VideoEmbed
+  id="P5OAe5XLmzc"
+  title="When LLM Agents Work Together: Cooperative Multi-Agent Reinforcement Learning Meets Language Models"
+  length="13:32"
+  caption="Designed versus learned collaboration; multi-LLM collaboration as a Dec-POMDP; why a shared reward over a joint response reopens credit assignment; MAGRPO and group-relative advantage; agent societies and what remains unsolved."
+/>
+
+<Callout tone="observe" title="What the videos claim" icon="compass">
+Simplified environments shown in the videos are teaching models, not research
+benchmarks. In the frontier video, the sample return values on screen are
+illustrative rather than results from the cited papers, and every paper named
+is listed on the [references](/resources/references/) page.
+</Callout>
+
+## Watching alongside the written chapters
+
+| Video section | Written chapters |
+| --- | --- |
+| Joint actions, observations, shared reward | [Background](/background/dec-pomdp/) |
+| Independent learning, CTDE, credit assignment, VDN, QMIX | [Coordinate](/coordinate/introduction/) |
+| Message capacity, cost, failure, learned protocols | [Communicate](/communicate/introduction/) |
+| Partner dependence, diversity, ad hoc teamwork, cross-play | [Adapt](/adapt/introduction/) |
+| Everything in the second video | [LLMs as Cooperative Agents](/frontier/llm-agents/) |

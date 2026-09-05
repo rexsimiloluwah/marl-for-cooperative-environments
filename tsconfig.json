@@ -1,14 +1,26 @@
 {
   "extends": "astro/tsconfigs/strict",
-  "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist", "node_modules", "wireless_env", "notebooks", "manim"],
+  // Scoped deliberately. `include: ["**/*"]` pulled in the generated Pyodide
+  // runtime (1.2MB of machine-written JS) and the separate Remotion project,
+  // which is why `astro check` exhausted a 12GB heap and aborted. The site's
+  // own source is what needs checking here; the video project has its own
+  // tsconfig and its own `npm run typecheck`.
+  "include": [".astro/types.d.ts", "src/**/*", "astro.config.mjs"],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "public",
+    "video",
+    "submission",
+    "cooperative-marl-labs",
+    "wireless_env",
+    "notebooks",
+    "manim"
+  ],
   "compilerOptions": {
-    "strictNullChecks": true,
-    "baseUrl": ".",
-    "paths": {
-      "@components/*": ["src/components/*"],
-      "@lib/*": ["src/lib/*"],
-      "@styles/*": ["src/styles/*"]
-    }
+    "strictNullChecks": true
+    // `baseUrl` and its three path aliases were removed: none of
+    // @components/*, @lib/* or @styles/* was referenced anywhere in src, and
+    // `baseUrl` is deprecated and stops working in TypeScript 7.
   }
 }

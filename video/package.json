@@ -1,0 +1,34 @@
+{
+  "name": "marl-core-explainer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "render": "remotion render src/index.ts CoreExplainer out/marl-core-explainer.mp4 --codec=h264 --crf=18",
+    "render:preview": "remotion render src/index.ts CoreExplainer out/marl-core-explainer-preview.mp4 --codec=h264 --scale=0.5 --crf=24",
+    "still": "remotion still src/index.ts CoreExplainer out/poster.png --frame=300",
+    "storyboard": "node --experimental-strip-types scripts/render-storyboard.ts",
+    "narration": "python3 scripts/generate-narration.py",
+    "narration:llm": "python3 scripts/generate-narration.py llm",
+    "storyboard:llm": "node --experimental-strip-types scripts/render-storyboard.ts llm",
+    "render:llm": "remotion render src/index.ts LlmExplainer out/llms-as-cooperative-agents.mp4 --codec=h264 --crf=18"
+  },
+  "dependencies": {
+    "@remotion/captions": "4.0.520",
+    "@remotion/cli": "4.0.520",
+    "@remotion/media": "4.0.520",
+    "@remotion/transitions": "4.0.520",
+    "katex": "0.18.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "remotion": "4.0.520"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,99 @@
+---
+/**
+ * A YouTube embed that behaves on this site.
+ *
+ * Uses youtube-nocookie.com so a reader who only scrolls past the player is
+ * not tracked by it, and `loading="lazy"` so a page carrying two embeds does
+ * not pull two players before anyone presses play.
+ *
+ * The wrapper owns the aspect ratio, so the player scales with the column
+ * instead of needing a fixed height.
+ */
+interface Props {
+  /** The YouTube video id, the part after `v=`. */
+  id: string;
+  /** Used as the iframe title, which is what a screen reader announces. */
+  title: string;
+  /** Shown under the player. */
+  caption?: string;
+  /** Runtime, e.g. "19:38". */
+  length?: string;
+}
+
+const { id, title, caption, length } = Astro.props;
+const src = `https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1`;
+const watch = `https://www.youtube.com/watch?v=${id}`;
+---
+
+<figure class="video not-content">
+  <div class="video__frame">
+    <iframe
+      src={src}
+      title={title}
+      loading="lazy"
+      referrerpolicy="strict-origin-when-cross-origin"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      allowfullscreen
+    ></iframe>
+  </div>
+  <figcaption class="video__meta">
+    <span class="video__title">{title}</span>
+    {length && <span class="video__len">{length}</span>}
+    <a class="video__link" href={watch} target="_blank" rel="noopener noreferrer">
+      Watch on YouTube
+    </a>
+    {caption && <span class="video__caption">{caption}</span>}
+  </figcaption>
+</figure>
+
+<style>
+  .video {
+    margin: var(--s-5) 0;
+  }
+
+  .video__frame {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--r-md);
+    overflow: hidden;
+    background: var(--ground);
+    border: var(--hairline) solid var(--rule);
+  }
+
+  .video__frame iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  .video__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-2) var(--s-3);
+    margin-top: var(--s-3);
+    font-size: var(--t-small);
+  }
+
+  .video__title {
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .video__len {
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-muted);
+  }
+
+  .video__link {
+    color: var(--ui);
+  }
+
+  .video__caption {
+    flex-basis: 100%;
+    color: var(--ink-muted);
+    line-height: 1.5;
+  }
+</style>

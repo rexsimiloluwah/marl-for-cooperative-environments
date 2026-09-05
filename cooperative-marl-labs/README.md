@@ -208,4 +208,4 @@ See [PUBLISHING.md](PUBLISHING.md).
 
 ## Licence
 
-MIT.
+Apache License 2.0. See `LICENSE`.

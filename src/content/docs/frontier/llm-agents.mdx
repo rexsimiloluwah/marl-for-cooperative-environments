@@ -1,0 +1,252 @@
+---
+title: "LLMs as Cooperative Agents"
+description: "What changes when the agents in a cooperative MARL system are large language models, and the difference between prompted and learned collaboration."
+related:
+  - slug: frontier/learning-llm-collaboration
+    icon: chart
+  - slug: background/dec-pomdp
+    icon: book
+  - slug: coordinate/introduction
+    icon: users-round
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import Term from '../../../components/ui/Term.astro';
+import LlmCollaboration from '../../../components/diagrams/LlmCollaboration.astro';
+import Match from '../../../components/worksheet/Match.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+What changes when the agents in a cooperative MARL system are large language
+models?
+</Callout>
+
+Large language models are increasingly used in systems where several models
+contribute to the same task.
+
+<Objectives>
+
+- Recognize when a multi-model system is a cooperative multi-agent problem
+- Separate prompted collaboration from learned collaboration
+- Map the parts of an LLM system onto observations, policies, actions and rewards
+- State which questions from the three chapters carry over, and which are open
+
+</Objectives>
+
+## Several Models, One Task
+
+Examples include:
+
+- one agent proposing a solution while another critiques it;
+- several agents discussing a reasoning problem;
+- agents taking different roles in a coding task;
+- multiple agents contributing responses over several interaction turns.
+
+A common approach is to design these interactions through **prompts, roles, and
+fixed workflows**. Recent research asks a different question:
+
+> **Can the collaboration itself be learned?**
+
+That creates a direct connection to cooperative MARL. Liu and colleagues
+formalize multi-LLM collaboration as a cooperative MARL problem in which
+several trainable language models produce responses from their own local
+prompts, those responses form a joint action, and the environment returns a
+joint reward.
+
+<LlmCollaboration>
+The structure is the one from the Background. What changed is that an
+observation is a prompt and an action is a response.
+</LlmCollaboration>
+
+<Callout variant="takeaway">
+Read the two sides against each other.
+
+On the left the question is **what should I produce**, and one score answers
+it. On the right the question is **what should we produce together**, one
+score answers it for everybody, and no agent's contribution is labelled.
+
+That is the cooperative setting from the first page of this resource, with
+language in the boxes.
+</Callout>
+
+## Why This Matters
+
+LLM agents are moving from **single assistants** toward systems in which many
+agents interact, divide work, exchange information, and pursue shared goals.
+Recent research even studies **agent societies**, where dozens or hundreds of
+LLM-powered agents interact over long periods and exhibit collective social
+behaviour. Agentopia, for example, simulates 100 agents over 10 simulated years
+to study long-term learning and social dynamics.
+
+This matters because the frontier is no longer only about making one model more
+capable. It is also about understanding what happens when **many capable agents
+must work together**.
+
+That creates connections to real systems:
+
+- **Software engineering:** specialized agents can collaborate across coding,
+  testing, review, and planning tasks.
+- **Social simulation:** multi-agent environments can study communication,
+  cooperation, negotiation, and other forms of social intelligence.
+- **Collaborative AI:** recent work explicitly trains multiple LLMs toward a
+  shared objective using cooperative MARL.
+- **Future agent societies:** increasingly persistent populations of agents may
+  need to coordinate, develop conventions, adapt to unfamiliar agents, and
+  manage shared resources.
+
+At the limit, this points toward what we might informally call **agent
+civilizations**: large communities of autonomous agents whose collective
+behaviour cannot be understood by studying each agent in isolation.
+
+That makes cooperative MARL increasingly relevant to a much broader question:
+
+> **How do we build systems of intelligent agents that can work well together?**
+
+## Prompted Collaboration and Learned Collaboration
+
+The distinction is worth stating precisely, because the two are often given the
+same name.
+
+### Prompted collaboration
+
+- the models may remain fixed;
+- roles and interaction patterns are specified through prompts or workflows;
+- collaboration happens at inference time.
+
+Debate, discussion, verification and role-based pipelines all sit here. The
+system designer writes the protocol, and the models follow it as well as their
+existing capabilities allow.
+
+### Learned collaboration
+
+- several LLM policies are optimized;
+- their outputs jointly affect task performance;
+- reinforcement learning supplies the signal for improving collaborative
+  behaviour.
+
+This is where cooperative MARL becomes relevant. MAPoRL, for instance,
+co-trains several language models with reinforcement learning: the models
+generate their own responses, discuss them, and a verifier scores the final
+output, with that score used as the reward.
+
+<Callout tone="observe" title="What the distinction is not" icon="compass">
+It is not a claim that learned collaboration is better. It is a claim about
+**what is being optimized**.
+
+Under prompted collaboration you are choosing a protocol and keeping the
+policies. Under learned collaboration you are changing the policies, which
+costs training, sampling and inference, and buys the possibility that the
+models adapt to each other rather than to your instructions.
+</Callout>
+
+## What Carries Over
+
+Each chapter of this resource asks a question that survives the change of
+setting.
+
+### Coordinate
+
+**Earlier:** how should agents' actions fit together?
+
+**With LLMs:** how should multiple responses, roles, or subtasks combine into a
+useful solution?
+
+### Communicate
+
+**Earlier:** what information should agents share?
+
+**With LLMs:** what should one model tell another, and how much interaction is
+useful?
+
+### Adapt
+
+**Earlier:** can cooperation survive a change of partner?
+
+**With LLMs:** can an agent collaborate with models, roles, or behaviours that
+differ from those it was trained with?
+
+<Callout variant="pitfall">
+The third one is an **open research question**, not a solved problem.
+
+The work cited in this chapter trains and evaluates specific sets of models on
+specific tasks. None of it establishes that learned collaboration transfers to
+a different model, a different partner population, or a different task family.
+Treat partner generalization here as the Adapt chapter treats it: a claim that
+needs its own evaluation, with the held-out set chosen before training.
+</Callout>
+
+## Visual Lab: Build the LLM Collaboration Problem
+
+If a multi-LLM system really is a cooperative multi-agent problem, then each of
+its parts should correspond to something you already have a name for.
+
+<Match
+  id="frontier-llm-map"
+  prompt="Drag each part of an LLM collaboration system onto the MARL concept it corresponds to."
+  blocks={['Observation', 'Policy', 'Action', 'Reward', 'Environment transition']}
+  items={[
+    { text: 'The prompt and local history given to one model', block: 0 },
+    { text: 'The language model that turns that input into a response', block: 1 },
+    { text: 'The response that model generates', block: 2 },
+    { text: 'The score the finished joint output receives', block: 3 },
+    { text: 'The updated user or system state after the responses land', block: 4 },
+  ]}
+/>
+
+<Callout variant="takeaway">
+One correspondence is worth pausing on. The **action is a complete response**,
+not a token.
+
+That is a modelling choice, and Liu and colleagues make it explicitly: each
+agent's decision is a direct mapping from its instructions to a whole response.
+It is what lets a language model be treated as a policy in the sense the rest
+of this resource uses, rather than as a sequence model being trained one symbol
+at a time.
+</Callout>
+
+If that mapping holds, a question follows immediately:
+
+> **If every part corresponds, can we formulate the whole system as a
+> Dec-POMDP?**
+
+That is the subject of the next section.
+
+## LLMs as Cooperative Agents Summary
+
+- Systems where several language models contribute to one task are cooperative
+  multi-agent problems, whether or not they are described that way.
+- **Prompted** collaboration fixes the protocol and keeps the policies.
+  **Learned** collaboration optimizes the policies against a shared objective.
+- The parts map cleanly: a prompt is an observation, a model is a policy, a
+  response is an action, the task score is a shared reward.
+- The action is a **complete response** rather than a token, which is what
+  makes the mapping work.
+- Coordination, communication and credit assignment carry over directly.
+  Partner generalization carries over as an open question.
+
+## References
+
+- Liu, S., Liang, Z., Lyu, X., and Amato, C. **LLM Collaboration with
+  Multi-Agent Reinforcement Learning.** *Proceedings of the AAAI Conference on
+  Artificial Intelligence*, 40(38), 32150 to 32158, 2026.
+  [Publisher](https://ojs.aaai.org/index.php/AAAI/article/view/40487) ·
+  [arXiv:2508.04652](https://arxiv.org/abs/2508.04652)
+- Park, C., Han, S., Guo, X., Ozdaglar, A. E., Zhang, K., and Kim, J.-K.
+  **MAPoRL: Multi-Agent Post-Co-Training for Collaborative Large Language
+  Models with Reinforcement Learning.** *Proceedings of the 63rd Annual Meeting
+  of the Association for Computational Linguistics*, 30215 to 30248, 2025.
+  [ACL Anthology](https://aclanthology.org/2025.acl-long.1459/)
+- Wang, X., Zheng, S., Wu, H., Li, W., Huang, J.-t., Zhu, M., Zu, C., Deng, Q.,
+  Wang, J., He, Q., Wang, H., Wu, X., and Tao, Y. **Agentopia: Long-Term Life
+  Simulation and Learning in Agent Societies.** Preprint, 2026.
+  [arXiv:2606.07513](https://arxiv.org/abs/2606.07513)
+- He, J., Treude, C., and Lo, D. **LLM-Based Multi-Agent Systems for Software
+  Engineering: Literature Review, Vision and the Road Ahead.** Preprint, 2024.
+  [arXiv:2404.04834](https://arxiv.org/abs/2404.04834)
+- Zhou, X., Zhu, H., Mathur, L., Zhang, R., Yu, H., Qi, Z., Morency, L.-P.,
+  Bisk, Y., Fried, D., Neubig, G., and Sap, M. **SOTOPIA: Interactive
+  Evaluation for Social Intelligence in Language Agents.** Preprint, 2023.
+  [arXiv:2310.11667](https://arxiv.org/abs/2310.11667)

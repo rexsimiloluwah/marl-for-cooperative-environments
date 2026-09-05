@@ -237,3 +237,51 @@ NeurIPS 2026 Education Track submission. Spec lives in MASTER_PROMPT.md.
 - [x] Redirect from the old `/resources/python-package` path, base-aware
 - [x] Package CI regenerates and fails if the committed pages are stale
 
+## Frontier chapter: cooperative MARL and LLMs
+
+- [x] Two sections only, framed as a frontier bridge rather than a fourth curriculum
+- [x] Every citation verified against the publisher before writing: AAAI, ACL Anthology, ICML
+- [x] Corrected the group-relative advantage equation: the paper divides by the standard deviation
+- [x] Dec-POMDP tuple and its LLM reading taken from the paper's own text
+- [x] `LlmCollaboration` diagram: one model against several, ending on the three capabilities
+- [x] `DecPomdpMorph`: the same diagram relabelled by a switch, so the structure visibly does not move
+- [x] `GroupAdvantage` playground, and `Match` reused for the concept mapping
+- [x] `selftest_frontier.py` drives both interactives with real clicks, 20 checks
+- [x] Caught a real bug: the playground never ran, and its placeholders looked plausible
+- [x] Open questions and the limits of each result stated as limits, not findings
+
+## Final pass
+
+- [x] README dropdowns: a spacer under each summary, since GitHub strips `style`
+- [x] Wireless Environment renamed to Wireless Network Resource Allocation Environment
+- [x] Its summary heading kept short, the full name overflows the contents column
+- [x] "Why This Matters" added to the frontier chapter, with Agentopia, the software-engineering review and SOTOPIA
+- [x] All three new citations verified at arXiv before writing
+- [x] The agent-civilizations extrapolation labelled as extrapolation
+
+## Frontier as the destination
+
+- [x] Frontier section moved in the sidebar: after Chapter 3, before the Challenge Lab
+- [x] Introduction: stronger LLM example, an "Exploring the Frontier" section, journey ends at the frontier
+- [x] Learning Objectives: a Bloom band for the frontier, Understand to Analyse
+- [x] How to Use: step 5 is Explore the Frontier, Apply and Create renumbered to 6 and 7
+- [x] Tutorial Structure: a seventh accordion, in reading order
+- [x] Prerequisites: no prior LLM-agent experience needed
+- [ ] Landing page still presents three chapters and six resource cards, no frontier
+
+## Interactive flashcards
+
+- [x] 45 cards in five decks, data in `src/lib/flashcards.ts`
+- [x] Study-sheet model: every card visible, flip individually, no forced sequence
+- [x] Real 3D flip, 300ms, with the height measured from the taller face so a card never resizes
+- [x] A semantic tone per card type: front edge and label, tinted back
+- [x] Reduced motion swaps the faces instead of turning them
+- [x] Reveal all and Hide all, search within a deck, filter by card type
+- [x] Maths rendered at build time, since props never reach remark-math
+- [x] Two inline SVG diagrams, for VDN and for CTDE
+- [x] No timers, streaks, scores, queues or session summaries
+- [x] Deck pages generated from the data, so counts and topics cannot drift
+- [x] `selftest_flashcards.py` drives a deck with real clicks, 20 checks
+- [x] Flashcards in the Resources sidebar and in the README dropdowns
+- [x] "Review with Flashcards" at the end of each chapter, the Background and the Frontier
+

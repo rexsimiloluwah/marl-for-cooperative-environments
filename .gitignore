@@ -39,3 +39,20 @@ notebooks/marl-for-cooperative-environments/
 # python package build artifacts
 cooperative-marl-labs/dist/
 cooperative-marl-labs/src/*.egg-info/
+
+# Working notes for the video build: the frame bar the builders were graded
+# against, the continuity brief, and the YouTube copy. Useful while making the
+# videos, not part of the resource.
+video/docs/
+
+# Remotion's webpack bundle, rebuilt on every render.
+video/build/
+
+# The submission archive is a build artifact: 97MB, and reproducible with
+# scripts/make-submission-zip.sh. Keeping it out of git history matters,
+# because a blob that large can never be removed from it later.
+submission/marl-cooperative-environments.zip
+submission/.stage/
+# An unzipped copy of the archive, left behind by inspecting it. It is the
+# whole repository duplicated plus both videos.
+submission/marl-cooperative-environments/

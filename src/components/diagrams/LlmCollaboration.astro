@@ -1,0 +1,255 @@
+---
+/**
+ * FROM ONE LLM TO A COOPERATIVE SYSTEM
+ *
+ * The main visual of the frontier chapter's first section. Deliberately the
+ * same shape as the interaction-loop diagrams earlier in the resource: the
+ * point is that nothing structural changed, only what the observations and
+ * actions are made of.
+ */
+interface Props {
+  /** Number of agents on the right. Three reads best. */
+  agents?: number;
+}
+const { agents = 3 } = Astro.props;
+const NAMES = ['A', 'B', 'C', 'D'];
+const TONES = ['policy', 'action', 'comm', 'reward'] as const;
+const rows = Array.from({ length: agents }, (_, i) => ({
+  name: NAMES[i],
+  tone: TONES[i % TONES.length],
+  y: 74 + i * 54,
+}));
+const midY = rows[Math.floor(rows.length / 2)].y;
+---
+
+<figure class="llm not-content">
+  <div class="llm__grid">
+    <!-- ------------------------------------------------------ one model -->
+    <div class="llm__side">
+      <p class="llm__label">One LLM</p>
+      <svg viewBox="0 0 190 250" class="llm__svg" role="img"
+        aria-label="A single language model turns one task into one response, which is scored.">
+        <defs>
+          <marker id="llm-a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5"
+            markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 1 L 9 5 L 0 9 z" fill="context-stroke" />
+          </marker>
+        </defs>
+
+        <g class="llm__node is-observe">
+          <rect x="35" y="14" width="120" height="30" rx="6" />
+          <text x="95" y="33" text-anchor="middle">Task / prompt</text>
+        </g>
+        <path class="llm__arrow" d="M 95 46 V 68" marker-end="url(#llm-a)" />
+
+        <g class="llm__node is-policy">
+          <rect x="55" y="70" width="80" height="34" rx="6" />
+          <text x="95" y="91" text-anchor="middle">LLM</text>
+        </g>
+        <path class="llm__arrow" d="M 95 106 V 128" marker-end="url(#llm-a)" />
+
+        <g class="llm__node is-action">
+          <rect x="40" y="130" width="110" height="30" rx="6" />
+          <text x="95" y="149" text-anchor="middle">Response</text>
+        </g>
+        <path class="llm__arrow" d="M 95 162 V 184" marker-end="url(#llm-a)" />
+
+        <g class="llm__node is-reward">
+          <rect x="55" y="186" width="80" height="30" rx="6" />
+          <text x="95" y="205" text-anchor="middle">Score</text>
+        </g>
+      </svg>
+      <p class="llm__question">What should <strong>I</strong> produce?</p>
+    </div>
+
+    <!-- ------------------------------------------------- several models -->
+    <div class="llm__side llm__side--wide">
+      <p class="llm__label">Several LLM agents</p>
+      <svg viewBox="0 0 420 250" class="llm__svg" role="img"
+        aria-label="Three language models each turn their own prompt into their own response. The responses form one joint outcome, which produces a single shared reward for all of them.">
+        <g class="llm__node is-observe">
+          <rect x="130" y="10" width="150" height="26" rx="6" />
+          <text x="205" y="27" text-anchor="middle">Shared task</text>
+        </g>
+        <path class="llm__arrow" d="M 205 38 V 54" marker-end="url(#llm-a)" />
+
+        {
+          rows.map((r) => (
+            <>
+              <g class="llm__node is-observe">
+                <rect x="4" y={r.y - 13} width="74" height="26" rx="5" />
+                <text x="41" y={r.y + 4} text-anchor="middle">{`Prompt ${r.name}`}</text>
+              </g>
+              <path class="llm__arrow" d={`M 80 ${r.y} H 100`} marker-end="url(#llm-a)" />
+
+              <g class={`llm__node is-${r.tone}`}>
+                <rect x="102" y={r.y - 13} width="62" height="26" rx="5" />
+                <text x="133" y={r.y + 4} text-anchor="middle">{`LLM ${r.name}`}</text>
+              </g>
+              <path class="llm__arrow" d={`M 166 ${r.y} H 186`} marker-end="url(#llm-a)" />
+
+              <g class={`llm__node is-${r.tone}`}>
+                <rect x="188" y={r.y - 13} width="86" height="26" rx="5" />
+                <text x="231" y={r.y + 4} text-anchor="middle">{`Response ${r.name}`}</text>
+              </g>
+              {/* gather into the joint outcome */}
+              <path class="llm__gather" d={`M 276 ${r.y} H 296 V ${midY}`} />
+            </>
+          ))
+        }
+
+        <path class="llm__arrow" d={`M 296 ${midY} H 316`} marker-end="url(#llm-a)" />
+        <g class="llm__node is-joint">
+          <rect x="318" y={midY - 26} width="96" height="52" rx="6" />
+          <text x="366" y={midY - 6} text-anchor="middle">Joint</text>
+          <text x="366" y={midY + 9} text-anchor="middle">outcome</text>
+        </g>
+        <path class="llm__arrow" d={`M 366 ${midY + 28} V ${midY + 48}`} marker-end="url(#llm-a)" />
+        <g class="llm__node is-reward">
+          <rect x="308" y={midY + 50} width="116" height="28" rx="6" />
+          <text x="366" y={midY + 68} text-anchor="middle">Shared reward</text>
+        </g>
+      </svg>
+      <p class="llm__question">What should <strong>we</strong> produce together?</p>
+    </div>
+  </div>
+
+  <p class="llm__bridge">
+    <span class="llm__pill is-policy">Coordinate</span>
+    <span class="llm__pill is-comm">Communicate</span>
+    <span class="llm__pill is-reward">Adapt</span>
+  </p>
+
+  <figcaption class="llm__caption"><slot /></figcaption>
+</figure>
+
+<style>
+  .llm { margin-block: var(--s-6); container-type: inline-size; }
+
+  .llm__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 2fr);
+    gap: var(--s-4);
+    align-items: start;
+    padding: var(--s-4) var(--s-3);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+  @container (max-width: 34rem) {
+    .llm__grid { grid-template-columns: 1fr; }
+  }
+
+  .llm__side { min-width: 0; }
+  .llm__svg { display: block; width: 100%; height: auto; }
+
+  .llm__label,
+  .llm__question,
+  .llm__caption {
+    margin: 0;
+    font-family: var(--font-sans);
+    text-align: center;
+    line-height: 1.35;
+  }
+  .llm__label {
+    margin-bottom: var(--s-2);
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    color: var(--ink);
+  }
+  .llm__question {
+    margin-top: var(--s-2);
+    font-size: var(--t-micro);
+    color: var(--ink-muted);
+  }
+
+  /* ------------------------------------------------------------- nodes */
+  .llm__node rect {
+    fill: var(--surface-sunken);
+    stroke: var(--rule);
+    stroke-width: 1;
+  }
+  .llm__node text {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    fill: var(--ink);
+  }
+  .llm__node.is-observe rect {
+    fill: var(--c-observe-tint);
+    stroke: var(--c-observe-edge);
+  }
+  .llm__node.is-policy rect {
+    fill: var(--c-policy-tint);
+    stroke: var(--c-policy-edge);
+  }
+  .llm__node.is-action rect {
+    fill: var(--c-action-tint);
+    stroke: var(--c-action-edge);
+  }
+  .llm__node.is-comm rect {
+    fill: var(--c-comm-tint, var(--c-observe-tint));
+    stroke: var(--c-comm-edge, var(--c-observe-edge));
+  }
+  .llm__node.is-reward rect {
+    fill: var(--c-reward-tint);
+    stroke: var(--c-reward-edge);
+  }
+  .llm__node.is-joint rect {
+    fill: var(--surface);
+    stroke: var(--ink-muted);
+    stroke-width: 1.4;
+    stroke-dasharray: 4 3;
+  }
+
+  .llm__arrow {
+    fill: none;
+    stroke: var(--ink-muted);
+    stroke-width: 1.4;
+    stroke-linecap: round;
+  }
+  .llm__gather {
+    fill: none;
+    stroke: var(--ink-subtle, var(--ink-muted));
+    stroke-width: 1;
+    opacity: 0.6;
+  }
+
+  /* ------------------------------------------------------------ bridge */
+  .llm__bridge {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--s-2);
+    margin: var(--s-4) 0 0;
+  }
+  .llm__pill {
+    padding: 0.25em 0.8em;
+    font-family: var(--font-sans);
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    border-radius: 999px;
+    border: var(--hairline) solid var(--rule);
+  }
+  .llm__pill.is-policy {
+    color: var(--c-policy-ink);
+    background: var(--c-policy-tint);
+    border-color: var(--c-policy-edge);
+  }
+  .llm__pill.is-comm {
+    color: var(--c-comm-ink, var(--c-observe-ink));
+    background: var(--c-comm-tint, var(--c-observe-tint));
+    border-color: var(--c-comm-edge, var(--c-observe-edge));
+  }
+  .llm__pill.is-reward {
+    color: var(--c-reward-ink);
+    background: var(--c-reward-tint);
+    border-color: var(--c-reward-edge);
+  }
+
+  .llm__caption {
+    margin-top: var(--s-3);
+    font-size: var(--t-meta);
+    color: var(--ink-muted);
+  }
+  .llm__caption:empty { display: none; }
+</style>

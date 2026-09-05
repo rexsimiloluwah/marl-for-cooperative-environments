@@ -1,0 +1,205 @@
+---
+/**
+ * THE SAME DIAGRAM, TWO VOCABULARIES
+ *
+ * The Dec-POMDP picture from the Background, with a switch that relabels it in
+ * LLM terms. Nothing about the structure moves when you flip it, which is the
+ * whole argument of this section: the framework did not change, the contents
+ * of the observations and actions did.
+ *
+ * Built as a toggle rather than two side-by-side diagrams on purpose. Seeing
+ * the SAME boxes take new labels makes the point in a way that two pictures
+ * placed next to each other does not.
+ */
+const AGENTS = [
+  { marl: { obs: 'o¹', pol: 'π₁', act: 'a¹' }, llm: { obs: 'Prompt A', pol: 'LLM A', act: 'Response A' }, tone: 'policy', y: 46 },
+  { marl: { obs: 'o²', pol: 'π₂', act: 'a²' }, llm: { obs: 'Prompt B', pol: 'LLM B', act: 'Response B' }, tone: 'action', y: 106 },
+  { marl: { obs: 'o³', pol: 'π₃', act: 'a³' }, llm: { obs: 'Prompt C', pol: 'LLM C', act: 'Response C' }, tone: 'comm', y: 166 },
+];
+const MID = 106;
+---
+
+<figure class="dpm not-content" data-dec-pomdp-morph>
+  <div class="dpm__switch" role="group" aria-label="Vocabulary">
+    <button type="button" class="dpm__btn is-on" data-mode="marl" aria-pressed="true">
+      Dec-POMDP
+    </button>
+    <button type="button" class="dpm__btn" data-mode="llm" aria-pressed="false">
+      LLM collaboration
+    </button>
+  </div>
+
+  <div class="dpm__frame">
+    <svg viewBox="0 0 540 230" class="dpm__svg" role="img" data-live
+      aria-label="Three agents each map a local observation through their own policy to their own action. The actions go together into the environment, which returns one shared reward to all of them.">
+      <defs>
+        <marker id="dpm-a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5"
+          markerHeight="5" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="context-stroke" />
+        </marker>
+      </defs>
+
+      {
+        AGENTS.map((a, i) => (
+          <>
+            <g class="dpm__node is-observe">
+              <rect x="6" y={a.y - 15} width="104" height="30" rx="5" />
+              <text x="58" y={a.y + 5} text-anchor="middle" data-slot={`obs-${i}`}>
+                {a.marl.obs}
+              </text>
+            </g>
+            <path class="dpm__arrow" d={`M 112 ${a.y} H 134`} marker-end="url(#dpm-a)" />
+
+            <g class={`dpm__node is-${a.tone}`}>
+              <rect x="136" y={a.y - 15} width="94" height="30" rx="5" />
+              <text x="183" y={a.y + 5} text-anchor="middle" data-slot={`pol-${i}`}>
+                {a.marl.pol}
+              </text>
+            </g>
+            <path class="dpm__arrow" d={`M 232 ${a.y} H 254`} marker-end="url(#dpm-a)" />
+
+            <g class="dpm__node is-action">
+              <rect x="256" y={a.y - 15} width="112" height="30" rx="5" />
+              <text x="312" y={a.y + 5} text-anchor="middle" data-slot={`act-${i}`}>
+                {a.marl.act}
+              </text>
+            </g>
+
+            <path class="dpm__join" d={`M 370 ${a.y} H 388 V ${MID}`} />
+          </>
+        ))
+      }
+
+      <path class="dpm__arrow" d={`M 388 ${MID} H 406`} marker-end="url(#dpm-a)" />
+      <g class="dpm__node is-env">
+        <rect x="408" y={MID - 26} width="124" height="52" rx="6" />
+        <text x="470" y={MID + 5} text-anchor="middle" data-slot="env">Environment</text>
+      </g>
+
+      <path class="dpm__reward" d={`M 470 ${MID + 28} V 206 H 58 V ${AGENTS[0].y + 18}`}
+        marker-end="url(#dpm-a)" />
+      <text class="dpm__rewardLabel" x="264" y="200" text-anchor="middle" data-slot="reward">
+        shared reward
+      </text>
+    </svg>
+  </div>
+
+  <figcaption class="dpm__caption"><slot /></figcaption>
+</figure>
+
+<style>
+  .dpm { margin-block: var(--s-6); }
+
+  .dpm__switch {
+    display: flex;
+    gap: 0;
+    margin-bottom: var(--s-3);
+  }
+  .dpm__btn {
+    padding: 5px 14px;
+    font-family: var(--font-sans);
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    color: var(--ink-muted);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    cursor: pointer;
+  }
+  .dpm__btn:first-child { border-radius: var(--r-sm) 0 0 var(--r-sm); }
+  .dpm__btn:last-child { border-radius: 0 var(--r-sm) var(--r-sm) 0; border-left: 0; }
+  .dpm__btn:hover { color: var(--ink); }
+  .dpm__btn.is-on {
+    color: var(--ui-ink, var(--ui));
+    background: var(--c-observe-tint);
+    border-color: var(--c-observe-edge);
+  }
+  .dpm__btn:focus-visible { outline: 2px solid var(--ui); outline-offset: 1px; }
+
+  .dpm__frame {
+    padding: var(--s-3);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+    overflow-x: auto;
+  }
+  .dpm__svg { display: block; width: 100%; min-width: 30rem; height: auto; }
+
+  .dpm__node rect {
+    fill: var(--surface-sunken);
+    stroke: var(--rule);
+    stroke-width: 1;
+  }
+  .dpm__node text {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    fill: var(--ink);
+  }
+  .dpm__node.is-observe rect { fill: var(--c-observe-tint); stroke: var(--c-observe-edge); }
+  .dpm__node.is-policy rect { fill: var(--c-policy-tint); stroke: var(--c-policy-edge); }
+  .dpm__node.is-action rect { fill: var(--c-action-tint); stroke: var(--c-action-edge); }
+  .dpm__node.is-comm rect {
+    fill: var(--c-comm-tint, var(--c-observe-tint));
+    stroke: var(--c-comm-edge, var(--c-observe-edge));
+  }
+  .dpm__node.is-env rect {
+    fill: var(--surface);
+    stroke: var(--ink-muted);
+    stroke-width: 1.4;
+  }
+
+  .dpm__arrow { fill: none; stroke: var(--ink-muted); stroke-width: 1.4; stroke-linecap: round; }
+  .dpm__join { fill: none; stroke: var(--ink-subtle, var(--ink-muted)); stroke-width: 1; opacity: 0.6; }
+  .dpm__reward { fill: none; stroke: var(--c-reward); stroke-width: 1.6; stroke-linecap: round; }
+  .dpm__rewardLabel {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    fill: var(--c-reward-ink);
+  }
+
+  .dpm__caption {
+    margin-top: var(--s-3);
+    font-family: var(--font-sans);
+    font-size: var(--t-meta);
+    line-height: var(--lh-tight, 1.45);
+    color: var(--ink-muted);
+    text-align: center;
+  }
+  .dpm__caption:empty { display: none; }
+</style>
+
+<script>
+  const LABELS = {
+    marl: {
+      'obs-0': 'o¹', 'pol-0': 'π₁', 'act-0': 'a¹',
+      'obs-1': 'o²', 'pol-1': 'π₂', 'act-1': 'a²',
+      'obs-2': 'o³', 'pol-2': 'π₃', 'act-2': 'a³',
+      env: 'Environment', reward: 'shared reward',
+    },
+    llm: {
+      'obs-0': 'Prompt A', 'pol-0': 'LLM A', 'act-0': 'Response A',
+      'obs-1': 'Prompt B', 'pol-1': 'LLM B', 'act-1': 'Response B',
+      'obs-2': 'Prompt C', 'pol-2': 'LLM C', 'act-2': 'Response C',
+      env: 'User / system', reward: 'shared score',
+    },
+  };
+
+  document.querySelectorAll('[data-dec-pomdp-morph]').forEach((root) => {
+    const buttons = [...root.querySelectorAll('[data-mode]')];
+
+    const apply = (mode) => {
+      const labels = LABELS[mode];
+      for (const [slot, text] of Object.entries(labels)) {
+        const node = root.querySelector(`[data-slot="${slot}"]`);
+        if (node) node.textContent = text;
+      }
+      buttons.forEach((b) => {
+        const on = b.dataset.mode === mode;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-pressed', String(on));
+      });
+    };
+
+    buttons.forEach((b) => b.addEventListener('click', () => apply(b.dataset.mode)));
+  });
+</script>

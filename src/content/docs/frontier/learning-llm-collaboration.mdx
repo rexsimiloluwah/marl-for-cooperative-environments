@@ -1,0 +1,360 @@
+---
+title: "Learning LLM Collaboration with MARL"
+description: "The Dec-POMDP formulation of multi-LLM collaboration, why a shared reward reopens credit assignment, MAGRPO, and what current research does and does not show."
+related:
+  - slug: frontier/llm-agents
+    icon: message
+  - slug: coordinate/credit-assignment
+    icon: help-circle
+  - slug: coordinate/centralized-critics
+    icon: chart
+---
+
+import Callout from '../../../components/ui/Callout.astro';
+import Objectives from '../../../components/ui/Objectives.astro';
+import Term from '../../../components/ui/Term.astro';
+import DecPomdpMorph from '../../../components/diagrams/DecPomdpMorph.astro';
+import GroupAdvantage from '../../../components/labs/GroupAdvantage.astro';
+import ResearchConnection from '../../../components/ui/ResearchConnection.astro';
+import KnowledgeCheck from '../../../components/ui/KnowledgeCheck.astro';
+import SectionMeta from '../../../components/ui/SectionMeta.astro';
+
+<SectionMeta />
+
+<Callout variant="predict" title="By the end of this section you can answer">
+How can cooperative MARL be used to train multiple LLMs toward a shared
+objective?
+</Callout>
+
+The previous section mapped the parts of a multi-LLM system onto observations,
+policies, actions and rewards. This section takes that mapping seriously.
+
+<Objectives>
+
+- Write a multi-LLM system as a Dec-POMDP, term by term
+- Explain why a joint task reward reopens the credit-assignment problem
+- Describe how MAGRPO turns a group of sampled joint responses into a learning signal
+- Read what recent results establish, and what they do not
+- Name the questions this direction leaves open
+
+</Objectives>
+
+## 1. The Dec-POMDP Connection
+
+We already have a framework for this.
+
+Liu and colleagues define LLM collaboration with the same tuple the Background
+introduced:
+
+> ### Key Equation: The Dec-POMDP, Unchanged
+>
+> $$
+> \left\langle \mathcal{I},\ \mathcal{S},\ \{\mathcal{O}_i\},\ \{\mathcal{A}_i\},\ R,\ T,\ H \right\rangle
+> $$
+>
+> - $\mathcal{I}$ is the set of $n$ LLM agents, each instantiated with a
+>   pre-trained language model
+> - $\mathcal{S}$ is the global state, split into what the system can see and
+>   the part of the user's state it cannot
+> - $\mathcal{O}_i$ holds agent $i$'s local observation, a natural-language
+>   instruction
+> - $\mathcal{A}_i$ holds agent $i$'s local action, a response in natural
+>   language
+> - $R$ is the joint reward, $T$ the stochastic transition, and $H$ the turn
+>   limit of the dialogue
+>
+> **Idea:** Not one symbol of the framework changed. Only the contents of the
+> observation and action spaces did.
+
+Flip the switch below. The boxes do not move.
+
+<DecPomdpMorph>
+The same diagram in two vocabularies. An observation becomes a prompt, a policy
+becomes a language model, an action becomes a response, and the environment
+becomes the user or system being served.
+</DecPomdpMorph>
+
+<Callout tone="observe" title="Two details that make the mapping work" icon="compass">
+**Actions are whole responses.** Each agent's decision is a direct mapping from
+its instructions to a complete response, not a token-by-token process. Without
+that choice a language model is a sequence model rather than a policy in the
+sense used here.
+
+**The horizon counts turns.** $H$ is the turn limit of the dialogue, so a step
+is one exchange, not one symbol.
+</Callout>
+
+## 2. Why a Shared Reward Matters
+
+Suppose two language models jointly produce a program. The finished program
+either passes its tests or it does not.
+
+You may know that
+
+$$
+R_{\text{team}} = 1
+$$
+
+and still not know:
+
+- which agent's response was most useful;
+- whether one response corrected another;
+- whether both were necessary;
+- which behaviour each policy should reinforce.
+
+This is the <Term tone="conflict">credit assignment</Term> problem from
+*Chapter 1*, arriving unchanged in a new setting. One number came back for work
+that several agents did together, and it was never a sum of per-agent
+contributions, so it cannot be taken apart into them.
+
+<Callout variant="pitfall">
+A joint reward does not solve credit assignment. It **is** the reason credit
+assignment is a problem.
+
+Methods in this area supply a learning signal that works despite the ambiguity.
+That is a different claim from resolving it, and the difference matters when
+you are deciding what a result shows.
+</Callout>
+
+## 3. MAGRPO: One Recent Approach
+
+Liu and colleagues propose **Multi-Agent Group Relative Policy Optimization**,
+or MAGRPO, for multi-turn LLM collaboration. The idea is to judge a joint
+behaviour against other joint behaviours the same agents could have produced.
+
+The method samples a group of joint responses, scores each with the shared
+objective, estimates a centralized group-relative advantage from those returns,
+and uses it to update the individual policies. The trained policies still
+execute in a decentralized way.
+
+> ### Key Equation: Group-Relative Advantage
+>
+> $$
+> \hat{A}_t^{(g)} = \frac{R_t^{(g)} - \frac{1}{G}\sum_{g'=1}^{G} R_t^{(g')}}{\sigma\left(R_t^{(g)}\right)}
+> $$
+>
+> - $R_t^{(g)}$ is the return of the $g$-th sampled joint response at turn $t$
+> - $G$ is the number of joint responses sampled as a group
+> - $\sigma$ is the standard deviation of the returns in that group
+>
+> **Idea:** Compare each joint behaviour with the average of its own group, then
+> divide by the spread so the size of the update does not depend on how the
+> task happens to be scaled.
+
+In four steps:
+
+1. generate several candidate **joint behaviours**;
+2. evaluate each with the shared objective;
+3. compare each return with the group average;
+4. reinforce the joint behaviours that did relatively well.
+
+<Callout variant="takeaway">
+Notice what is being compared. Not one agent against another, and not an agent
+against a baseline policy, but **one joint behaviour against other joint
+behaviours** of the same team.
+
+That sidesteps having to say which agent earned the reward. It does not answer
+the question.
+</Callout>
+
+### Training and execution are separate
+
+Group sampling and the group-relative comparison happen while learning. What is
+deployed is each policy on its own local input.
+
+That is <Term tone="policy">centralized training with decentralized
+execution</Term>, the paradigm from *Chapter 1*, in a setting where the actors
+are language models.
+
+## Visual Lab: Group-Relative Advantage Playground
+
+Four joint responses were sampled and scored. Move the sliders and watch which
+ones would be reinforced.
+
+<GroupAdvantage />
+
+<Callout tone="observe" title="Teaching simulation" icon="compass">
+This visualization computes the group-relative advantage on numbers you choose.
+It trains nothing, involves no language model, and reproduces no published
+result.
+</Callout>
+
+Two behaviours are worth provoking deliberately:
+
+- **Set every score the same.** The mean carries no information, no candidate
+  is preferred, and the learning signal vanishes. A group that never disagrees
+  teaches nothing.
+- **Add the same amount to every score.** The mean moves with them and the
+  advantages do not change. Only the ranking within the group matters, which is
+  why this estimator does not need a separately learned value baseline.
+
+<KnowledgeCheck
+  id="frontier-magrpo"
+  type="choice"
+  question="MAGRPO compares each sampled joint response with the average of its group. What does that comparison avoid having to do?"
+  options={[
+    {
+      text: 'Decide which individual agent was responsible for the outcome.',
+      correct: true,
+      feedback: 'Right. The comparison is between whole joint behaviours, so the update never has to attribute the score to one agent. That is a way of proceeding despite the credit-assignment problem rather than a solution to it, and the distinction is worth keeping.',
+    },
+    {
+      text: 'Collect a reward at all, since the group average replaces it.',
+      correct: false,
+      feedback: 'The group average is computed from the rewards. Every candidate still has to be scored by the shared objective; what changes is what each score is compared against.',
+    },
+    {
+      text: 'Train a separate value function as a baseline.',
+      correct: false,
+      feedback: 'This is true and it is a real convenience, but it is not what the comparison avoids in the sense the question asks. Using the group mean as the baseline is a consequence of sampling a group, not the reason for doing so.',
+    },
+    {
+      text: 'Keep execution decentralized.',
+      correct: false,
+      feedback: 'The opposite: decentralized execution is preserved deliberately, and the group-relative comparison is part of the centralized training that makes it possible. That is the CTDE pattern from Chapter 1.',
+    },
+  ]}
+>
+A method that works despite a problem and a method that solves it are
+different claims, and they support different conclusions.
+</KnowledgeCheck>
+
+## 4. What Current Research Shows
+
+Three papers, and what each one actually establishes.
+
+<ResearchConnection
+  title="MAPoRL: Multi-Agent Post-Co-Training for Collaborative Large Language Models with Reinforcement Learning"
+  authors="Chanwoo Park, Seungju Han, Xingzhi Guo, Asuman E. Ozdaglar, Kaiqing Zhang, Joo-Kyung Kim"
+  venue="Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics"
+  year={2025}
+  url="https://aclanthology.org/2025.acl-long.1459/"
+>
+**Idea.** Co-train several language models through reinforcement learning inside
+a collaborative discussion. The models generate their own responses, discuss
+them, and a verifier scores the final output; that score is the reward.
+
+**Key connection.** Collaboration is optimized during post-training rather than
+left entirely to prompting a frozen model.
+
+**Reported.** The authors report that training single models alone is
+insufficient to encourage collaboration, and that co-training improved
+collaboration across their datasets with generalization to unseen domains,
+compared with the same models before post-training.
+</ResearchConnection>
+
+<ResearchConnection
+  title="LLM Collaboration with Multi-Agent Reinforcement Learning"
+  authors="Shuo Liu, Zeyu Liang, Xueguang Lyu, Christopher Amato"
+  venue="Proceedings of the AAAI Conference on Artificial Intelligence, 40(38), 32150 to 32158"
+  year={2026}
+  url="https://ojs.aaai.org/index.php/AAAI/article/view/40487"
+  arxiv="2508.04652"
+>
+**Idea.** Formalize LLM collaboration as a cooperative MARL problem, state it as
+a Dec-POMDP, and optimize several LLM agents with joint rewards and
+group-relative advantages.
+
+**Studied on.** Writing and coding collaboration.
+
+**Key connection.** This is the paper the whole of this section is built on:
+cooperative MARL with decentralized LLM execution.
+</ResearchConnection>
+
+<ResearchConnection
+  title="Learning Decentralized LLM Collaboration with Multi-Agent Actor Critic"
+  authors="Shuo Liu, Tianle Chen, Ryan Amiri, Christopher Amato"
+  venue="International Conference on Machine Learning"
+  year={2026}
+  url="https://icml.cc/virtual/2026/poster/62068"
+  arxiv="2601.21972"
+>
+**Idea.** Study critic design for learning decentralized LLM collaboration. The
+authors propose two actor-critic approaches, CoLLM-CC with a centralized critic
+and CoLLM-DC with decentralized critics.
+
+**Studied on.** Writing, coding, and game-playing.
+
+**Reported.** Monte Carlo methods and CoLLM-DC reached performance comparable
+to CoLLM-CC in their short-horizon, dense-reward settings, and underperformed it
+in long-horizon or sparse-reward ones.
+
+**Key connection.** A direct continuation of *Centralized Critics* from Chapter
+1. The question of when the extra centralized information earns its cost is the
+same question, asked of language models.
+</ResearchConnection>
+
+<Callout variant="pitfall">
+Read those three summaries for what they are: results on particular models,
+particular tasks and particular training budgets.
+
+None of them establishes that learned collaboration beats a well-designed
+prompted workflow in general, and none establishes transfer to model families
+they did not train on. This section is a bridge to an active research area, not
+a report of settled findings.
+</Callout>
+
+## 5. What Remains Open
+
+- **Coordination.** How should work be divided among LLM agents?
+- **Communication.** What information is actually worth exchanging, and how
+  many turns are worth paying for?
+- **Credit assignment.** How should a joint outcome be attributed across agents
+  and across turns?
+- **Partner generalization.** Will learned collaboration transfer to different
+  models or different agent populations?
+- **Scalability.** How do you train several large policies without prohibitive
+  sampling and inference cost? Liu and colleagues discuss this directly, noting
+  the difficulty created by very large language action and observation spaces.
+- **Evaluation.** How do you distinguish genuine collaboration from simply
+  making more model calls?
+
+That last one should feel familiar. It is the question the Challenge Lab asked
+about communication: the messages improved throughput and still lowered the
+objective, because the objective charged for them. More calls is not more
+cooperation until something measures the difference.
+
+<Callout variant="takeaway" title="The main idea">
+LLM collaboration gives the familiar problems of cooperative MARL a new setting.
+
+**The agents now communicate and act through language, but coordination, credit
+assignment, decentralized execution, and generalization still matter.**
+</Callout>
+
+## Learning LLM Collaboration Summary
+
+- Multi-LLM collaboration can be stated as a **Dec-POMDP** with no change to
+  the framework: an observation is a prompt, an action is a whole response, and
+  $H$ counts dialogue turns.
+- A joint task reward reopens **credit assignment** rather than resolving it.
+- **MAGRPO** samples a group of joint responses and scores each against the
+  group's own average, which avoids attributing the outcome to one agent.
+- Training uses group-level information; **execution stays decentralized**,
+  which is CTDE in a new setting.
+- Current results are promising and narrow. Partner generalization,
+  scalability, and honest evaluation are open.
+
+## References
+
+- Liu, S., Liang, Z., Lyu, X., and Amato, C. **LLM Collaboration with
+  Multi-Agent Reinforcement Learning.** *Proceedings of the AAAI Conference on
+  Artificial Intelligence*, 40(38), 32150 to 32158, 2026.
+  [Publisher](https://ojs.aaai.org/index.php/AAAI/article/view/40487) ·
+  [arXiv:2508.04652](https://arxiv.org/abs/2508.04652)
+- Park, C., Han, S., Guo, X., Ozdaglar, A. E., Zhang, K., and Kim, J.-K.
+  **MAPoRL: Multi-Agent Post-Co-Training for Collaborative Large Language
+  Models with Reinforcement Learning.** *Proceedings of the 63rd Annual Meeting
+  of the Association for Computational Linguistics*, 30215 to 30248, 2025.
+  [ACL Anthology](https://aclanthology.org/2025.acl-long.1459/)
+- Liu, S., Chen, T., Amiri, R., and Amato, C. **Learning Decentralized LLM
+  Collaboration with Multi-Agent Actor Critic.** *International Conference on
+  Machine Learning*, 2026.
+  [ICML](https://icml.cc/virtual/2026/poster/62068) ·
+  [arXiv:2601.21972](https://arxiv.org/abs/2601.21972)
+
+## Review with Flashcards
+
+Revisit the 5 key concepts, equations, and intuitions from this section.
+
+[**Open Frontier Flashcards**](/resources/flashcards/frontier/)
+

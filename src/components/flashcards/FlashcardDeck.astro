@@ -1,0 +1,593 @@
+---
+/**
+ * FLASHCARD DECK
+ *
+ * A study sheet, not a flashcard app. Every card in the deck is on the page at
+ * once, each one flips on its own, and nothing enforces an order. The learner
+ * decides what to test and what to read.
+ *
+ * That rules out the usual apparatus deliberately: no queue, no session, no
+ * score, no streak. Retrieval practice needs a prompt, a pause and an answer,
+ * and everything past that is a different product.
+ *
+ * Maths is rendered at build time. Card text is a prop, so it never reaches
+ * remark-math, and `$...$` would otherwise ship as literal dollar signs.
+ */
+import katex from 'katex';
+import type { Deck, Block } from '../../lib/flashcards';
+import { renderInlineMath } from '../../lib/equations/inline-math';
+import { PROSE_MACROS } from '../../lib/equations/notation.mjs';
+
+interface Props {
+  deck: Deck;
+}
+const { deck } = Astro.props;
+
+/** Inline `$maths$`, `**bold**` and `` `code` ``, with everything else escaped. */
+function rich(text: string): string {
+  return renderInlineMath(text)
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+
+function display(tex: string): string {
+  try {
+    return katex.renderToString(tex, {
+      throwOnError: false,
+      displayMode: true,
+      macros: PROSE_MACROS,
+      output: 'html',
+    });
+  } catch {
+    return '';
+  }
+}
+
+const types = [...new Set(deck.cards.map((c) => c.type))].sort();
+
+/**
+ * One semantic tone per card type.
+ *
+ * The type is also written on every card, so nothing here is carried by colour
+ * alone. It exists to make a deck scannable: you can pick the equation cards
+ * out of forty-five without reading them.
+ */
+const TONE: Record<string, string> = {
+  Concept: 'policy',
+  Equation: 'observe',
+  Intuition: 'reward',
+  Distinction: 'action',
+  Scenario: 'conflict',
+  Frontier: 'comm',
+};
+
+/** Everything a card's search index should match: its prompt and its answer. */
+function haystack(card: (typeof deck.cards)[number]): string {
+  const parts = [card.question, card.type, card.front ?? ''];
+  for (const b of card.answer) {
+    if ('p' in b) parts.push(b.p);
+    else if ('ul' in b) parts.push(...b.ul);
+    else if ('eq' in b) parts.push(b.eq);
+    else if ('note' in b) parts.push(b.note);
+    else if ('terms' in b) parts.push(...b.terms.map((t) => `${t.tex} ${t.is}`));
+  }
+  return parts.join(' ').replace(/[\\${}]/g, ' ').toLowerCase();
+}
+
+const DIAGRAMS = {
+  'vdn-sum': {
+    label: 'Three local values feeding a sum that produces the team value.',
+    rows: ['Q₁', 'Q₂', 'Q₃'],
+  },
+  ctde: { label: '', rows: [] },
+} as const;
+---
+
+<section class="fc not-content" data-deck={deck.slug}>
+  <div class="fc__bar">
+    <div class="fc__search">
+      <label class="fc__srOnly" for={`fc-q-${deck.slug}`}>Search this deck</label>
+      <input
+        class="fc__input"
+        id={`fc-q-${deck.slug}`}
+        type="search"
+        placeholder="Search this deck..."
+        autocomplete="off"
+        data-search
+      />
+    </div>
+
+    <div class="fc__filters" role="group" aria-label="Filter by card type">
+      <button type="button" class="fc__chip is-on" data-filter="all" aria-pressed="true">All</button>
+      {types.map((t) => (
+        <button type="button" class="fc__chip" data-filter={t} aria-pressed="false">{t}</button>
+      ))}
+    </div>
+
+    <div class="fc__toggles">
+      <button type="button" class="fc__btn" data-reveal-all>Reveal all</button>
+      <button type="button" class="fc__btn" data-hide-all>Hide all</button>
+    </div>
+  </div>
+
+  <p class="fc__count" role="status" aria-live="polite" data-count>
+    {deck.cards.length} cards
+  </p>
+
+  <ul class="fc__grid" data-grid>
+    {
+      deck.cards.map((card) => (
+        <li class="fc__cell" data-card data-type={card.type} data-index={haystack(card)}>
+          <article class="fc__card" data-tone={TONE[card.type] ?? 'policy'}>
+            <div class="fc__flip" data-flip="false">
+              <div class="fc__face fc__face--front">
+                <p class="fc__type">{card.type}</p>
+              <h3 class="fc__q" set:html={rich(card.question)} />
+              {card.front && <div class="fc__eq" set:html={display(card.front)} />}
+              {card.diagram === 'vdn-sum' && (
+                <svg class="fc__diagram" viewBox="0 0 240 96" role="img"
+                  aria-label={DIAGRAMS['vdn-sum'].label}>
+                  {[20, 48, 76].map((y, i) => (
+                    <>
+                      <text class="fc__dText" x="10" y={y + 4}>{DIAGRAMS['vdn-sum'].rows[i]}</text>
+                      <path class="fc__dLine" d={`M 34 ${y} H 66 V 48`} />
+                    </>
+                  ))}
+                  <path class="fc__dLine" d="M 66 48 H 92" marker-end="url(#fc-arrow)" />
+                  <rect class="fc__dBox" x="94" y="34" width="44" height="28" rx="5" />
+                  <text class="fc__dText" x="116" y="52" text-anchor="middle">SUM</text>
+                  <path class="fc__dLine" d="M 140 48 H 166" marker-end="url(#fc-arrow)" />
+                  <text class="fc__dText" x="172" y="52">Q_total</text>
+                </svg>
+              )}
+              {card.diagram === 'ctde' && (
+                <svg class="fc__diagram" viewBox="0 0 250 110" role="img"
+                  aria-label="Global state feeding centralized training above, and two agents each mapping their own observation to their own action below.">
+                  <rect class="fc__dBox is-dashed" x="60" y="6" width="130" height="24" rx="5" />
+                  <text class="fc__dText" x="125" y="22" text-anchor="middle">Global state</text>
+                  <path class="fc__dLine" d="M 125 32 V 44" marker-end="url(#fc-arrow)" />
+                  <text class="fc__dText" x="125" y="56" text-anchor="middle">Centralized training</text>
+                  <line class="fc__dRule" x1="10" y1="66" x2="240" y2="66" />
+                  {[82, 102].map((y, i) => (
+                    <>
+                      <text class="fc__dText" x="12" y={y + 4}>{`o${i === 0 ? '¹' : '²'}`}</text>
+                      <path class="fc__dLine" d={`M 34 ${y} H 58`} marker-end="url(#fc-arrow)" />
+                      <rect class="fc__dBox" x="60" y={y - 11} width="72" height="22" rx="4" />
+                      <text class="fc__dText" x="96" y={y + 4} text-anchor="middle">{`Agent ${i + 1}`}</text>
+                      <path class="fc__dLine" d={`M 134 ${y} H 158`} marker-end="url(#fc-arrow)" />
+                      <text class="fc__dText" x="162" y={y + 4}>{`a${i === 0 ? '¹' : '²'}`}</text>
+                    </>
+                  ))}
+                </svg>
+              )}
+              </div>
+
+              <div class="fc__face fc__face--back" aria-hidden="true">
+                <p class="fc__type">{card.type}</p>
+              {card.answer.map((b: Block) =>
+                'p' in b ? (
+                  <p class="fc__p" set:html={rich(b.p)} />
+                ) : 'ul' in b ? (
+                  <ul class="fc__ul">
+                    {b.ul.map((item) => <li set:html={rich(item)} />)}
+                  </ul>
+                ) : 'eq' in b ? (
+                  <div class="fc__eq" set:html={display(b.eq)} />
+                ) : 'terms' in b ? (
+                  <dl class="fc__terms">
+                    {b.terms.map((t) => (
+                      <>
+                        <dt set:html={renderInlineMath(`$${t.tex}$`)} />
+                        <dd set:html={rich(t.is)} />
+                      </>
+                    ))}
+                  </dl>
+                ) : (
+                  <p class="fc__note" set:html={rich(b.note)} />
+                ),
+              )}
+              </div>
+            </div>
+
+            <button type="button" class="fc__reveal" data-toggle aria-expanded="false">
+              <span data-label>Show answer</span>
+            </button>
+          </article>
+        </li>
+      ))
+    }
+  </ul>
+
+  <p class="fc__empty" hidden data-empty>
+    No card in this deck matches that search.
+  </p>
+
+  <svg width="0" height="0" aria-hidden="true" style="position:absolute">
+    <defs>
+      <marker id="fc-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5"
+        markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 1 L 9 5 L 0 9 z" fill="context-stroke" />
+      </marker>
+    </defs>
+  </svg>
+</section>
+
+<style>
+  .fc { margin-block: var(--s-5); container-type: inline-size; }
+
+  .fc__srOnly {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* ----------------------------------------------------------------- bar */
+  .fc__bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-3);
+    padding-bottom: var(--s-3);
+    border-bottom: var(--hairline) solid var(--rule);
+  }
+  .fc__search { flex: 1 1 14rem; min-width: 0; }
+  .fc__input {
+    width: 100%;
+    padding: 0.4rem 0.7rem;
+    font-family: var(--font-sans);
+    font-size: var(--t-meta);
+    color: var(--ink);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-sm);
+  }
+  .fc__input:focus-visible { outline: 2px solid var(--ui); outline-offset: 1px; }
+
+  .fc__filters,
+  .fc__toggles { display: flex; flex-wrap: wrap; gap: var(--s-1); }
+
+  .fc__chip,
+  .fc__btn {
+    padding: 0.28rem 0.7rem;
+    font-family: var(--font-sans);
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    color: var(--ink-muted);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+  .fc__chip:hover,
+  .fc__btn:hover { color: var(--ink); border-color: var(--ui); }
+  .fc__chip.is-on {
+    color: var(--ui);
+    background: var(--c-observe-tint);
+    border-color: var(--c-observe-edge);
+  }
+  .fc__chip:focus-visible,
+  .fc__btn:focus-visible { outline: 2px solid var(--ui); outline-offset: 1px; }
+
+  .fc__count {
+    margin: var(--s-2) 0 0;
+    font-family: var(--font-sans);
+    font-size: var(--t-micro);
+    color: var(--ink-muted);
+  }
+
+  /* ---------------------------------------------------------------- grid */
+  .fc__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    /* Each card takes its own height. Stretching a closed card to match an
+       open neighbour leaves a large empty panel next to the answer. */
+    align-items: start;
+    gap: var(--s-3);
+    margin: var(--s-3) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .fc__cell { min-width: 0; }
+  .fc__cell[hidden] { display: none; }
+
+  .fc__card { display: flex; flex-direction: column; }
+
+  /* ---------------------------------------------------------------- card */
+  .fc__card {
+    /* the tone is set per type and drives the edge, the label and the back */
+    --tone: var(--c-policy);
+    --tone-ink: var(--c-policy-ink);
+    --tone-tint: var(--c-policy-tint);
+    --tone-edge: var(--c-policy-edge);
+  }
+  .fc__card[data-tone='observe'] {
+    --tone: var(--c-observe); --tone-ink: var(--c-observe-ink);
+    --tone-tint: var(--c-observe-tint); --tone-edge: var(--c-observe-edge);
+  }
+  .fc__card[data-tone='action'] {
+    --tone: var(--c-action); --tone-ink: var(--c-action-ink);
+    --tone-tint: var(--c-action-tint); --tone-edge: var(--c-action-edge);
+  }
+  .fc__card[data-tone='reward'] {
+    --tone: var(--c-reward); --tone-ink: var(--c-reward-ink);
+    --tone-tint: var(--c-reward-tint); --tone-edge: var(--c-reward-edge);
+  }
+  .fc__card[data-tone='conflict'] {
+    --tone: var(--c-conflict); --tone-ink: var(--c-conflict-ink);
+    --tone-tint: var(--c-conflict-tint); --tone-edge: var(--c-conflict-edge);
+  }
+  .fc__card[data-tone='comm'] {
+    --tone: var(--c-comm); --tone-ink: var(--c-comm-ink, var(--c-observe-ink));
+    --tone-tint: var(--c-comm-tint, var(--c-observe-tint));
+    --tone-edge: var(--c-comm-edge, var(--c-observe-edge));
+  }
+
+  /* ---------------------------------------------------------------- flip */
+  .fc__flip {
+    position: relative;
+    /* set per card by script, to the taller of the two faces, so the card
+       does not change size when it turns */
+    height: var(--fc-h, 12rem);
+    cursor: pointer;
+    perspective: 1200px;
+  }
+
+  .fc__face {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: var(--s-3) var(--s-4) var(--s-4);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-top: 3px solid var(--tone);
+    border-radius: var(--r-md);
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
+    transition: transform 300ms ease;
+  }
+  .fc__face--front { transform: rotateY(0deg); }
+  .fc__face--back {
+    transform: rotateY(180deg);
+    background: var(--tone-tint);
+    border-color: var(--tone-edge);
+    overflow-y: auto;
+    max-height: 100%;
+  }
+
+  .fc__flip[data-flip='true'] .fc__face--front { transform: rotateY(-180deg); }
+  .fc__flip[data-flip='true'] .fc__face--back { transform: rotateY(0deg); }
+
+  .fc__flip:hover .fc__face { border-color: var(--tone-edge); border-top-color: var(--tone); }
+  .fc__flip:hover .fc__face--back { border-color: var(--tone); }
+
+  /* A flip is decorative. Without it the two faces simply swap. */
+  @media (prefers-reduced-motion: reduce) {
+    .fc__face { transition: none; }
+    .fc__face--front,
+    .fc__face--back,
+    .fc__flip[data-flip='true'] .fc__face--front,
+    .fc__flip[data-flip='true'] .fc__face--back { transform: none; }
+    .fc__face--back { visibility: hidden; }
+    .fc__flip[data-flip='true'] .fc__face--front { visibility: hidden; }
+    .fc__flip[data-flip='true'] .fc__face--back { visibility: visible; }
+  }
+
+  .fc__type {
+    margin: 0 0 var(--s-2);
+    font-family: var(--font-sans);
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--tone-ink);
+  }
+
+  .fc__q {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--t-body);
+    font-weight: var(--w-semibold);
+    line-height: var(--lh-tight, 1.4);
+    color: var(--ink);
+  }
+
+  .fc__p { margin: var(--s-2) 0 0; font-size: var(--t-meta); line-height: var(--lh-body); }
+  .fc__p:first-of-type { margin-top: 0; }
+  .fc__ul {
+    margin: var(--s-2) 0 0;
+    padding-left: 1.1em;
+    font-size: var(--t-meta);
+    line-height: var(--lh-body);
+  }
+  .fc__ul li { margin-block: var(--s-1); }
+
+  .fc__eq {
+    margin: var(--s-3) 0 0;
+    overflow-x: auto;
+    text-align: center;
+  }
+  .fc__eq :global(.katex-display) { margin: 0; }
+
+  .fc__terms {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--s-1) var(--s-3);
+    margin: var(--s-3) 0 0;
+    font-size: var(--t-micro);
+  }
+  .fc__terms dt { color: var(--ink); }
+  .fc__terms dd { margin: 0; color: var(--ink-muted); }
+
+  .fc__note {
+    margin: var(--s-3) 0 0;
+    padding-left: var(--s-3);
+    border-left: 2px solid var(--tone);
+    font-family: var(--font-sans);
+    font-size: var(--t-micro);
+    line-height: var(--lh-body);
+    color: var(--ink-muted);
+  }
+
+  /* ------------------------------------------------------------ diagrams */
+  .fc__diagram { display: block; width: 100%; height: auto; margin-top: var(--s-3); }
+  .fc__dBox { fill: var(--surface-sunken); stroke: var(--rule); stroke-width: 1; }
+  .fc__dBox.is-dashed { fill: none; stroke: var(--ink-muted); stroke-dasharray: 4 3; }
+  .fc__dLine { fill: none; stroke: var(--ink-muted); stroke-width: 1.2; }
+  .fc__dRule { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 3 3; }
+  .fc__dText {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    fill: var(--ink);
+  }
+
+  /* ------------------------------------------------------------- control */
+  .fc__reveal {
+    align-self: flex-start;
+    margin-top: var(--s-2);
+    padding: 0.3rem 0.75rem;
+    font-family: var(--font-sans);
+    font-size: var(--t-micro);
+    font-weight: var(--w-semibold);
+    color: var(--tone-ink);
+    background: none;
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+  .fc__reveal:hover { border-color: var(--tone); color: var(--tone-ink); }
+  .fc__reveal:focus-visible { outline: 2px solid var(--ui); outline-offset: 1px; }
+
+  .fc__empty {
+    margin: var(--s-5) 0 0;
+    font-family: var(--font-sans);
+    font-size: var(--t-meta);
+    color: var(--ink-muted);
+  }
+  .fc__empty[hidden] { display: none; }
+
+  @container (max-width: 30rem) {
+    .fc__grid { grid-template-columns: 1fr; }
+    .fc__bar { flex-direction: column; align-items: stretch; }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-deck]').forEach((deck) => {
+    const cells = [...deck.querySelectorAll<HTMLElement>('[data-card]')];
+    const search = deck.querySelector<HTMLInputElement>('[data-search]');
+    const chips = [...deck.querySelectorAll<HTMLButtonElement>('[data-filter]')];
+    const count = deck.querySelector<HTMLElement>('[data-count]');
+    const empty = deck.querySelector<HTMLElement>('[data-empty]');
+    let filter = 'all';
+
+    /**
+     * Give every card a height that fits whichever face is taller.
+     *
+     * Both faces are absolutely positioned, so the flip container has no
+     * height of its own. Measuring them and taking the larger is what stops a
+     * card resizing as it turns, which is the thing that makes a flip look
+     * broken rather than deliberate.
+     */
+    const measure = () => {
+      cells.forEach((cell) => {
+        const flip = cell.querySelector<HTMLElement>('.fc__flip')!;
+        const front = cell.querySelector<HTMLElement>('.fc__face--front')!;
+        const back = cell.querySelector<HTMLElement>('.fc__face--back')!;
+        // The back is capped at the container height so a very long answer
+        // scrolls rather than spilling. That cap has to come off while
+        // measuring, or the back reports the container's current height and
+        // every answer ends up clipped by one card's worth of space.
+        back.style.maxHeight = 'none';
+        const tallest = Math.max(front.offsetHeight, back.offsetHeight);
+        back.style.maxHeight = '';
+        flip.style.setProperty('--fc-h', `${Math.ceil(tallest)}px`);
+      });
+    };
+
+    const setFlip = (cell: HTMLElement, open: boolean) => {
+      const flip = cell.querySelector<HTMLElement>('.fc__flip')!;
+      const front = cell.querySelector<HTMLElement>('.fc__face--front')!;
+      const back = cell.querySelector<HTMLElement>('.fc__face--back')!;
+      const button = cell.querySelector<HTMLButtonElement>('[data-toggle]')!;
+      const label = button.querySelector<HTMLElement>('[data-label]')!;
+      flip.dataset.flip = String(open);
+      // backface-visibility hides a face from the eye, not from a screen
+      // reader, so the hidden side is marked explicitly
+      front.setAttribute('aria-hidden', String(open));
+      back.setAttribute('aria-hidden', String(!open));
+      button.setAttribute('aria-expanded', String(open));
+      label.textContent = open ? 'Hide answer' : 'Show answer';
+    };
+
+    cells.forEach((cell) => {
+      const button = cell.querySelector<HTMLButtonElement>('[data-toggle]')!;
+      const flip = cell.querySelector<HTMLElement>('.fc__flip')!;
+      const toggle = () => setFlip(cell, flip.dataset.flip !== 'true');
+
+      button.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggle();
+      });
+      // turning the card by tapping it is the whole point on a phone
+      flip.addEventListener('click', (e) => {
+        const el = e.target as HTMLElement;
+        if (el.closest('a, button, input')) return;
+        toggle();
+      });
+    });
+
+    const apply = () => {
+      const q = (search?.value ?? '').trim().toLowerCase();
+      let shown = 0;
+      cells.forEach((cell) => {
+        const matchesType = filter === 'all' || cell.dataset.type === filter;
+        const matchesText = !q || (cell.dataset.index ?? '').includes(q);
+        const visible = matchesType && matchesText;
+        cell.hidden = !visible;
+        if (visible) shown += 1;
+      });
+      if (count) {
+        count.textContent =
+          shown === cells.length
+            ? `${cells.length} cards`
+            : `${shown} of ${cells.length} cards`;
+      }
+      if (empty) empty.hidden = shown > 0;
+    };
+
+    search?.addEventListener('input', apply);
+    chips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        filter = chip.dataset.filter ?? 'all';
+        chips.forEach((c) => {
+          const on = c === chip;
+          c.classList.toggle('is-on', on);
+          c.setAttribute('aria-pressed', String(on));
+        });
+        apply();
+      });
+    });
+
+    deck.querySelector('[data-reveal-all]')?.addEventListener('click', () => {
+      cells.forEach((cell) => !cell.hidden && setFlip(cell, true));
+    });
+    deck.querySelector('[data-hide-all]')?.addEventListener('click', () => {
+      cells.forEach((cell) => setFlip(cell, false));
+    });
+
+    apply();
+    measure();
+    // KaTeX and the webfont both change how tall a face is
+    document.fonts?.ready.then(measure).catch(() => {});
+
+    let pending = 0;
+    window.addEventListener('resize', () => {
+      window.clearTimeout(pending);
+      pending = window.setTimeout(measure, 150);
+    });
+  });
+</script>

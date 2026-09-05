@@ -81,7 +81,7 @@ export default defineConfig({
     starlight({
       title: 'MARL in Cooperative Environments',
       description:
-        'Multi-Agent Reinforcement Learning for Cooperative Environments: learning to coordinate, communicate, and adapt. An interactive undergraduate resource.',
+        'Multi-Agent Reinforcement Learning in Cooperative Environments. In multi-agent reinforcement learning (MARL), where multiple agents learn to act toward a shared goal, generalizable cooperation asks whether effective teamwork can persist when partners, communication conventions, or deployment conditions differ from training.',
 
       components: {
         Header: './src/components/overrides/Header.astro',

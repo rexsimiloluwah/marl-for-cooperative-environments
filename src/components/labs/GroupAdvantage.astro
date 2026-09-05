@@ -1,0 +1,367 @@
+---
+/**
+ * GROUP-RELATIVE ADVANTAGE PLAYGROUND
+ *
+ * The mechanism at the centre of MAGRPO, made adjustable. Sample a group of
+ * joint responses, score each one, compare each score with the group average,
+ * and reinforce the ones that came out above it.
+ *
+ * This is a TEACHING SIMULATION. It computes the estimator on numbers the
+ * reader chooses. It trains nothing, and it reproduces no published result.
+ *
+ * The estimator is the paper's, including the division by the standard
+ * deviation. The centred numerator is shown separately because that is the
+ * part carrying the idea, and normalising is a scaling step on top of it.
+ */
+const DEFAULTS = [0.8, 0.3, 0.9, 0.5];
+---
+
+<group-advantage class="ga not-content">
+  <div class="ga__head">
+    <p class="ga__title">Four sampled joint responses</p>
+    <button class="ga__reset" type="button" data-reset>Reset</button>
+  </div>
+
+  <div class="ga__rows">
+    {
+      DEFAULTS.map((value, i) => (
+        <div class="ga__row">
+          <label class="ga__name" for={`ga-${i}`}>{`Candidate ${i + 1}`}</label>
+          <input
+            class="ga__slider"
+            id={`ga-${i}`}
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={value}
+            data-score={i}
+          />
+          <output class="ga__score" data-out={i}>{value.toFixed(2)}</output>
+        </div>
+      ))
+    }
+  </div>
+
+  <svg class="ga__chart" viewBox="0 0 520 200" role="img" data-chart
+    aria-label="Bar chart of the four scores against the group mean. Bars above the mean have a positive advantage and would be reinforced.">
+    <g data-mean></g>
+    <g data-bars></g>
+  </svg>
+
+  <div class="ga__readout">
+    <div class="ga__stat">
+      <span class="ga__statLabel">Group mean</span>
+      <span class="ga__statValue" data-mean-value>&mdash;</span>
+    </div>
+    <div class="ga__stat">
+      <span class="ga__statLabel">Standard deviation</span>
+      <span class="ga__statValue" data-sd-value>&mdash;</span>
+    </div>
+    <div class="ga__stat">
+      <span class="ga__statLabel">Reinforced</span>
+      <span class="ga__statValue" data-count>&mdash;</span>
+    </div>
+  </div>
+
+  <div class="table-scroll">
+    <table class="ga__table">
+      <thead>
+        <tr>
+          <th>Candidate</th>
+          <th>Score</th>
+          <th>Score minus mean</th>
+          <th>Advantage</th>
+          <th>Effect</th>
+        </tr>
+      </thead>
+      <tbody data-table></tbody>
+    </table>
+  </div>
+
+  <p class="ga__note" data-note></p>
+</group-advantage>
+
+<style>
+  .ga {
+    display: block;
+    margin-block: var(--s-6);
+    padding: var(--s-4);
+    background: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-md);
+  }
+
+  .ga__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-3);
+    margin-bottom: var(--s-3);
+  }
+  .ga__title {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--t-meta);
+    font-weight: var(--w-semibold);
+    color: var(--ink-muted);
+  }
+  .ga__reset {
+    padding: 3px 11px;
+    font-family: var(--font-sans);
+    font-size: var(--t-meta);
+    color: var(--ink-muted);
+    background: none;
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+  .ga__reset:hover { border-color: var(--ui); color: var(--ink); }
+
+  .ga__rows { display: grid; gap: var(--s-2); }
+  .ga__row {
+    display: grid;
+    grid-template-columns: 7rem 1fr 3rem;
+    align-items: center;
+    gap: var(--s-3);
+  }
+  .ga__name {
+    font-family: var(--font-sans);
+    font-size: var(--t-meta);
+    color: var(--ink);
+  }
+  .ga__slider { width: 100%; accent-color: var(--ui); }
+  .ga__score {
+    font-family: var(--font-mono);
+    font-size: var(--t-meta);
+    text-align: right;
+    color: var(--ink);
+  }
+
+  .ga__chart {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin-top: var(--s-4);
+  }
+
+  .ga__readout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-4);
+    margin-top: var(--s-3);
+    padding-top: var(--s-3);
+    border-top: var(--hairline) solid var(--rule);
+  }
+  .ga__stat { display: flex; flex-direction: column; gap: 2px; }
+  .ga__statLabel {
+    font-family: var(--font-sans);
+    font-size: var(--t-micro);
+    color: var(--ink-muted);
+  }
+  .ga__statValue {
+    font-family: var(--font-mono);
+    font-size: var(--t-body);
+    color: var(--ink);
+  }
+
+  .ga__table {
+    width: 100%;
+    margin-top: var(--s-4);
+    border-collapse: collapse;
+    font-family: var(--font-sans);
+    font-size: var(--t-meta);
+  }
+  .ga__table th,
+  .ga__table td {
+    padding: var(--s-2) var(--s-3);
+    text-align: left;
+    border-bottom: var(--hairline) solid var(--rule);
+  }
+  .ga__table th {
+    font-weight: var(--w-semibold);
+    color: var(--ink-muted);
+    text-transform: none;
+  }
+  .ga__table td:nth-child(n + 2) { font-family: var(--font-mono); }
+  .ga__table .is-up { color: var(--c-reward-ink); }
+  .ga__table .is-down { color: var(--c-conflict-ink); }
+
+  .ga__note {
+    margin: var(--s-3) 0 0;
+    font-family: var(--font-sans);
+    font-size: var(--t-meta);
+    line-height: var(--lh-body);
+    color: var(--ink-muted);
+  }
+
+  /* ------------------------------------------------------------- chart */
+  .ga__chart :global(.ga-bar) { fill: var(--c-observe); }
+  .ga__chart :global(.ga-bar.is-up) { fill: var(--c-reward); }
+  .ga__chart :global(.ga-bar.is-down) { fill: var(--c-conflict); opacity: 0.75; }
+  .ga__chart :global(.ga-axis) { stroke: var(--rule); stroke-width: 1; }
+  .ga__chart :global(.ga-mean) {
+    stroke: var(--ink);
+    stroke-width: 1.6;
+    stroke-dasharray: 5 4;
+  }
+  .ga__chart :global(.ga-text) {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    fill: var(--ink-muted);
+  }
+  .ga__chart :global(.ga-value) {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    fill: var(--ink);
+  }
+
+  @media (max-width: 34rem) {
+    .ga__row { grid-template-columns: 5.5rem 1fr 2.6rem; gap: var(--s-2); }
+  }
+</style>
+
+<script>
+  const DEFAULTS = [0.8, 0.3, 0.9, 0.5];
+
+  class GroupAdvantage extends HTMLElement {
+    connectedCallback() {
+      this.sliders = [...this.querySelectorAll('[data-score]')];
+      this.outs = [...this.querySelectorAll('[data-out]')];
+      this.sliders.forEach((s) => s.addEventListener('input', () => this.render()));
+      this.querySelector('[data-reset]')?.addEventListener('click', () => {
+        this.sliders.forEach((s, i) => (s.value = String(DEFAULTS[i])));
+        this.render();
+      });
+      this.render();
+    }
+
+    scores() {
+      return this.sliders.map((s) => Number(s.value));
+    }
+
+    render() {
+      const scores = this.scores();
+      const n = scores.length;
+      const mean = scores.reduce((a, b) => a + b, 0) / n;
+      // population standard deviation, as the estimator uses
+      const variance = scores.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
+      const sd = Math.sqrt(variance);
+      const centred = scores.map((r) => r - mean);
+      // every score identical means no signal at all, which is worth showing
+      const advantage = centred.map((c) => (sd > 1e-9 ? c / sd : 0));
+
+      this.outs.forEach((o, i) => (o.textContent = scores[i].toFixed(2)));
+      this.querySelector('[data-mean-value]').textContent = mean.toFixed(2);
+      this.querySelector('[data-sd-value]').textContent = sd.toFixed(2);
+      const up = centred.filter((c) => c > 1e-9).length;
+      this.querySelector('[data-count]').textContent = `${up} of ${n}`;
+
+      this.drawChart(scores, mean);
+      this.drawTable(scores, centred, advantage, sd);
+      this.drawNote(sd, up, n);
+    }
+
+    drawChart(scores, mean) {
+      const svg = this.querySelector('[data-chart]');
+      const bars = svg.querySelector('[data-bars]');
+      const meanG = svg.querySelector('[data-mean]');
+      const W = 520;
+      const H = 200;
+      const pad = { t: 14, r: 96, b: 30, l: 86 };
+      const plotW = W - pad.l - pad.r;
+      const plotH = H - pad.t - pad.b;
+      const band = plotH / scores.length;
+      const x = (v) => pad.l + v * plotW;
+
+      bars.textContent = '';
+      scores.forEach((v, i) => {
+        const y = pad.t + i * band + band * 0.18;
+        const h = band * 0.64;
+        const above = v - mean > 1e-9;
+        const below = v - mean < -1e-9;
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('class', `ga-bar${above ? ' is-up' : below ? ' is-down' : ''}`);
+        rect.setAttribute('x', String(pad.l));
+        rect.setAttribute('y', String(y));
+        rect.setAttribute('width', String(Math.max(1, v * plotW)));
+        rect.setAttribute('height', String(h));
+        rect.setAttribute('rx', '2');
+        bars.append(rect);
+
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('class', 'ga-text');
+        label.setAttribute('x', String(pad.l - 10));
+        label.setAttribute('y', String(y + h / 2 + 4));
+        label.setAttribute('text-anchor', 'end');
+        label.textContent = `Candidate ${i + 1}`;
+        bars.append(label);
+
+        const value = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        value.setAttribute('class', 'ga-value');
+        value.setAttribute('x', String(x(v) + 8));
+        value.setAttribute('y', String(y + h / 2 + 4));
+        const delta = v - mean;
+        value.textContent =
+          `${v.toFixed(2)}   ${delta >= 0 ? '+' : ''}${delta.toFixed(2)}`;
+        bars.append(value);
+      });
+
+      meanG.textContent = '';
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('class', 'ga-mean');
+      line.setAttribute('x1', String(x(mean)));
+      line.setAttribute('x2', String(x(mean)));
+      line.setAttribute('y1', String(pad.t - 4));
+      line.setAttribute('y2', String(pad.t + plotH + 4));
+      meanG.append(line);
+
+      const tag = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      tag.setAttribute('class', 'ga-text');
+      tag.setAttribute('x', String(x(mean)));
+      tag.setAttribute('y', String(H - 12));
+      tag.setAttribute('text-anchor', 'middle');
+      tag.textContent = `group mean ${mean.toFixed(2)}`;
+      meanG.append(tag);
+    }
+
+    drawTable(scores, centred, advantage, sd) {
+      const body = this.querySelector('[data-table]');
+      body.textContent = '';
+      scores.forEach((v, i) => {
+        const tr = document.createElement('tr');
+        const c = centred[i];
+        const cls = c > 1e-9 ? 'is-up' : c < -1e-9 ? 'is-down' : '';
+        const effect =
+          c > 1e-9 ? 'reinforced' : c < -1e-9 ? 'discouraged' : 'no change';
+        tr.innerHTML =
+          `<td>Candidate ${i + 1}</td>` +
+          `<td>${v.toFixed(2)}</td>` +
+          `<td class="${cls}">${c >= 0 ? '+' : ''}${c.toFixed(2)}</td>` +
+          `<td class="${cls}">${sd > 1e-9 ? (advantage[i] >= 0 ? '+' : '') + advantage[i].toFixed(2) : 'n/a'}</td>` +
+          `<td class="${cls}">${effect}</td>`;
+        body.append(tr);
+      });
+    }
+
+    drawNote(sd, up, n) {
+      const note = this.querySelector('[data-note]');
+      if (sd <= 1e-9) {
+        note.textContent =
+          'Every candidate scored the same, so the group mean carries no ' +
+          'information and no candidate is preferred. A group that never ' +
+          'disagrees produces no learning signal.';
+        return;
+      }
+      note.textContent =
+        `${up} of ${n} joint responses scored above the group average and ` +
+        'would be reinforced. Notice that only the ranking within the group ' +
+        'matters: adding the same amount to every score moves the mean with ' +
+        'it and changes nothing.';
+    }
+  }
+
+  if (!customElements.get('group-advantage')) {
+    customElements.define('group-advantage', GroupAdvantage);
+  }
+</script>
